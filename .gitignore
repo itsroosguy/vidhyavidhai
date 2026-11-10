@@ -1,0 +1,25 @@
+# OS & editor artifacts
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies & build outputs
+node_modules/
+**/node_modules/
+frontend/dist/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local environment secrets (never commit live OAuth or Apps Script URLs)
+.env
+.env.*
+!.env.example
+
+# Deployment caches & local logs
+.vercel/
+.netlify/
+*.log
+npm-debug.log*

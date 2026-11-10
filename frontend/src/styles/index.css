@@ -1,0 +1,679 @@
+@import "tailwindcss";
+
+@property --ct-progress-val {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+:root {
+  --ct-bg-main: #0C1326;
+  --ct-bg-card: #101E3C;
+  --ct-bg-secondary: #162D55;
+  --ct-bg-input: #0C1931;
+  --ct-bg-input-readonly: color-mix(in oklab, #0C1931 82%, #0C1326);
+  --ct-border-card: #26456F;
+  --ct-border-input: #26456F;
+  --ct-bg-nav-active: #172B4D;
+  --ct-accent-teal: #4EBBBB;
+  --ct-accent-teal-hover: color-mix(in oklab, #4EBBBB 86%, #E8EFFC);
+  --ct-accent-teal-soft: rgba(78, 187, 187, 0.14);
+  --ct-accent-teal-border: rgba(78, 187, 187, 0.45);
+  --ct-accent-ink: #0C1326;
+  --ct-text-primary: #E8EFFC;
+  --ct-text-secondary: #A4B7D2;
+  --ct-text-muted: #8294B1;
+  --ct-warning-bg: #392A11;
+  --ct-warning-accent: #F2B44D;
+  --ct-success: #48B98A;
+  --ct-error: #E77B83;
+  --ct-glass-surface: rgba(16, 30, 60, 0.90);
+  --ct-glass-border: #26456F;
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    font-family: "Google Sans", "Google Sans Text", Inter, system-ui, -apple-system, sans-serif;
+    background-color: var(--ct-bg-main);
+    color: var(--ct-text-primary);
+    accent-color: var(--ct-accent-teal);
+    scrollbar-color: var(--ct-text-muted) var(--ct-bg-main);
+    line-height: 1.5;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.25rem;
+    font-weight: 400;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--ct-bg-main);
+    background-image:
+      radial-gradient(ellipse 80% 55% at 50% -10%, rgba(78, 187, 187, 0.085), transparent 65%),
+      radial-gradient(ellipse 65% 45% at 88% 12%, rgba(22, 45, 85, 0.52), transparent 60%),
+      radial-gradient(rgba(164, 183, 210, 0.08) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 24px 24px;
+    background-attachment: fixed;
+    color: var(--ct-text-primary);
+    text-align: start;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background-color: rgba(78, 187, 187, 0.28);
+    color: var(--ct-text-primary);
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+
+  /* Strictly eliminate italic styling across application UI */
+  em,
+  i,
+  cite,
+  dfn {
+    font-style: normal;
+  }
+
+  fieldset {
+    min-inline-size: 0;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    font-size: max(1rem, 1em);
+  }
+}
+
+@layer components {
+  .ct-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Primary Midnight Navy surface card — clean depth & subtle border */
+  .ct-card {
+    background-color: var(--ct-bg-card);
+    border: 1px solid var(--ct-border-card);
+    border-radius: 0.875rem;
+    box-shadow: 0 10px 28px rgba(6, 11, 24, 0.28);
+  }
+
+  /* Subtle translucency reserved strictly for sticky toolbars, overlays & time picker popovers */
+  .ct-glass {
+    background-color: var(--ct-glass-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--ct-glass-border);
+    box-shadow:
+      0 14px 36px rgba(6, 11, 24, 0.42),
+      inset 0 1px 0 rgba(232, 239, 252, 0.07);
+  }
+
+  .ct-auth-stage {
+    background-color: var(--ct-bg-main);
+    background-image:
+      radial-gradient(circle 680px at 50% 42%, rgba(78, 187, 187, 0.14), transparent 70%),
+      radial-gradient(ellipse 90% 60% at 50% 0%, rgba(22, 45, 85, 0.72), transparent 72%),
+      radial-gradient(rgba(164, 183, 210, 0.08) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 28px 28px;
+  }
+
+  .ct-auth-card {
+    background-color: color-mix(in oklab, var(--ct-bg-card) 86%, var(--ct-bg-secondary));
+    background-image: radial-gradient(
+      ellipse 88% 42% at 50% 0%,
+      rgba(78, 187, 187, 0.14),
+      transparent 72%
+    );
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid color-mix(in oklab, var(--ct-border-card) 72%, rgba(232, 239, 252, 0.16));
+    border-radius: 1.5rem;
+    box-shadow:
+      0 28px 80px rgba(6, 11, 24, 0.62),
+      inset 0 1px 0 rgba(232, 239, 252, 0.12);
+  }
+
+  .ct-bento-well {
+    background-color: color-mix(in oklab, var(--ct-bg-input) 74%, var(--ct-bg-card));
+    border: 1px solid color-mix(in oklab, var(--ct-border-card) 74%, transparent);
+    border-radius: 0.9375rem;
+    box-shadow: inset 0 1px 0 rgba(232, 239, 252, 0.045);
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+
+  .ct-bento-well:focus-within {
+    border-color: color-mix(in oklab, var(--ct-border-card) 44%, var(--ct-accent-teal));
+    background-color: color-mix(in oklab, var(--ct-bg-input) 88%, var(--ct-bg-card));
+  }
+
+  .ct-panel-subtle {
+    background-color: var(--ct-bg-secondary);
+    border: 1px solid var(--ct-border-card);
+    border-radius: 0.75rem;
+  }
+
+  .ct-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5625rem 0.875rem;
+    background-color: var(--ct-bg-input);
+    color: var(--ct-text-primary);
+    border: 1px solid var(--ct-border-input);
+    border-radius: 0.6875rem;
+    box-shadow: inset 0 1px 2px rgba(6, 11, 24, 0.35);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  @media (pointer: coarse) {
+    .ct-input {
+      min-height: 48px;
+    }
+  }
+
+  .ct-select {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A4B7D2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    cursor: pointer;
+  }
+
+  .ct-input::placeholder {
+    color: var(--ct-text-muted);
+  }
+
+  .ct-input:hover:not(:disabled):not([readonly]) {
+    border-color: color-mix(in oklab, var(--ct-border-input) 60%, var(--ct-accent-teal));
+  }
+
+  .ct-input:focus-visible {
+    border-color: var(--ct-accent-teal);
+    box-shadow:
+      0 0 0 1px var(--ct-accent-teal),
+      0 0 0 4px rgba(78, 187, 187, 0.14);
+    outline: none;
+  }
+
+  .ct-input[readonly],
+  .ct-input:disabled {
+    background-color: var(--ct-bg-input-readonly);
+    color: var(--ct-text-secondary);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+
+  .ct-input option,
+  .ct-input optgroup {
+    background-color: var(--ct-bg-card);
+    color: var(--ct-text-primary);
+  }
+
+  .ct-input:not(input[type="range"]):is(:user-invalid, .user-invalid-fallback, [aria-invalid="true"]) {
+    border-color: var(--ct-error);
+    box-shadow: 0 0 0 1px rgba(231, 123, 131, 0.45);
+  }
+
+  .ct-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.55rem 1.35rem;
+    border-radius: 0.625rem;
+    background-color: var(--ct-accent-teal);
+    color: var(--ct-accent-ink);
+    font-weight: 500;
+    border: 1px solid var(--ct-accent-teal);
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, scale 120ms ease;
+  }
+
+  .ct-btn-primary:hover:not(:disabled) {
+    background-color: var(--ct-accent-teal-hover);
+    border-color: var(--ct-accent-teal-hover);
+    box-shadow: 0 6px 20px rgba(78, 187, 187, 0.24);
+  }
+
+  .ct-btn-primary:active:not(:disabled) {
+    scale: 0.985;
+  }
+
+  .ct-btn-primary:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+
+  .ct-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.55rem 1.2rem;
+    border-radius: 0.625rem;
+    background-color: var(--ct-bg-secondary);
+    color: var(--ct-text-primary);
+    font-weight: 500;
+    border: 1px solid var(--ct-border-card);
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, scale 120ms ease;
+  }
+
+  .ct-btn-secondary:hover:not(:disabled) {
+    background-color: var(--ct-bg-nav-active);
+    border-color: color-mix(in oklab, var(--ct-border-card) 55%, var(--ct-accent-teal));
+  }
+
+  .ct-btn-secondary:active:not(:disabled) {
+    scale: 0.985;
+  }
+
+  .ct-interactive-tile {
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, scale 120ms ease;
+  }
+
+  .ct-interactive-tile:active:not(:disabled) {
+    scale: 0.985;
+  }
+
+  .ct-btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .ct-btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.55rem 1.25rem;
+    border-radius: 0.625rem;
+    background-color: var(--ct-error);
+    color: var(--ct-accent-ink);
+    font-weight: 500;
+    border: 1px solid var(--ct-error);
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .ct-btn-danger:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--ct-error) 88%, #E8EFFC);
+    border-color: color-mix(in oklab, var(--ct-error) 88%, #E8EFFC);
+  }
+
+  @media (pointer: coarse) {
+    .ct-btn-primary,
+    .ct-btn-secondary,
+    .ct-btn-danger {
+      min-height: 48px;
+    }
+  }
+
+  .ct-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--ct-bg-secondary);
+    border: 1px solid var(--ct-border-card);
+    color: var(--ct-text-secondary);
+    flex-shrink: 0;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .ct-section-icon--complete {
+    background-color: var(--ct-accent-teal-soft);
+    border-color: var(--ct-accent-teal);
+    color: var(--ct-accent-teal);
+    box-shadow: 0 0 0 1px rgba(78, 187, 187, 0.22);
+  }
+
+  .ct-form-shell {
+    overflow-anchor: none;
+  }
+
+  .ct-jump-bar-surface {
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+
+  @media (min-width: 640px) {
+    .ct-jump-bar {
+      position: sticky;
+      top: 0.5rem;
+      z-index: 20;
+      container-type: scroll-state;
+      container-name: form-jump-bar;
+    }
+
+    @container form-jump-bar scroll-state(stuck: top) {
+      .ct-jump-bar-surface {
+        border-color: color-mix(in oklab, var(--ct-border-card) 55%, var(--ct-accent-teal));
+        box-shadow: 0 14px 36px rgba(6, 11, 24, 0.54);
+      }
+    }
+  }
+
+  .ct-studio-nav {
+    scroll-target-group: auto;
+  }
+
+  .ct-studio-nav a:is(:target-current, .target-current) {
+    background-color: var(--ct-bg-nav-active);
+    border-color: var(--ct-accent-teal);
+    color: var(--ct-text-primary);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px rgba(78, 187, 187, 0.22);
+  }
+
+  .ct-form-section {
+    background-color: color-mix(in oklab, var(--ct-bg-card) 94%, var(--ct-bg-secondary));
+    border: 1px solid var(--ct-border-card);
+    border-left-width: 3px;
+    border-radius: 1.125rem;
+    box-shadow:
+      0 18px 44px rgba(5, 9, 22, 0.34),
+      inset 0 1px 0 rgba(232, 239, 252, 0.06);
+    scroll-margin-top: 5.25rem;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  @media (min-width: 1024px) {
+    .ct-form-section {
+      scroll-margin-top: 1.5rem;
+    }
+  }
+
+  .ct-form-section:focus-within {
+    border-color: color-mix(in oklab, var(--ct-border-card) 52%, var(--ct-accent-teal));
+    box-shadow:
+      0 22px 54px rgba(5, 9, 22, 0.44),
+      inset 0 1px 0 rgba(232, 239, 252, 0.09);
+  }
+
+  .ct-form-section[data-complete="true"] {
+    border-left-color: var(--ct-accent-teal);
+  }
+
+  .ct-form-section:has(:is(:user-invalid, .user-invalid-fallback, [aria-invalid="true"])) {
+    border-left-color: var(--ct-error);
+  }
+
+  /* Accessible circular <progress> completion ring */
+  .ct-progress-ring-wrapper {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
+  progress.ct-progress-ring {
+    --size: 2.625rem;
+    --thickness: 3.5px;
+    --track-color: var(--ct-bg-secondary);
+    --fill-color: var(--ct-accent-teal);
+    width: var(--size);
+    height: var(--size);
+    appearance: none;
+    border-radius: 9999px;
+    border: var(--thickness) solid transparent;
+    background: conic-gradient(
+      var(--fill-color) calc(var(--ct-progress-val, 0) * 1%),
+      var(--track-color) 0
+    );
+    background-origin: border-box;
+    background-clip: border-area;
+    transition: --ct-progress-val 0s ease-out;
+  }
+
+  progress.ct-progress-ring[value="100"] {
+    --fill-color: var(--ct-success);
+  }
+
+  progress.ct-progress-ring::-webkit-progress-bar {
+    display: none;
+    background: none;
+  }
+  progress.ct-progress-ring::-webkit-progress-value {
+    display: none;
+    background: none;
+  }
+  progress.ct-progress-ring::-moz-progress-bar {
+    display: none;
+    background: none;
+  }
+
+  @supports not (background-clip: border-area) {
+    progress.ct-progress-ring {
+      mask-image: radial-gradient(
+        transparent calc(50% - var(--thickness)),
+        #E8EFFC calc(50% - var(--thickness) + 0.5px)
+      );
+      border: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    progress.ct-progress-ring {
+      transition-duration: 0.35s;
+    }
+  }
+
+  .ct-progress-ring-label {
+    position: absolute;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--ct-text-primary);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ct-accent-teal);
+  outline-offset: 2px;
+}
+
+/* Native <dialog> top-layer modal surface & backdrop blur */
+dialog:modal {
+  overscroll-behavior: contain;
+  margin: auto;
+  max-width: min(94vw, 56rem);
+  max-height: 90dvh;
+  background-color: var(--ct-bg-card);
+  color: var(--ct-text-primary);
+  border: 1px solid var(--ct-border-card);
+  border-radius: 1rem;
+  padding: 0;
+  box-shadow: 0 24px 64px rgba(5, 10, 22, 0.65);
+
+  opacity: 0;
+  transition-property: opacity, transform, overlay, display;
+  transition-duration: 210ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-behavior: allow-discrete;
+}
+
+dialog::backdrop {
+  background: rgba(12, 19, 38, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+
+  opacity: 0;
+  transition-property: opacity, overlay, display;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+
+:is(dialog[open]):where(:not([data-closing])) {
+  opacity: 1;
+}
+
+:is(dialog[open]):where(:not([data-closing]))::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  :is(dialog[open]):where(:not([data-closing])) {
+    opacity: 0;
+  }
+  :is(dialog[open]):where(:not([data-closing]))::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog:modal {
+    transform: translateY(8px) scale(0.98);
+  }
+  :is(dialog[open]):where(:not([data-closing])) {
+    transform: translateY(0) scale(1);
+  }
+  @starting-style {
+    :is(dialog[open]):where(:not([data-closing])) {
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Responsive table wrapper */
+.ct-table-wrapper {
+  overflow-x: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Single-DOM Responsive Administrator Navigation Rail & Mobile Popover Drawer */
+.ct-admin-nav-item {
+  min-block-size: 44px;
+  border-left: 3px solid transparent;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.ct-admin-nav-item[aria-current="page"] {
+  background-color: var(--ct-bg-nav-active);
+  border-color: var(--ct-border-card);
+  border-left-color: var(--ct-accent-teal);
+  color: var(--ct-text-primary);
+  font-weight: 500;
+}
+
+@media (max-width: 1023px) {
+  .ct-admin-nav[popover] {
+    position: fixed;
+    inset: 0.75rem auto 0.75rem 0.75rem;
+    margin: 0;
+    width: min(88vw, 20rem);
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background-color: var(--ct-bg-card);
+    border: 1px solid var(--ct-border-card);
+    border-radius: 1rem;
+    padding: 0.875rem;
+    color: var(--ct-text-primary);
+    box-shadow: 0 24px 64px rgba(5, 10, 22, 0.7);
+  }
+
+  .ct-admin-nav[popover]::backdrop {
+    background: rgba(12, 19, 38, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  :is(.ct-admin-nav[popover]:popover-open, .ct-admin-nav[popover].\:popover-open) {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 180ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1), overlay 180ms allow-discrete, display 180ms allow-discrete;
+  }
+
+  @starting-style {
+    :is(.ct-admin-nav[popover]:popover-open, .ct-admin-nav[popover].\:popover-open) {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+  }
+}
+
+@supports not (accent-color: #4EBBBB) {
+  input[type="checkbox"],
+  input[type="radio"] {
+    outline: 1px solid var(--ct-border-input);
+    background-color: var(--ct-bg-input);
+  }
+  input[type="checkbox"]:checked,
+  input[type="radio"]:checked {
+    outline-color: var(--ct-accent-teal);
+    box-shadow: inset 0 0 0 3px var(--ct-accent-teal);
+  }
+}
+
+@media (forced-colors: active) {
+  progress.ct-progress-ring {
+    forced-color-adjust: none;
+    --fill-color: CanvasText;
+    --track-color: Canvas;
+  }
+  .ct-card,
+  .ct-form-section,
+  .ct-section-icon,
+  .ct-glass,
+  .ct-panel-subtle,
+  .ct-input,
+  .ct-btn-primary,
+  .ct-btn-secondary,
+  .ct-btn-danger,
+  .ct-admin-nav,
+  dialog:modal {
+    border: 2px solid ButtonText;
+    forced-color-adjust: auto;
+  }
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid Highlight;
+  }
+  .ct-admin-nav-item[aria-current="page"] {
+    border: 2px solid Highlight;
+    border-left-width: 5px;
+    background-color: SelectedItem;
+    color: SelectedItemText;
+  }
+}
