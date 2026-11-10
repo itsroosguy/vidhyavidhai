@@ -57,7 +57,7 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec4-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec4-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the class
               </h2>
               {isComplete && (
@@ -67,14 +67,14 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#475569] mt-0.5">
+            <p className="text-xs text-[#243647] mt-0.5">
               Single grade or combined classroom roster and total attendance count
             </p>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F8FAFC] border border-[#CBD5E1] text-[#475569] ct-num">
-          <GraduationCap className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] ct-num">
+          <GraduationCap className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
           {sessionMode === 'combined'
             ? `Combined · ${classes.length} groups`
             : 'Single class'}
@@ -85,18 +85,18 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
       {/* Single vs Combined selector + quick visual pills */}
       <div className="ct-bento-well p-4 flex flex-col gap-2.5 mb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label htmlFor="sessionMode" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="sessionMode" className="text-sm font-medium text-[#0A1B2C]">
             Did you take this session for more than one section or grade together?
           </label>
-          <div className="inline-flex rounded-full bg-[#FFFFFF] border border-[#CBD5E1] p-0.5 gap-1">
+          <div className="inline-flex rounded-full bg-[#FFFFFF] border border-[#8E8674] p-0.5 gap-1">
             <button
               type="button"
               onClick={() => onChangeMode('single')}
               aria-pressed={sessionMode === 'single'}
               className={`ct-interactive-tile px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
                 sessionMode === 'single'
-                  ? 'bg-[#0F766E] text-[#FFFFFF]'
-                  : 'text-[#475569] hover:text-[#0F172A]'
+                  ? 'bg-[#1EA7FF] text-[#0A1B2C]'
+                  : 'text-[#243647] hover:text-[#0A1B2C]'
               }`}
             >
               Single
@@ -107,8 +107,8 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
               aria-pressed={sessionMode === 'combined'}
               className={`ct-interactive-tile px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
                 sessionMode === 'combined'
-                  ? 'bg-[#0F766E] text-[#FFFFFF]'
-                  : 'text-[#475569] hover:text-[#0F172A]'
+                  ? 'bg-[#1EA7FF] text-[#0A1B2C]'
+                  : 'text-[#243647] hover:text-[#0A1B2C]'
               }`}
             >
               Combined
@@ -127,7 +127,7 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
           <option value="single">No, one section of one grade</option>
           <option value="combined">Yes, sections or grades were combined</option>
         </select>
-        <p id="sessionMode-hint" className="text-xs text-[#526077]">
+        <p id="sessionMode-hint" className="text-xs text-[#33475B]">
           For example 8A and 8B together, or grade 8 and grade 9 together.
         </p>
       </div>
@@ -150,20 +150,20 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
               key={row.rowId}
               className={
                 sessionMode === 'combined'
-                  ? 'p-4 rounded-xl bg-[#F1F5F9] border border-[#CBD5E1]'
+                  ? 'p-4 rounded-xl bg-[#F5F2E9] border border-[#C7BEA7]'
                   : 'ct-bento-well p-4'
               }
             >
               {sessionMode === 'combined' && (
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <span className="text-sm font-medium text-[#0F766E] ct-num">
+                  <span className="text-sm font-medium text-[#006BB8] ct-num">
                     Class {idx + 1} of {classes.length}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => onClearClassRow(idx)}
-                      className="ct-interactive-tile inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-[#FFFFFF] hover:bg-[#E2E8F0] border border-[#CBD5E1] text-[#0F172A] cursor-pointer transition-colors"
+                      className="ct-interactive-tile inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-[#FFFFFF] hover:bg-[#EFE8D6] border border-[#8E8674] text-[#0A1B2C] cursor-pointer transition-colors"
                     >
                       <Eraser className="w-3.5 h-3.5" aria-hidden="true" />
                       Clear row
@@ -186,9 +186,9 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                 {/* Grade */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-grade-${idx}`} className="text-sm font-medium text-[#0F172A]">
+                  <label htmlFor={`class-grade-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
                     Which class (grade) is it?
-                    <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                       *
                     </span>
                   </label>
@@ -218,9 +218,9 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
 
                 {/* Section */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-section-${idx}`} className="text-sm font-medium text-[#0F172A]">
+                  <label htmlFor={`class-section-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
                     Section
-                    <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                       *
                     </span>
                   </label>
@@ -243,7 +243,7 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                       </option>
                     ))}
                   </select>
-                  <p id={`class-section-${idx}-hint`} className="text-xs text-[#526077]">
+                  <p id={`class-section-${idx}-hint`} className="text-xs text-[#33475B]">
                     If the class has no sections, choose "No section".
                   </p>
                   {secErr && (
@@ -255,9 +255,9 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
 
                 {/* Students present */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-present-${idx}`} className="text-sm font-medium text-[#0F172A]">
+                  <label htmlFor={`class-present-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
                     How many students were present?
-                    <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                       *
                     </span>
                   </label>
@@ -302,40 +302,40 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
               <Plus className="w-4 h-4" aria-hidden="true" />
               Add Class ({classes.length}/10)
             </button>
-            <span className="text-xs text-[#526077]">
+            <span className="text-xs text-[#33475B]">
               Combined sessions allow between 2 and 10 class/grade rows.
             </span>
           </div>
 
           <div className="ct-bento-well p-3.5 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs ct-num">
             <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
-              <Users className="w-4 h-4 text-[#0F766E] shrink-0" aria-hidden="true" />
+              <Users className="w-4 h-4 text-[#006BB8] shrink-0" aria-hidden="true" />
               <div>
-                <div className="text-[#475569]">Combined Classes</div>
-                <div className="text-base font-semibold text-[#0F172A]">{metrics.totalClasses}</div>
+                <div className="text-[#243647]">Combined Classes</div>
+                <div className="text-base font-semibold text-[#0A1B2C]">{metrics.totalClasses}</div>
               </div>
             </div>
             <div>
-              <div className="text-[#475569]">Total Students</div>
-              <div className="text-base font-semibold text-[#0F172A]">
+              <div className="text-[#243647]">Total Students</div>
+              <div className="text-base font-semibold text-[#0A1B2C]">
                 {metrics.totalStudentsPresent}
               </div>
             </div>
             <div>
-              <div className="text-[#475569]">Q-A Responses</div>
-              <div className="text-base font-semibold text-[#0F172A]">
+              <div className="text-[#243647]">Q-A Responses</div>
+              <div className="text-base font-semibold text-[#0A1B2C]">
                 {metrics.totalQuestionAResponses}
               </div>
             </div>
             <div>
-              <div className="text-[#475569]">Pooled CSAT</div>
-              <div className="text-base font-semibold text-[#0F766E]">
+              <div className="text-[#243647]">Pooled CSAT</div>
+              <div className="text-base font-semibold text-[#006BB8]">
                 {formatScore2(metrics.overallCsat)}
               </div>
             </div>
             <div>
-              <div className="text-[#475569]">Pooled ITP</div>
-              <div className="text-base font-semibold text-[#0F172A]">
+              <div className="text-[#243647]">Pooled ITP</div>
+              <div className="text-base font-semibold text-[#0A1B2C]">
                 {formatScore2(metrics.overallItp)}
               </div>
             </div>

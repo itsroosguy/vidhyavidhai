@@ -58,7 +58,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec2-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec2-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the session
               </h2>
               {isComplete && (
@@ -68,7 +68,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#475569] mt-0.5">
+            <p className="text-xs text-[#243647] mt-0.5">
               Career Tour video played, language shown, dates, and exact timings
             </p>
           </div>
@@ -76,14 +76,14 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         <div className="flex flex-wrap items-center gap-2 text-xs ct-num">
           {durationMins !== null && durationMins > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E] font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] font-medium">
               <Clock className="w-3.5 h-3.5" aria-hidden="true" />
               {formatDurationHuman(durationMins)}
             </span>
           )}
           {selectedTour && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F8FAFC] border border-[#CBD5E1] text-[#475569]">
-              <Globe className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A1B2C] border border-[#0A1B2C] text-[#FAF8F2]">
+              <Globe className="w-3.5 h-3.5 text-[#1EA7FF]" aria-hidden="true" />
               {videoInfo.isConfigured ? videoInfo.videoId : 'Select language'}
             </span>
           )}
@@ -94,9 +94,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
       <div className="ct-bento-well p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start mb-4">
         {/* Career Tour / Video */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="tourId" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="tourId" className="text-sm font-medium text-[#0A1B2C]">
             Which video did you show?
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>
@@ -127,9 +127,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Language */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="language" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="language" className="text-sm font-medium text-[#0A1B2C]">
             In which language?
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>
@@ -160,7 +160,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Month (auto-filled) */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="reportingMonth" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="reportingMonth" className="text-sm font-medium text-[#0A1B2C]">
             Month
           </label>
           <input
@@ -171,14 +171,14 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             aria-describedby="reportingMonth-hint"
             className="ct-input"
           />
-          <p id="reportingMonth-hint" className="text-xs text-[#526077]">
+          <p id="reportingMonth-hint" className="text-xs text-[#33475B]">
             Filled from the start date.
           </p>
         </div>
 
         {/* Date of submission */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="submissionDate" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="submissionDate" className="text-sm font-medium text-[#0A1B2C]">
             Date of submission
           </label>
           <input
@@ -189,7 +189,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             aria-describedby="submissionDate-hint"
             className="ct-input ct-num"
           />
-          <p id="submissionDate-hint" className="text-xs text-[#526077]">
+          <p id="submissionDate-hint" className="text-xs text-[#33475B]">
             Today's date, filled automatically.
           </p>
         </div>
@@ -200,9 +200,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
         {/* Start Node */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="startDate" className="text-sm font-medium text-[#0F172A]">
+            <label htmlFor="startDate" className="text-sm font-medium text-[#0A1B2C]">
               Date the session started
-              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                 *
               </span>
             </label>
@@ -238,35 +238,40 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Center Timeline Duration Bridge */}
         <div className="flex flex-col items-center justify-center gap-1.5 px-2 py-2 lg:py-0">
-          <span className="text-[11px] font-medium text-[#526077] text-center">
+          <span className="text-[11px] font-medium text-[#33475B] text-center">
             Calculated session length
           </span>
           <div className="w-full lg:w-auto flex items-center justify-center gap-2">
-            <span className="hidden lg:block w-5 h-px bg-[#CBD5E1]" aria-hidden="true" />
+            <span className="hidden lg:block w-5 h-px bg-[#C7BEA7]" aria-hidden="true" />
             <div
               className={`min-h-[40px] px-3.5 py-2 rounded-full border flex items-center gap-2 text-xs sm:text-sm ct-num transition-colors ${
                 durationMins && durationMins > 0
-                  ? 'bg-[#E6F6F4] border-[#0F766E]/45 text-[#0F172A] font-medium'
-                  : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#526077]'
+                  ? 'bg-[#E8F6FF] border-[#0284C7]/55 text-[#0A1B2C] font-medium'
+                  : 'bg-[#0A1B2C] border-[#0A1B2C] text-[#FAF8F2]'
               }`}
             >
-              <Calendar className="w-4 h-4 text-[#0F766E] shrink-0" aria-hidden="true" />
+              <Calendar
+                className={`w-4 h-4 shrink-0 ${
+                  durationMins && durationMins > 0 ? 'text-[#006BB8]' : 'text-[#1EA7FF]'
+                }`}
+                aria-hidden="true"
+              />
               <span>
                 {durationMins && durationMins > 0
                   ? formatDurationHuman(durationMins)
                   : 'Select start & end time'}
               </span>
             </div>
-            <span className="hidden lg:block w-5 h-px bg-[#CBD5E1]" aria-hidden="true" />
+            <span className="hidden lg:block w-5 h-px bg-[#C7BEA7]" aria-hidden="true" />
           </div>
         </div>
 
         {/* End Node */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="endDate" className="text-sm font-medium text-[#0F172A]">
+            <label htmlFor="endDate" className="text-sm font-medium text-[#0A1B2C]">
               Date the session ended
-              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                 *
               </span>
             </label>

@@ -41,12 +41,12 @@ const SCORE_STYLE_MAP: Record<number, { pill: string; bar: string }> = {
     bar: '#047857',
   },
   4: {
-    pill: 'bg-[#E6F6F4] border-[#0F766E]/40 text-[#0F766E]',
-    bar: '#0F766E',
+    pill: 'bg-[#E8F6FF] border-[#0284C7]/45 text-[#006BB8]',
+    bar: '#1EA7FF',
   },
   3: {
-    pill: 'bg-[#F1F5F9] border-[#CBD5E1] text-[#475569]',
-    bar: '#94A3B8',
+    pill: 'bg-[#F5F2E9] border-[#C7BEA7] text-[#243647]',
+    bar: '#5F7082',
   },
   2: {
     pill: 'bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309]',
@@ -86,17 +86,17 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec5-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec5-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 Students' answers
               </h2>
               {isComplete && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/40 text-[#047857]">
                   <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
                   Ready
                 </span>
               )}
             </div>
-            <p className="text-xs sm:text-[13px] text-[#475569] leading-relaxed mt-0.5 max-w-2xl">
+            <p className="text-xs sm:text-[13px] text-[#243647] leading-relaxed mt-0.5 max-w-2xl">
               Enter student response counts for each rating (enter 0 if none). Distribution bars and
               averages calculate automatically as you type.
             </p>
@@ -179,31 +179,31 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
               key={row.rowId}
               className={
                 isCombined
-                  ? 'rounded-xl bg-[#F1F5F9] border border-[#CBD5E1] p-4 sm:p-5 flex flex-col gap-5'
+                  ? 'rounded-xl bg-[#F5F2E9] border border-[#C7BEA7] p-4 sm:p-5 flex flex-col gap-5'
                   : 'flex flex-col gap-5'
               }
             >
               {isCombined && (
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#CBD5E1]">
-                  <div className="text-sm sm:text-base font-medium text-[#0F766E]">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#C7BEA7]">
+                  <div className="text-sm sm:text-base font-medium text-[#006BB8]">
                     {classLabel}
                   </div>
-                  <div className="flex flex-wrap gap-3 text-xs text-[#475569] ct-num">
+                  <div className="flex flex-wrap gap-3 text-xs text-[#243647] ct-num">
                     <span>
                       Students present:{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {metrics.studentsPresent || '—'}
                       </strong>
                     </span>
                     <span>
                       Q-A coverage:{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {formatPct1(metrics.questionACoveragePct)}
                       </strong>
                     </span>
                     <span>
                       Q-B coverage:{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {formatPct1(metrics.questionBCoveragePct)}
                       </strong>
                     </span>
@@ -213,13 +213,13 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
 
               {/* Question A — CSAT */}
               <fieldset className="ct-bento-well p-4 sm:p-5 min-w-0 w-full">
-                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0F172A]">
+                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0A1B2C]">
                   <span className="inline-flex items-start gap-2 min-w-0">
-                    <Smile className="w-4 h-4 text-[#0F766E] shrink-0 mt-0.5" aria-hidden="true" />
+                    <Smile className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="min-w-0 leading-snug">Question A: &quot;{QUESTION_A_PROMPT}&quot;</span>
                   </span>
                   {metrics.questionATotal > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E] ct-num">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num">
                       CSAT {formatScore2(metrics.csatAverage)}
                     </span>
                   )}
@@ -238,7 +238,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     return (
                       <div
                         key={opt.score}
-                        className="rounded-xl bg-[#FFFFFF] border border-[#CBD5E1] hover:border-[#0F766E]/55 focus-within:border-[#0F766E] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
+                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
                       >
                         <label htmlFor={inputId} className="flex-1 min-w-0 cursor-pointer">
                           <div className="flex items-center gap-3">
@@ -248,17 +248,17 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                               {opt.score}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 text-sm text-[#0F172A]">
+                              <div className="flex items-center justify-between gap-2 text-sm text-[#0A1B2C]">
                                 <span className="truncate">{opt.label}</span>
                                 {metrics.questionATotal > 0 && (
-                                  <span className="text-[11px] text-[#526077] ct-num shrink-0">
+                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0">
                                     {sharePct}%
                                   </span>
                                 )}
                               </div>
                               <div
                                 aria-hidden="true"
-                                className="mt-1.5 h-1 rounded-full bg-[#E2E8F0] overflow-hidden"
+                                className="mt-1.5 h-1 rounded-full bg-[#DFD7C2] overflow-hidden"
                               >
                                 <div
                                   className="h-full rounded-full transition-[width] duration-200"
@@ -287,14 +287,14 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                 </div>
 
                 {(metrics.questionATotal > 0 || metrics.studentsPresent > 0) && (
-                  <div className="mt-3 p-3 rounded-lg bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col gap-2 text-xs text-[#475569] ct-num">
+                  <div className="mt-3 p-3 rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] flex flex-col gap-2 text-xs text-[#243647] ct-num">
                     {metrics.questionATotal > 0 && (
                       <div
                         aria-hidden="true"
-                        className="w-full h-1.5 rounded-full bg-[#E2E8F0] overflow-hidden flex"
+                        className="w-full h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden flex"
                       >
                         <div style={{ width: `${qaPosPct}%`, backgroundColor: '#047857' }} />
-                        <div style={{ width: `${qaNeuPct}%`, backgroundColor: '#94A3B8' }} />
+                        <div style={{ width: `${qaNeuPct}%`, backgroundColor: '#5F7082' }} />
                         <div style={{ width: `${qaNegPct}%`, backgroundColor: '#BE123C' }} />
                       </div>
                     )}
@@ -303,7 +303,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                         Total responses:{' '}
                         <strong
                           className={
-                            qaExceeded ? 'font-medium text-[#BE123C]' : 'font-medium text-[#0F172A]'
+                            qaExceeded ? 'font-medium text-[#BE123C]' : 'font-medium text-[#0A1B2C]'
                           }
                         >
                           {metrics.questionATotal}
@@ -312,7 +312,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                       </span>
                       <span>
                         Missing:{' '}
-                        <strong className="font-medium text-[#0F172A]">
+                        <strong className="font-medium text-[#0A1B2C]">
                           {metrics.questionAMissingResponses}
                         </strong>
                       </span>
@@ -324,7 +324,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                       </span>
                       <span>
                         CSAT average:{' '}
-                        <strong className="text-[#0F766E] text-sm font-medium">
+                        <strong className="text-[#006BB8] text-sm font-medium">
                           {formatScore2(metrics.csatAverage)}
                         </strong>
                       </span>
@@ -345,13 +345,13 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
 
               {/* Question B — ITP */}
               <fieldset className="ct-bento-well p-4 sm:p-5 min-w-0 w-full">
-                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0F172A]">
+                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0A1B2C]">
                   <span className="inline-flex items-start gap-2 min-w-0">
-                    <Compass className="w-4 h-4 text-[#0F766E] shrink-0 mt-0.5" aria-hidden="true" />
+                    <Compass className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="min-w-0 leading-snug">Question B: &quot;{QUESTION_B_PROMPT}&quot;</span>
                   </span>
                   {metrics.questionBTotal > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E] ct-num">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num">
                       ITP {formatScore2(metrics.itpAverage)}
                     </span>
                   )}
@@ -370,7 +370,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     return (
                       <div
                         key={opt.score}
-                        className="rounded-xl bg-[#FFFFFF] border border-[#CBD5E1] hover:border-[#0F766E]/55 focus-within:border-[#0F766E] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
+                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
                       >
                         <label htmlFor={inputId} className="flex-1 min-w-0 cursor-pointer">
                           <div className="flex items-center gap-3">
@@ -380,17 +380,17 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                               {opt.score}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 text-sm text-[#0F172A]">
+                              <div className="flex items-center justify-between gap-2 text-sm text-[#0A1B2C]">
                                 <span className="truncate">{opt.label}</span>
                                 {metrics.questionBTotal > 0 && (
-                                  <span className="text-[11px] text-[#526077] ct-num shrink-0">
+                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0">
                                     {sharePct}%
                                   </span>
                                 )}
                               </div>
                               <div
                                 aria-hidden="true"
-                                className="mt-1.5 h-1 rounded-full bg-[#E2E8F0] overflow-hidden"
+                                className="mt-1.5 h-1 rounded-full bg-[#DFD7C2] overflow-hidden"
                               >
                                 <div
                                   className="h-full rounded-full transition-[width] duration-200"
@@ -419,14 +419,14 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                 </div>
 
                 {(metrics.questionBTotal > 0 || metrics.studentsPresent > 0) && (
-                  <div className="mt-3 p-3 rounded-lg bg-[#FFFFFF] border border-[#E2E8F0] flex flex-col gap-2 text-xs text-[#475569] ct-num">
+                  <div className="mt-3 p-3 rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] flex flex-col gap-2 text-xs text-[#243647] ct-num">
                     {metrics.questionBTotal > 0 && (
                       <div
                         aria-hidden="true"
-                        className="w-full h-1.5 rounded-full bg-[#E2E8F0] overflow-hidden flex"
+                        className="w-full h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden flex"
                       >
                         <div style={{ width: `${qbPosPct}%`, backgroundColor: '#047857' }} />
-                        <div style={{ width: `${qbNeuPct}%`, backgroundColor: '#94A3B8' }} />
+                        <div style={{ width: `${qbNeuPct}%`, backgroundColor: '#5F7082' }} />
                         <div style={{ width: `${qbNegPct}%`, backgroundColor: '#BE123C' }} />
                       </div>
                     )}
@@ -435,7 +435,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                         Total responses:{' '}
                         <strong
                           className={
-                            qbExceeded ? 'font-medium text-[#BE123C]' : 'font-medium text-[#0F172A]'
+                            qbExceeded ? 'font-medium text-[#BE123C]' : 'font-medium text-[#0A1B2C]'
                           }
                         >
                           {metrics.questionBTotal}
@@ -444,7 +444,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                       </span>
                       <span>
                         Missing:{' '}
-                        <strong className="font-medium text-[#0F172A]">
+                        <strong className="font-medium text-[#0A1B2C]">
                           {metrics.questionBMissingResponses}
                         </strong>
                       </span>
@@ -456,7 +456,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                       </span>
                       <span>
                         ITP average:{' '}
-                        <strong className="text-[#0F766E] text-sm font-medium">
+                        <strong className="text-[#006BB8] text-sm font-medium">
                           {formatScore2(metrics.itpAverage)}
                         </strong>
                       </span>

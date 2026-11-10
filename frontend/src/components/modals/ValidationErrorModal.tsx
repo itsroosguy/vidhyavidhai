@@ -58,9 +58,9 @@ export const ValidationErrorModal: React.FC<ValidationErrorModalProps> = ({
           .map(([sectionNum, issues]) => (
             <div
               key={sectionNum}
-              className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 space-y-2.5"
+              className="rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] p-3.5 space-y-2.5"
             >
-              <div className="text-xs font-medium text-[#0F172A] flex items-center gap-2">
+              <div className="text-xs font-medium text-[#0A1B2C] flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-[#BE123C] shrink-0" aria-hidden="true" />
                 <span>{SECTION_LABELS[sectionNum] ?? `Section ${sectionNum}`}</span>
               </div>
@@ -69,13 +69,13 @@ export const ValidationErrorModal: React.FC<ValidationErrorModalProps> = ({
                 {issues.map((issue, idx) => (
                   <li
                     key={`${issue.code}-${idx}`}
-                    className="flex items-start justify-between gap-3 text-xs sm:text-sm text-[#0F172A] pl-6"
+                    className="flex items-start justify-between gap-3 text-xs sm:text-sm text-[#0A1B2C] pl-6"
                   >
                     <span className="leading-relaxed">{issue.message}</span>
                     <button
                       type="button"
                       onClick={() => onJumpToIssue(issue)}
-                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-[#E6F6F4] hover:bg-[#0F766E]/15 border border-[#0F766E]/35 text-[#0F766E] cursor-pointer transition-colors"
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-[#E8F6FF] hover:bg-[#1EA7FF]/20 border border-[#0284C7]/45 text-[#006BB8] cursor-pointer transition-colors"
                     >
                       Jump
                       <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />

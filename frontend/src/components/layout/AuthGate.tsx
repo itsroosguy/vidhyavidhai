@@ -148,9 +148,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 flex items-center justify-center overflow-hidden"
       >
-        <div className="w-[480px] h-[480px] rounded-full border border-[#FFFFFF]/80" />
-        <div className="absolute w-[740px] h-[740px] rounded-full border border-[#0F766E]/[0.11]" />
-        <div className="absolute w-[1040px] h-[1040px] rounded-full border border-[#0F172A]/[0.05]" />
+        <div className="w-[480px] h-[480px] rounded-full border border-[#FFFFFF]/85" />
+        <div className="absolute w-[740px] h-[740px] rounded-full border border-[#1EA7FF]/[0.20]" />
+        <div className="absolute w-[1040px] h-[1040px] rounded-full border border-[#0A1B2C]/[0.06]" />
       </div>
 
       <main className="relative z-10 w-full flex flex-col items-center justify-center">
@@ -165,11 +165,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             className="w-7 h-7 object-contain shrink-0 select-none"
           />
           <div className="flex flex-wrap items-center gap-x-1.5 text-sm tracking-tight">
-            <span className="font-medium text-[#0F172A]">Vidhya Vidhai Foundation</span>
-            <span className="text-[#526077]" aria-hidden="true">
+            <span className="font-medium text-[#0A1B2C]">Vidhya Vidhai Foundation</span>
+            <span className="text-[#33475B]" aria-hidden="true">
               ·
             </span>
-            <span className="font-medium text-[#0F766E]">Career Tours</span>
+            <span className="font-medium text-[#006BB8]">Career Tours</span>
           </div>
         </div>
 
@@ -190,11 +190,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             />
             <h1
               id="auth-heading"
-              className="text-xl sm:text-[1.45rem] font-medium text-[#0F172A] tracking-tight"
+              className="text-xl sm:text-[1.45rem] font-medium text-[#0A1B2C] tracking-tight"
             >
               Sign in with email
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#475569] mt-1.5 leading-relaxed max-w-[35ch] text-balance">
+            <p className="text-xs sm:text-[13px] text-[#243647] mt-1.5 leading-relaxed max-w-[35ch] text-balance">
               Enter the Vidhya Vidhai Foundation · Career Tours workspace to log classroom data or view programme reports.
             </p>
           </div>
@@ -202,13 +202,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         {authNotice?.kind === 'pending_approval' ? (
           <div
             role="status"
-            className="p-4 rounded-2xl bg-[#FFFBEB] border border-[#B45309]/40 text-sm text-[#0F172A] flex flex-col gap-3"
+            className="p-4 rounded-2xl bg-[#FFFBEB] border border-[#B45309]/40 text-sm text-[#0A1B2C] flex flex-col gap-3"
           >
             <div className="flex items-start gap-2.5">
               <Clock className="w-5 h-5 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <h2 className="text-base font-medium text-[#0F172A]">Account Pending Approval</h2>
-                <p className="text-xs sm:text-sm text-[#475569] mt-1 leading-relaxed">
+                <h2 className="text-base font-medium text-[#0A1B2C]">Account Pending Approval</h2>
+                <p className="text-xs sm:text-sm text-[#243647] mt-1 leading-relaxed">
                   {authNotice.message}
                 </p>
                 {authNotice.email && (
@@ -229,13 +229,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         ) : authNotice?.kind === 'access_denied' ? (
           <div
             role="alert"
-            className="p-4 rounded-2xl bg-[#FFF1F2] border border-[#BE123C]/40 text-sm text-[#0F172A] flex flex-col gap-3"
+            className="p-4 rounded-2xl bg-[#FFF1F2] border border-[#BE123C]/40 text-sm text-[#0A1B2C] flex flex-col gap-3"
           >
             <div className="flex items-start gap-2.5">
               <ShieldAlert className="w-5 h-5 text-[#BE123C] shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <h2 className="text-base font-medium text-[#0F172A]">Access Denied</h2>
-                <p className="text-xs sm:text-sm text-[#475569] mt-1 leading-relaxed">
+                <h2 className="text-base font-medium text-[#0A1B2C]">Access Denied</h2>
+                <p className="text-xs sm:text-sm text-[#243647] mt-1 leading-relaxed">
                   {authNotice.message}
                 </p>
                 {authNotice.email && (
@@ -256,12 +256,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         ) : (
           <form onSubmit={(e) => void handleEmailSubmit(e)} noValidate className="flex flex-col gap-3.5">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="login-email" className="text-xs font-medium text-[#475569]">
+              <label htmlFor="login-email" className="text-xs font-medium text-[#0A1B2C]">
                 Email
               </label>
               <div className="relative">
                 <Mail
-                  className="w-4 h-4 text-[#526077] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  className="w-4 h-4 text-[#33475B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
                   aria-hidden="true"
                 />
                 <input
@@ -282,19 +282,19 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     if (formError) setFormError(null);
                   }}
                   aria-invalid={Boolean(formError && !EMAIL_PATTERN.test(email.trim()))}
-                  className="ct-input pl-10 rounded-xl bg-[#F1F5F9] border-[#CBD5E1] focus:bg-[#FFFFFF]"
+                  className="ct-input pl-10 rounded-xl bg-[#F5F2E9] border-[#5F7082] focus:bg-[#FFFFFF]"
                 />
               </div>
             </div>
 
             {!isLiveBackend && (
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="login-password" className="text-xs font-medium text-[#475569]">
+                <label htmlFor="login-password" className="text-xs font-medium text-[#0A1B2C]">
                   Password
                 </label>
                 <div className="relative">
                   <Lock
-                    className="w-4 h-4 text-[#526077] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    className="w-4 h-4 text-[#33475B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
                     aria-hidden="true"
                   />
                   <input
@@ -312,7 +312,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                       if (formError) setFormError(null);
                     }}
                     aria-invalid={Boolean(formError && EMAIL_PATTERN.test(email.trim()) && !password)}
-                    className="ct-input pl-10 pr-11 rounded-xl bg-[#F1F5F9] border-[#CBD5E1] focus:bg-[#FFFFFF]"
+                    className="ct-input pl-10 pr-11 rounded-xl bg-[#F5F2E9] border-[#5F7082] focus:bg-[#FFFFFF]"
                   />
                   <button
                     type="button"
@@ -320,7 +320,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-describedby="toggle-password-warning"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-[#526077] hover:text-[#0F172A] hover:bg-[#E2E8F0] cursor-pointer transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-[#33475B] hover:text-[#0A1B2C] hover:bg-[#EFE8D6] cursor-pointer transition-colors"
                   >
                     {showPassword ? (
                       <Eye className="w-4 h-4" aria-hidden="true" />
@@ -349,23 +349,23 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl mt-1 bg-[#0F172A] hover:bg-[#1E293B] border border-[#0F172A] text-[#FFFFFF] text-sm font-medium shadow-[0_10px_24px_rgba(15,23,42,0.18)] inline-flex items-center justify-center cursor-pointer transition-colors disabled:opacity-50"
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl mt-1 bg-[#0A1B2C] hover:bg-[#132C45] border border-[#0A1B2C] text-[#FAF8F2] text-sm font-medium shadow-[0_10px_24px_rgba(10,27,44,0.22)] inline-flex items-center justify-center cursor-pointer transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Signing in...' : 'Get Started'}
               </button>
             )}
 
             <div className="relative flex items-center gap-3 my-1">
-              <div className="flex-1 border-t border-dotted border-[#CBD5E1]" aria-hidden="true" />
-              <span className="text-[11px] text-[#526077] shrink-0">Or sign in with</span>
-              <div className="flex-1 border-t border-dotted border-[#CBD5E1]" aria-hidden="true" />
+              <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
+              <span className="text-[11px] text-[#33475B] shrink-0">Or sign in with</span>
+              <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
             </div>
 
             {isLiveBackend ? (
               <div className="flex flex-col items-center gap-2">
                 <div ref={buttonContainerRef} className="min-h-[44px] flex items-center justify-center" />
                 {!gisReady && !gisLoadError && (
-                  <p className="text-xs text-[#526077]">Loading Google Sign-In...</p>
+                  <p className="text-xs text-[#33475B]">Loading Google Sign-In...</p>
                 )}
                 {gisLoadError && <p className="text-xs text-[#BE123C]">{gisLoadError}</p>}
               </div>
@@ -374,7 +374,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleLocalGoogleClick()}
-                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F8FAFC] border border-[#738AA1] hover:border-[#0F766E] text-[#0F172A] text-sm font-medium inline-flex items-center justify-center gap-2.5 ct-interactive-tile shadow-xs cursor-pointer transition-colors"
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F5F2E9] border border-[#5F7082] hover:border-[#0284C7] text-[#0A1B2C] text-sm font-medium inline-flex items-center justify-center gap-2.5 ct-interactive-tile shadow-xs cursor-pointer transition-colors"
               >
                 <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" aria-hidden="true">
                   <path
@@ -403,13 +403,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       </main>
 
       <footer className="relative z-10 mt-5 text-center">
-        <p className="text-xs text-[#475569]">
+        <p className="text-xs text-[#243647]">
           Developed by{' '}
           <a
             href="https://roosstudiox.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-[#0F172A] hover:text-[#0F766E] underline decoration-[#73849C]/70 hover:decoration-[#0F766E] underline-offset-4 transition-colors"
+            className="font-medium text-[#0A1B2C] hover:text-[#006BB8] underline decoration-[#5F7082] hover:decoration-[#006BB8] underline-offset-4 transition-colors"
           >
             Roos StudioX
           </a>

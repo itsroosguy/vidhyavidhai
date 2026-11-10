@@ -54,29 +54,29 @@ export const DuplicateWarningModal: React.FC<DuplicateWarningModalProps> = ({
         {candidates.map((c) => (
           <div
             key={c.sessionRecordId}
-            className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3.5 text-xs sm:text-sm space-y-1.5"
+            className="rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] p-3.5 text-xs sm:text-sm space-y-1.5"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-xs text-[#0F766E] font-medium">{c.sessionId}</span>
-              <span className="text-xs text-[#475569] inline-flex items-center gap-1">
+              <span className="font-mono text-xs text-[#006BB8] font-medium">{c.sessionId}</span>
+              <span className="text-xs text-[#243647] inline-flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
                 {formatISODateToDDMMYYYY(c.startDate)} · {formatTime24To12(c.startTime)}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[#0F172A] font-medium">
-              <School className="w-3.5 h-3.5 text-[#475569]" aria-hidden="true" />
+            <div className="flex items-center gap-1.5 text-[#0A1B2C] font-medium">
+              <School className="w-3.5 h-3.5 text-[#243647]" aria-hidden="true" />
               <span>{c.schoolName}</span>
-              <span className="font-mono text-xs text-[#475569]">({c.udiseCode})</span>
+              <span className="font-mono text-xs text-[#243647]">({c.udiseCode})</span>
             </div>
 
-            <div className="text-xs text-[#475569]">
-              Tour: <span className="text-[#0F172A]">{c.tourName}</span> · Facilitator:{' '}
-              <span className="text-[#0F172A]">{c.facilitatorName}</span>
+            <div className="text-xs text-[#243647]">
+              Tour: <span className="text-[#0A1B2C]">{c.tourName}</span> · Facilitator:{' '}
+              <span className="text-[#0A1B2C]">{c.facilitatorName}</span>
             </div>
 
             {c.overlappingGrades.length > 0 && (
-              <div className="text-xs text-[#B45309] pt-1">
+              <div className="text-xs text-[#92400E] pt-1">
                 Overlapping class entries: {c.overlappingGrades.join(', ')}
               </div>
             )}

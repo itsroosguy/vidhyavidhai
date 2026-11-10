@@ -98,10 +98,10 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-[#0F172A]">
+      <label htmlFor={id} className="text-sm font-medium text-[#0A1B2C]">
         {label}
         {required && (
-          <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+          <span className="ml-1 text-[#006BB8]" aria-hidden="true">
             *
           </span>
         )}
@@ -119,7 +119,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
           errorMessage ? 'border-[#BE123C]' : ''
         }`}
       >
-        <span className={hasValue ? 'text-[#0F172A] font-medium ct-num' : 'text-[#526077]'}>
+        <span className={hasValue ? 'text-[#0A1B2C] font-medium ct-num' : 'text-[#33475B]'}>
           {hasValue ? formatTime24To12(value) : 'Choose time'}
         </span>
       </button>
@@ -135,7 +135,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
           id={panelId}
           role="region"
           aria-label={`${label} clock selector`}
-          className="mt-1 p-4 rounded-xl bg-[#FFFFFF] border border-[#CBD5E1] shadow-[0_14px_34px_rgba(15,23,42,0.14)] w-full max-w-[276px]"
+          className="mt-1 p-4 rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] shadow-[0_14px_34px_rgba(10,27,44,0.16)] w-full max-w-[276px]"
         >
           {/* Digital display + AM/PM toggle */}
           <div className="flex items-center justify-between gap-3 mb-4">
@@ -147,13 +147,13 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                 aria-pressed={dialMode === 'hour'}
                 className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors border ${
                   dialMode === 'hour'
-                    ? 'bg-[#0F766E] text-[#FFFFFF] border-[#0F766E]'
-                    : 'bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:border-[#0F766E]/70'
+                    ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
+                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:border-[#0284C7]'
                 }`}
               >
                 {displayHourStr}
               </button>
-              <span className="text-[#526077]" aria-hidden="true">
+              <span className="text-[#33475B]" aria-hidden="true">
                 :
               </span>
               <button
@@ -163,8 +163,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                 aria-pressed={dialMode === 'minute'}
                 className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors border ${
                   dialMode === 'minute'
-                    ? 'bg-[#0F766E] text-[#FFFFFF] border-[#0F766E]'
-                    : 'bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:border-[#0F766E]/70'
+                    ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
+                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:border-[#0284C7]'
                 }`}
               >
                 {displayMinStr}
@@ -182,8 +182,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                     onClick={() => handlePeriodChange(period)}
                     className={`px-3 py-1 rounded text-xs font-medium cursor-pointer transition-colors border ${
                       active
-                        ? 'bg-[#0F766E] text-[#FFFFFF] border-[#0F766E]'
-                        : 'bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:bg-[#F1F5F9]'
+                        ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
+                        : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:bg-[#EFE8D6]'
                     }`}
                   >
                     {period}
@@ -193,8 +193,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
             </div>
           </div>
 
-          {/* Circular Daylight White analogue clock face */}
-          <div className="relative mx-auto w-[216px] h-[216px] rounded-full bg-[#F8FAFC] border border-[#CBD5E1] select-none shadow-inner">
+          {/* Circular Daylight Ivory analogue clock face */}
+          <div className="relative mx-auto w-[216px] h-[216px] rounded-full bg-[#F5F2E9] border border-[#C7BEA7] select-none shadow-inner">
             {hasValue && (
               <svg
                 aria-hidden="true"
@@ -206,12 +206,12 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                   y1="108"
                   x2={handX}
                   y2={handY}
-                  stroke="#0F766E"
+                  stroke="#006BB8"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 />
-                <circle cx="108" cy="108" r="4" fill="#0F766E" />
-                <circle cx={handX} cy={handY} r="15" fill="rgba(15, 118, 110, 0.16)" />
+                <circle cx="108" cy="108" r="4" fill="#006BB8" />
+                <circle cx={handX} cy={handY} r="15" fill="rgba(30, 167, 255, 0.24)" />
               </svg>
             )}
 
@@ -244,8 +244,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                   aria-pressed={isSelected}
                   className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ct-num cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-[#0F766E] text-[#FFFFFF] font-medium'
-                      : 'text-[#0F172A] hover:bg-[#E2E8F0]'
+                      ? 'bg-[#1EA7FF] text-[#0A1B2C] font-medium'
+                      : 'text-[#0A1B2C] hover:bg-[#EFE8D6]'
                   }`}
                 >
                   {dialMode === 'hour' ? item : String(item).padStart(2, '0')}
@@ -269,7 +269,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                   onChange('');
                   setIsOpen(false);
                 }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#475569] hover:text-[#0F172A] hover:bg-[#F1F5F9] cursor-pointer transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#243647] hover:text-[#0A1B2C] hover:bg-[#F5F2E9] cursor-pointer transition-colors"
               >
                 Clear
               </button>
@@ -277,8 +277,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
           </div>
 
           {/* Keyboard-accessible direct entry alternative inside clock panel */}
-          <div className="mt-3 pt-2.5 border-t border-[#E2E8F0] flex items-center justify-between gap-2">
-            <label htmlFor={keyboardInputId} className="text-[11px] text-[#475569]">
+          <div className="mt-3 pt-2.5 border-t border-[#DFD7C2] flex items-center justify-between gap-2">
+            <label htmlFor={keyboardInputId} className="text-[11px] text-[#243647]">
               Or type time
             </label>
             <input

@@ -17,7 +17,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
 
   if (monthlyBreakdown.length === 0) {
     return (
-      <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569]">
+      <div className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] text-xs text-[#243647]">
         Monthly trends will appear once committed sessions exist.
       </div>
     );
@@ -51,27 +51,27 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
     <figure className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm sm:text-base font-medium text-[#0F172A]">
+          <h3 className="text-sm sm:text-base font-medium text-[#0A1B2C]">
             Monthly Reach & CSAT Trajectory
           </h3>
-          <figcaption id={captionId} className="text-xs text-[#475569]">
-            Bars track single-counted students present per month; the teal line marks pooled CSAT (1–5).
+          <figcaption id={captionId} className="text-xs text-[#243647]">
+            Bars track single-counted students present per month; the Azure line marks pooled CSAT (1–5).
           </figcaption>
         </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-[#475569]">
+        <div className="flex items-center gap-3 text-[11px] text-[#243647]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#94A3B8]" aria-hidden="true" />
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#5F7082]" aria-hidden="true" />
             Students present
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-2.5 h-0.5 bg-[#0F766E]" aria-hidden="true" />
+            <span className="w-2.5 h-0.5 bg-[#006BB8]" aria-hidden="true" />
             Pooled CSAT
           </span>
         </div>
       </div>
 
-      <div className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3">
+      <div className="rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] p-3">
         <svg
           role="img"
           aria-labelledby={captionId}
@@ -89,7 +89,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                   y1={y}
                   x2={chartW - padR}
                   y2={y}
-                  stroke="#CBD5E1"
+                  stroke="#C7BEA7"
                   strokeOpacity="0.85"
                   strokeDasharray="3 3"
                 />
@@ -97,7 +97,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                   x={padL - 6}
                   y={y + 3}
                   textAnchor="end"
-                  fill="#526077"
+                  fill="#33475B"
                   fontSize="9.5"
                   style={{ fontVariantNumeric: 'tabular-nums' }}
                 >
@@ -126,13 +126,13 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                   width={barW}
                   height={Math.max(2, barH)}
                   rx={4}
-                  fill={isHovered ? 'rgba(15, 118, 110, 0.72)' : 'rgba(15, 118, 110, 0.24)'}
+                  fill={isHovered ? '#1EA7FF' : 'rgba(10, 27, 44, 0.16)'}
                 />
                 <text
                   x={cx}
                   y={chartH - 10}
                   textAnchor="middle"
-                  fill="#475569"
+                  fill="#243647"
                   fontSize="10"
                 >
                   {m.monthLabel.slice(0, 3)} {m.monthKey.slice(2, 4)}
@@ -145,7 +145,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
           {monthlyBreakdown.length > 1 && csatPoints && (
             <polyline
               fill="none"
-              stroke="#0F766E"
+              stroke="#006BB8"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -164,8 +164,8 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                 cx={cx}
                 cy={cy}
                 r={hoveredIdx === idx ? 4.5 : 3.5}
-                fill="#0F766E"
-                stroke="#FFFFFF"
+                fill="#1EA7FF"
+                stroke="#0A1B2C"
                 strokeWidth="1.5"
               />
             );
@@ -173,13 +173,13 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
         </svg>
 
         {/* Active Inspection Strip & Clickable Month Drill-down Pills */}
-        <div className="mt-2 pt-2.5 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="text-[#475569] ct-num">
+        <div className="mt-2 pt-2.5 border-t border-[#DFD7C2] flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="text-[#243647] ct-num">
             {hovered ? (
               <span>
-                <strong className="font-medium text-[#0F172A]">{hovered.monthLabel}:</strong>{' '}
+                <strong className="font-medium text-[#0A1B2C]">{hovered.monthLabel}:</strong>{' '}
                 {hovered.sessions} sessions · {hovered.studentsReached} students · CSAT{' '}
-                <strong className="font-medium text-[#0F766E]">
+                <strong className="font-medium text-[#006BB8]">
                   {formatScore2(hovered.averageCsat)}
                 </strong>{' '}
                 · ITP {formatScore2(hovered.averageItp)}
@@ -204,7 +204,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                       monthKey: m.monthKey,
                     })
                   }
-                  className="px-2 py-0.5 rounded-md bg-[#FFFFFF] hover:bg-[#E6F6F4] border border-[#CBD5E1] hover:border-[#0F766E]/45 text-[11px] text-[#0F172A] ct-num cursor-pointer transition-colors"
+                  className="px-2 py-0.5 rounded-md bg-[#FFFFFF] hover:bg-[#E8F6FF] border border-[#8E8674] hover:border-[#0284C7] text-[11px] text-[#0A1B2C] ct-num cursor-pointer transition-colors"
                 >
                   {m.monthLabel.slice(0, 3)} · {formatScore2(m.averageCsat)}
                 </button>
@@ -241,21 +241,21 @@ export const SentimentStackedChart: React.FC<SentimentStackedChartProps> = ({
       ].map((row) => (
         <div key={row.title} className="space-y-1.5">
           <div className="flex items-center justify-between text-xs ct-num">
-            <span className="font-medium text-[#0F172A]">{row.title}</span>
-            <span className="text-[#475569]">
+            <span className="font-medium text-[#0A1B2C]">{row.title}</span>
+            <span className="text-[#243647]">
               {row.s.total} votes · Pos {formatPct1(row.s.positivePct)}
             </span>
           </div>
-          <div className="h-2.5 w-full rounded-full bg-[#E2E8F0] border border-[#CBD5E1]/70 overflow-hidden flex">
+          <div className="h-2.5 w-full rounded-full bg-[#DFD7C2] border border-[#C7BEA7] overflow-hidden flex">
             {row.s.total > 0 && (
               <>
                 <div
-                  className="h-full bg-[#0F766E]"
+                  className="h-full bg-[#006BB8]"
                   style={{ width: `${row.s.positivePct ?? 0}%` }}
                   title={`Positive (4–5): ${row.s.positiveCount}`}
                 />
                 <div
-                  className="h-full bg-[#94A3B8]"
+                  className="h-full bg-[#5F7082]"
                   style={{ width: `${row.s.neutralPct ?? 0}%` }}
                   title={`Neutral (3): ${row.s.neutralCount}`}
                 />
@@ -267,50 +267,50 @@ export const SentimentStackedChart: React.FC<SentimentStackedChartProps> = ({
               </>
             )}
           </div>
-          <div className="flex flex-wrap gap-3 text-[11px] text-[#475569] ct-num">
+          <div className="flex flex-wrap gap-3 text-[11px] text-[#243647] ct-num">
             <span>
-              4–5 Pos: <strong className="font-medium text-[#0F172A]">{row.s.positiveCount}</strong>
+              4–5 Pos: <strong className="font-medium text-[#0A1B2C]">{row.s.positiveCount}</strong>
             </span>
             <span>
-              3 Neu: <strong className="font-medium text-[#0F172A]">{row.s.neutralCount}</strong>
+              3 Neu: <strong className="font-medium text-[#0A1B2C]">{row.s.neutralCount}</strong>
             </span>
             <span>
-              1–2 Neg: <strong className="font-medium text-[#0F172A]">{row.s.negativeCount}</strong>
+              1–2 Neg: <strong className="font-medium text-[#0A1B2C]">{row.s.negativeCount}</strong>
             </span>
           </div>
         </div>
       ))}
 
-      <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
+      <div className="pt-3 border-t border-[#DFD7C2] space-y-2">
         <div className="flex items-center justify-between text-xs ct-num">
-          <span className="font-medium text-[#0F172A]">Teacher NPS Mix</span>
-          <span className="text-[#475569]">{npsTotal} sessions</span>
+          <span className="font-medium text-[#0A1B2C]">Teacher NPS Mix</span>
+          <span className="text-[#243647]">{npsTotal} sessions</span>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center text-xs ct-num">
-          <div className="p-2.5 rounded-lg bg-[#ECFDF5] border border-[#047857]/25">
-            <div className="text-[#475569] text-[11px]">Promoter (9–10)</div>
+          <div className="p-2.5 rounded-lg bg-[#ECFDF5] border border-[#047857]/30">
+            <div className="text-[#243647] text-[11px]">Promoter (9–10)</div>
             <div className="text-base font-semibold text-[#047857] mt-0.5">
               {npsDistribution.promoter}
             </div>
-            <div className="text-[11px] text-[#526077]">
+            <div className="text-[11px] text-[#33475B]">
               {pct(npsDistribution.promoter, npsTotal)}%
             </div>
           </div>
-          <div className="p-2.5 rounded-lg bg-[#FFFBEB] border border-[#B45309]/25">
-            <div className="text-[#475569] text-[11px]">Passive (7–8)</div>
-            <div className="text-base font-semibold text-[#B45309] mt-0.5">
+          <div className="p-2.5 rounded-lg bg-[#FFFBEB] border border-[#B45309]/30">
+            <div className="text-[#243647] text-[11px]">Passive (7–8)</div>
+            <div className="text-base font-semibold text-[#92400E] mt-0.5">
               {npsDistribution.passive}
             </div>
-            <div className="text-[11px] text-[#526077]">
+            <div className="text-[11px] text-[#33475B]">
               {pct(npsDistribution.passive, npsTotal)}%
             </div>
           </div>
-          <div className="p-2.5 rounded-lg bg-[#FFF1F2] border border-[#BE123C]/25">
-            <div className="text-[#475569] text-[11px]">Detractor (0–6)</div>
+          <div className="p-2.5 rounded-lg bg-[#FFF1F2] border border-[#BE123C]/30">
+            <div className="text-[#243647] text-[11px]">Detractor (0–6)</div>
             <div className="text-base font-semibold text-[#BE123C] mt-0.5">
               {npsDistribution.detractor}
             </div>
-            <div className="text-[11px] text-[#526077]">
+            <div className="text-[11px] text-[#33475B]">
               {pct(npsDistribution.detractor, npsTotal)}%
             </div>
           </div>
@@ -338,15 +338,15 @@ export const DistrictComparisonBars: React.FC<DistrictComparisonBarsProps> = ({
         return (
           <div
             key={d.district}
-            className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs space-y-2"
+            className="p-3 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] text-xs space-y-2"
           >
             <div className="flex flex-wrap items-center justify-between gap-2 ct-num">
-              <span className="font-medium text-[#0F172A] text-sm">{d.district}</span>
-              <div className="flex items-center gap-3 text-[#475569]">
+              <span className="font-medium text-[#0A1B2C] text-sm">{d.district}</span>
+              <div className="flex items-center gap-3 text-[#243647]">
                 <span>
                   {d.sessions} sessions · {d.schoolsCount} schools · {d.studentsReached} students
                 </span>
-                <span className="text-[#0F766E] font-medium">
+                <span className="text-[#006BB8] font-medium">
                   CSAT {formatScore2(d.averageCsat)}
                 </span>
                 <span>ITP {formatScore2(d.averageItp)}</span>
@@ -361,16 +361,16 @@ export const DistrictComparisonBars: React.FC<DistrictComparisonBarsProps> = ({
                         filtersPatch: { district: d.district },
                       })
                     }
-                    className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#E6F6F4] border border-[#CBD5E1] hover:border-[#0F766E]/45 text-[11px] text-[#0F172A] cursor-pointer transition-colors"
+                    className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#E8F6FF] border border-[#8E8674] hover:border-[#0284C7] text-[11px] text-[#0A1B2C] cursor-pointer transition-colors"
                   >
                     Inspect
                   </button>
                 )}
               </div>
             </div>
-            <div className="w-full h-2 rounded-full bg-[#E2E8F0] overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-[#DFD7C2] overflow-hidden">
               <div
-                className="h-full bg-[#0F766E] rounded-full transition-all"
+                className="h-full bg-[#006BB8] rounded-full transition-all"
                 style={{ width: `${widthPct}%` }}
               />
             </div>

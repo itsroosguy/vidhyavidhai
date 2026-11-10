@@ -61,7 +61,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec3-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec3-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the school
               </h2>
               {isComplete && (
@@ -71,14 +71,14 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#475569] mt-0.5">
+            <p className="text-xs text-[#243647] mt-0.5">
               11-digit UDISE auto-lookup and approved Tamil Nadu district &amp; block mapping
             </p>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F8FAFC] border border-[#CBD5E1] text-[#475569]">
-          <MapPin className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C]">
+          <MapPin className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
           {values.district ? `${values.district}${values.block ? ` · ${values.block}` : ''}` : 'Tamil Nadu'}
         </span>
       </div>
@@ -87,9 +87,9 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
       <div className="ct-bento-well p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         {/* School name */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="schoolName" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="schoolName" className="text-sm font-medium text-[#0A1B2C]">
             School name
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>
@@ -116,9 +116,9 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
         {/* School code (UDISE) */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
-            <label htmlFor="udiseCode" className="text-sm font-medium text-[#0F172A]">
+            <label htmlFor="udiseCode" className="text-sm font-medium text-[#0A1B2C]">
               School code (UDISE)
-              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                 *
               </span>
             </label>
@@ -126,7 +126,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
               className={`text-[11px] px-2 py-0.5 rounded-full ct-num font-medium ${
                 udiseDigits === 11
                   ? 'bg-[#ECFDF5] text-[#047857] border border-[#047857]/35'
-                  : 'bg-[#FFFFFF] text-[#526077] border border-[#CBD5E1]'
+                  : 'bg-[#FFFFFF] text-[#243647] border border-[#C7BEA7]'
               }`}
             >
               {udiseDigits}/11
@@ -165,13 +165,13 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
                   idx < udiseDigits
                     ? udiseDigits === 11
                       ? 'bg-[#047857]'
-                      : 'bg-[#0F766E]'
-                    : 'bg-[#E2E8F0]'
+                      : 'bg-[#006BB8]'
+                    : 'bg-[#DFD7C2]'
                 }`}
               />
             ))}
           </div>
-          <p id="udise-hint" className="text-xs text-[#526077]">
+          <p id="udise-hint" className="text-xs text-[#33475B]">
             The 11-digit number on the school records. Ask the headmaster or the office.
           </p>
           {errorMap.udiseCode && (
@@ -183,9 +183,9 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
 
         {/* What kind of school is it? */}
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="schoolType" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="schoolType" className="text-sm font-medium text-[#0A1B2C]">
             What kind of school is it?
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>
@@ -220,15 +220,15 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
         <div
           className={`mt-4 p-3.5 rounded-xl border text-xs flex flex-wrap items-center justify-between gap-2 ${
             schoolNameConflict
-              ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#0F172A]'
-              : 'bg-[#E6F6F4] border-[#0F766E]/35 text-[#0F172A]'
+              ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#0A1B2C]'
+              : 'bg-[#E8F6FF] border-[#0284C7]/45 text-[#0A1B2C]'
           }`}
         >
           <div className="flex items-start gap-2">
             {schoolNameConflict ? (
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-[#B45309]" aria-hidden="true" />
             ) : (
-              <Building2 className="w-4 h-4 shrink-0 mt-0.5 text-[#0F766E]" aria-hidden="true" />
+              <Building2 className="w-4 h-4 shrink-0 mt-0.5 text-[#006BB8]" aria-hidden="true" />
             )}
             <div>
               <span className="font-medium">Existing UDISE record found:</span>{' '}
@@ -257,7 +257,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
       <div className="ct-bento-well mt-4 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="state" className="text-sm font-medium text-[#0F172A]">
+            <label htmlFor="state" className="text-sm font-medium text-[#0A1B2C]">
               State
             </label>
             <input
@@ -272,9 +272,9 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
 
           {/* District (ONLY approved 3 districts) */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="district" className="text-sm font-medium text-[#0F172A]">
+            <label htmlFor="district" className="text-sm font-medium text-[#0A1B2C]">
               District
-              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                 *
               </span>
             </label>
@@ -309,9 +309,9 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
           {/* PIN code */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <label htmlFor="pinCode" className="text-sm font-medium text-[#0F172A]">
+              <label htmlFor="pinCode" className="text-sm font-medium text-[#0A1B2C]">
                 PIN code
-                <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                   *
                 </span>
               </label>
@@ -319,7 +319,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
                 className={`text-[11px] px-2 py-0.5 rounded-full ct-num font-medium ${
                   pinDigits === 6
                     ? 'bg-[#ECFDF5] text-[#047857] border border-[#047857]/35'
-                    : 'bg-[#FFFFFF] text-[#526077] border border-[#CBD5E1]'
+                    : 'bg-[#FFFFFF] text-[#243647] border border-[#C7BEA7]'
                 }`}
               >
                 {pinDigits}/6
@@ -356,8 +356,8 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
                     idx < pinDigits
                       ? pinDigits === 6
                         ? 'bg-[#047857]'
-                        : 'bg-[#0F766E]'
-                      : 'bg-[#E2E8F0]'
+                        : 'bg-[#006BB8]'
+                      : 'bg-[#DFD7C2]'
                   }`}
                 />
               ))}
@@ -372,11 +372,11 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
 
         {/* Dependent Block row */}
         {(values.district || errorMap.block) && (
-          <div className="mt-4 pt-3.5 border-t border-[#E2E8F0] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+          <div className="mt-4 pt-3.5 border-t border-[#DFD7C2] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="block" className="text-sm font-medium text-[#0F172A]">
+              <label htmlFor="block" className="text-sm font-medium text-[#0A1B2C]">
                 Block ({values.district || 'Approved District'})
-                <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                   *
                 </span>
               </label>
@@ -419,7 +419,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
 
             {districtBlocks.length > 8 && (
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="blockSearchFilter" className="text-sm font-medium text-[#0F172A]">
+                <label htmlFor="blockSearchFilter" className="text-sm font-medium text-[#0A1B2C]">
                   Search blocks in {values.district}
                 </label>
                 <input

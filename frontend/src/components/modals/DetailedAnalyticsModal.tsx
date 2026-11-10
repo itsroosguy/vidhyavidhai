@@ -137,7 +137,7 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
       }
     >
       {loading && (
-        <div className="py-12 text-center text-sm text-[#475569]">
+        <div className="py-12 text-center text-sm text-[#243647]">
           Recomputing and verifying slice analytics...
         </div>
       )}
@@ -152,39 +152,39 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
         <div className="space-y-5">
           {/* Slice KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-            <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">Sessions</div>
-              <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+            <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+              <div className="text-[#243647]">Sessions</div>
+              <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
                 {sliceSummary.totalSessions}
               </div>
             </div>
-            <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">Students Present</div>
-              <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+            <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+              <div className="text-[#243647]">Students Present</div>
+              <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
                 {sliceSummary.totalStudentsReached}
               </div>
             </div>
-            <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">Pooled CSAT</div>
-              <div className="text-xl font-semibold text-[#0F766E] ct-num mt-1">
+            <div className="p-3.5 rounded-lg bg-[#E8F6FF] border border-[#0284C7]/45">
+              <div className="text-[#006BB8] font-medium">Pooled CSAT</div>
+              <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
                 {formatScore2(sliceSummary.averageCsat)}
               </div>
-              <div className="text-[11px] text-[#475569] ct-num mt-0.5">
+              <div className="text-[11px] text-[#243647] ct-num mt-0.5">
                 {sliceSummary.totalQuestionAResponses} resp · Miss {sliceSummary.totalMissingResponsesQA}
               </div>
             </div>
-            <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">Pooled ITP</div>
-              <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+            <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+              <div className="text-[#243647]">Pooled ITP</div>
+              <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
                 {formatScore2(sliceSummary.averageItp)}
               </div>
-              <div className="text-[11px] text-[#475569] ct-num mt-0.5">
+              <div className="text-[11px] text-[#243647] ct-num mt-0.5">
                 {sliceSummary.totalQuestionBResponses} resp · Miss {sliceSummary.totalMissingResponsesQB}
               </div>
             </div>
-            <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] col-span-2 sm:col-span-1">
-              <div className="text-[#475569]">Teacher NPS</div>
-              <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+            <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] col-span-2 sm:col-span-1">
+              <div className="text-[#243647]">Teacher NPS</div>
+              <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
                 {sliceSummary.teacherNpsAverage !== null
                   ? sliceSummary.teacherNpsAverage > 0
                     ? `+${sliceSummary.teacherNpsAverage}`
@@ -214,27 +214,27 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
             ].map((q) => (
               <div
                 key={q.title}
-                className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3"
+                className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] space-y-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xs sm:text-sm font-medium text-[#0F172A]">{q.title}</h3>
-                  <span className="text-[11px] text-[#475569] ct-num">
+                  <h3 className="text-xs sm:text-sm font-medium text-[#0A1B2C]">{q.title}</h3>
+                  <span className="text-[11px] text-[#243647] ct-num">
                     Missing: {q.missing} ({formatPct1(q.missRate)})
                   </span>
                 </div>
 
                 {/* Stacked Pos/Neu/Neg Bar */}
                 <div className="space-y-1.5">
-                  <div className="h-2.5 w-full rounded-full overflow-hidden bg-[#FFFFFF] border border-[#CBD5E1]/70 flex">
+                  <div className="h-2.5 w-full rounded-full overflow-hidden bg-[#FFFFFF] border border-[#C7BEA7] flex">
                     {q.sentiment.total > 0 && (
                       <>
                         <div
-                          className="h-full bg-[#0F766E]"
+                          className="h-full bg-[#006BB8]"
                           style={{ width: `${q.sentiment.positivePct ?? 0}%` }}
                           title={`Positive (4–5): ${formatPct1(q.sentiment.positivePct)}`}
                         />
                         <div
-                          className="h-full bg-[#94A3B8]"
+                          className="h-full bg-[#5F7082]"
                           style={{ width: `${q.sentiment.neutralPct ?? 0}%` }}
                           title={`Neutral (3): ${formatPct1(q.sentiment.neutralPct)}`}
                         />
@@ -246,22 +246,22 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
                       </>
                     )}
                   </div>
-                  <div className="flex flex-wrap justify-between gap-2 text-[11px] text-[#475569] ct-num">
+                  <div className="flex flex-wrap justify-between gap-2 text-[11px] text-[#243647] ct-num">
                     <span>
                       Positive (4–5):{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {q.sentiment.positiveCount} ({formatPct1(q.sentiment.positivePct)})
                       </strong>
                     </span>
                     <span>
                       Neutral (3):{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {q.sentiment.neutralCount} ({formatPct1(q.sentiment.neutralPct)})
                       </strong>
                     </span>
                     <span>
                       Negative (1–2):{' '}
-                      <strong className="font-medium text-[#0F172A]">
+                      <strong className="font-medium text-[#0A1B2C]">
                         {q.sentiment.negativeCount} ({formatPct1(q.sentiment.negativePct)})
                       </strong>
                     </span>
@@ -274,16 +274,16 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
                     const pct = q.sentiment.total > 0 ? (row.count / q.sentiment.total) * 100 : 0;
                     return (
                       <div key={row.score} className="flex items-center gap-2 text-xs ct-num">
-                        <span className="w-28 truncate text-[#475569]">
+                        <span className="w-28 truncate text-[#243647]">
                           {row.score} · {row.label}
                         </span>
-                        <div className="flex-1 h-1.5 rounded-full bg-[#E2E8F0] overflow-hidden">
+                        <div className="flex-1 h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-[#0F766E]"
+                            className="h-full rounded-full bg-[#006BB8]"
                             style={{ width: `${Math.round(pct)}%` }}
                           />
                         </div>
-                        <span className="w-16 text-right text-[#0F172A]">
+                        <span className="w-16 text-right text-[#0A1B2C]">
                           {row.count} ({Math.round(pct)}%)
                         </span>
                       </div>
@@ -296,12 +296,12 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
 
           {/* Matching Sessions Preview */}
           <div>
-            <h3 className="text-xs sm:text-sm font-medium text-[#0F172A] mb-2">
+            <h3 className="text-xs sm:text-sm font-medium text-[#0A1B2C] mb-2">
               Matching Sessions ({sliceSessions.length} shown)
             </h3>
-            <div className="ct-table-wrapper rounded-xl border border-[#E2E8F0]">
+            <div className="ct-table-wrapper rounded-xl border border-[#DFD7C2]">
               <table className="w-full text-left text-xs border-collapse min-w-[600px]">
-                <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
+                <thead className="bg-[#F5F2E9] text-[#243647] uppercase text-[11px]">
                   <tr>
                     <th scope="col" className="p-2.5 font-medium">Session ID</th>
                     <th scope="col" className="p-2.5 font-medium">School</th>
@@ -312,22 +312,22 @@ export const DetailedAnalyticsModal: React.FC<DetailedAnalyticsModalProps> = ({
                     <th scope="col" className="p-2.5 font-medium">ITP</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
+                <tbody className="divide-y divide-[#DFD7C2]">
                   {sliceSessions.map((s) => (
-                    <tr key={s.sessionRecordId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
-                      <td className="p-2.5 font-mono text-[#0F766E] whitespace-nowrap">
+                    <tr key={s.sessionRecordId} className="bg-[#FFFFFF] hover:bg-[#F5F2E9] transition-colors ct-num">
+                      <td className="p-2.5 font-mono text-[#006BB8] whitespace-nowrap">
                         {s.sessionId}
                       </td>
-                      <td className="p-2.5 text-[#0F172A]">{s.schoolName}</td>
-                      <td className="p-2.5 text-[#475569]">
+                      <td className="p-2.5 text-[#0A1B2C]">{s.schoolName}</td>
+                      <td className="p-2.5 text-[#243647]">
                         {s.tourName} · {s.language}
                       </td>
-                      <td className="p-2.5 text-[#475569] whitespace-nowrap">
+                      <td className="p-2.5 text-[#243647] whitespace-nowrap">
                         {formatISODateToDDMMYYYY(s.startDate)}
                       </td>
-                      <td className="p-2.5 text-[#0F172A]">{s.totalStudentsPresent}</td>
-                      <td className="p-2.5 text-[#0F172A]">{formatScore2(s.overallCsat)}</td>
-                      <td className="p-2.5 text-[#0F172A]">{formatScore2(s.overallItp)}</td>
+                      <td className="p-2.5 text-[#0A1B2C]">{s.totalStudentsPresent}</td>
+                      <td className="p-2.5 text-[#0A1B2C]">{formatScore2(s.overallCsat)}</td>
+                      <td className="p-2.5 text-[#0A1B2C]">{formatScore2(s.overallItp)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -88,56 +88,56 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     >
       {/* Headline Metric Verification Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#475569]">
+        <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#243647]">
             Students Present
           </div>
-          <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+          <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
             {metrics.totalStudentsPresent}
           </div>
-          <div className="text-[11px] text-[#475569] mt-0.5 ct-num">
+          <div className="text-[11px] text-[#243647] mt-0.5 ct-num">
             {metrics.totalClasses} {metrics.totalClasses === 1 ? 'class' : 'classes'}
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#475569]">
+        <div className="p-3.5 rounded-lg bg-[#E8F6FF] border border-[#0284C7]/45">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#006BB8]">
             Pooled CSAT (Q-A)
           </div>
-          <div className="text-xl font-semibold text-[#0F766E] ct-num mt-1">
+          <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
             {formatScore2(metrics.overallCsat)}
           </div>
-          <div className="text-[11px] text-[#475569] mt-0.5 ct-num">
+          <div className="text-[11px] text-[#243647] mt-0.5 ct-num">
             Pos {formatPct1(metrics.questionASentiment.positivePct)} · Miss{' '}
             {metrics.totalQuestionAMissing}
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#475569]">
+        <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#243647]">
             Pooled ITP (Q-B)
           </div>
-          <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+          <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
             {formatScore2(metrics.overallItp)}
           </div>
-          <div className="text-[11px] text-[#475569] mt-0.5 ct-num">
+          <div className="text-[11px] text-[#243647] mt-0.5 ct-num">
             Pos {formatPct1(metrics.questionBSentiment.positivePct)} · Miss{' '}
             {metrics.totalQuestionBMissing}
           </div>
         </div>
 
-        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#475569]">
+        <div className="p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#243647]">
             Teacher NPS
           </div>
-          <div className="text-xl font-semibold text-[#0F172A] ct-num mt-1">
+          <div className="text-xl font-semibold text-[#0A1B2C] ct-num mt-1">
             {metrics.teacherNps !== null
               ? metrics.teacherNps > 0
                 ? '+100'
                 : String(metrics.teacherNps)
               : '—'}
           </div>
-          <div className="text-[11px] text-[#475569] mt-0.5">
+          <div className="text-[11px] text-[#243647] mt-0.5">
             {metrics.teacherClassification ?? 'Not entered'}
             {metrics.teacherScoreExact !== null ? ` (${metrics.teacherScoreExact}/10)` : ''}
           </div>
@@ -145,52 +145,52 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
       </div>
 
       {/* Session & School Metadata */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs sm:text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] text-xs sm:text-sm">
         <div>
-          <span className="text-[#475569]">Facilitator:</span>{' '}
-          <span className="font-medium text-[#0F172A]">{values.facilitatorName}</span>
+          <span className="text-[#243647]">Facilitator:</span>{' '}
+          <span className="font-medium text-[#0A1B2C]">{values.facilitatorName}</span>
         </div>
         <div>
-          <span className="text-[#475569]">Tour / Language:</span>{' '}
-          <span className="font-medium text-[#0F172A]">
+          <span className="text-[#243647]">Tour / Language:</span>{' '}
+          <span className="font-medium text-[#0A1B2C]">
             {tour?.tourName ?? values.tourId} · {values.language}
           </span>
         </div>
         <div>
-          <span className="text-[#475569]">School:</span>{' '}
-          <span className="font-medium text-[#0F172A]">{values.schoolName}</span>
+          <span className="text-[#243647]">School:</span>{' '}
+          <span className="font-medium text-[#0A1B2C]">{values.schoolName}</span>
         </div>
         <div>
-          <span className="text-[#475569]">UDISE / PIN:</span>{' '}
-          <span className="font-mono font-medium text-[#0F172A]">
+          <span className="text-[#243647]">UDISE / PIN:</span>{' '}
+          <span className="font-mono font-medium text-[#0A1B2C]">
             {values.udiseCode} / {values.pinCode}
           </span>
         </div>
         <div>
-          <span className="text-[#475569]">District / Block:</span>{' '}
-          <span className="font-medium text-[#0F172A]">
+          <span className="text-[#243647]">District / Block:</span>{' '}
+          <span className="font-medium text-[#0A1B2C]">
             {values.district} · {values.block}
           </span>
         </div>
         <div>
-          <span className="text-[#475569]">Schedule ({monthName}):</span>{' '}
-          <span className="font-medium text-[#0F172A] ct-num">
+          <span className="text-[#243647]">Schedule ({monthName}):</span>{' '}
+          <span className="font-medium text-[#0A1B2C] ct-num">
             {formatISODateToDDMMYYYY(values.startDate)} ({formatTime24To12(values.startTime)} →{' '}
             {formatTime24To12(values.endTime)}) · {formatDurationHuman(durationMins)}
           </span>
         </div>
-        <div className="sm:col-span-2 text-xs text-[#475569]">
+        <div className="sm:col-span-2 text-xs text-[#243647]">
           Video ID:{' '}
-          <span className="font-mono text-[#0F172A]">
+          <span className="font-mono text-[#0A1B2C]">
             {videoInfo.isConfigured ? videoInfo.videoId : 'UNCONFIGURED_VIDEO_ID'}
           </span>
         </div>
       </div>
 
       {/* Per-Class Summary Table */}
-      <div className="ct-table-wrapper rounded-xl border border-[#E2E8F0]">
+      <div className="ct-table-wrapper rounded-xl border border-[#DFD7C2]">
         <table className="w-full text-left text-xs border-collapse min-w-[540px]">
-          <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
+          <thead className="bg-[#F5F2E9] text-[#243647] uppercase text-[11px]">
             <tr>
               <th scope="col" className="p-2.5 font-medium">Class</th>
               <th scope="col" className="p-2.5 font-medium">Present</th>
@@ -200,23 +200,23 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
               <th scope="col" className="p-2.5 font-medium">ITP</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E2E8F0]">
+          <tbody className="divide-y divide-[#DFD7C2]">
             {metrics.classBreakdown.map((c) => (
               <tr key={c.rowId} className="bg-[#FFFFFF] ct-num">
-                <td className="p-2.5 font-medium text-[#0F172A]">
+                <td className="p-2.5 font-medium text-[#0A1B2C]">
                   Grade {c.grade} · {c.section}
                 </td>
-                <td className="p-2.5 text-[#0F172A]">{c.studentsPresent}</td>
-                <td className="p-2.5 text-[#475569]">
-                  <span className="text-[#0F172A]">{c.questionATotal}</span> /{' '}
+                <td className="p-2.5 text-[#0A1B2C]">{c.studentsPresent}</td>
+                <td className="p-2.5 text-[#243647]">
+                  <span className="text-[#0A1B2C]">{c.questionATotal}</span> /{' '}
                   {c.questionAMissingResponses}
                 </td>
-                <td className="p-2.5 font-medium text-[#0F766E]">{formatScore2(c.csatAverage)}</td>
-                <td className="p-2.5 text-[#475569]">
-                  <span className="text-[#0F172A]">{c.questionBTotal}</span> /{' '}
+                <td className="p-2.5 font-medium text-[#006BB8]">{formatScore2(c.csatAverage)}</td>
+                <td className="p-2.5 text-[#243647]">
+                  <span className="text-[#0A1B2C]">{c.questionBTotal}</span> /{' '}
                   {c.questionBMissingResponses}
                 </td>
-                <td className="p-2.5 font-medium text-[#0F172A]">{formatScore2(c.itpAverage)}</td>
+                <td className="p-2.5 font-medium text-[#0A1B2C]">{formatScore2(c.itpAverage)}</td>
               </tr>
             ))}
           </tbody>

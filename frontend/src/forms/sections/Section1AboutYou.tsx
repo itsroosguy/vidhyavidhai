@@ -46,7 +46,7 @@ export const Section1AboutYou: React.FC<Section1Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec1-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec1-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About you
               </h2>
               {isComplete && (
@@ -56,20 +56,20 @@ export const Section1AboutYou: React.FC<Section1Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#475569] mt-0.5">
+            <p className="text-xs text-[#243647] mt-0.5">
               Facilitator identity linked to this session record
             </p>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F8FAFC] border border-[#CBD5E1] text-[#475569]">
-          <Mail className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#0A1B2C] border border-[#0A1B2C] text-[#FAF8F2]">
+          <Mail className="w-3.5 h-3.5 text-[#1EA7FF]" aria-hidden="true" />
           {isAdminEditingOther ? (
             <>
-              Owner preserved: <strong className="font-medium text-[#0F172A]">{facilitatorEmail}</strong>
+              Owner preserved: <strong className="font-medium text-[#FFFFFF]">{facilitatorEmail}</strong>
             </>
           ) : (
-            <span className="text-[#0F172A]">{facilitatorEmail}</span>
+            <span className="text-[#FAF8F2]">{facilitatorEmail}</span>
           )}
         </span>
       </div>
@@ -77,15 +77,15 @@ export const Section1AboutYou: React.FC<Section1Props> = ({
       <div className="ct-bento-well p-4 flex items-start sm:items-center gap-3.5">
         <div
           aria-hidden="true"
-          className="hidden sm:flex w-11 h-11 rounded-2xl bg-[#E6F6F4] border border-[#0F766E]/25 items-center justify-center text-sm font-medium text-[#0F766E] shrink-0 mt-5"
+          className="hidden sm:flex w-11 h-11 rounded-2xl bg-[#0A1B2C] border border-[#0A1B2C] items-center justify-center text-sm font-medium text-[#FAF8F2] shrink-0 mt-5"
         >
-          {initials || <UserRound className="w-4 h-4 text-[#526077]" />}
+          {initials || <UserRound className="w-4 h-4 text-[#1EA7FF]" />}
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-          <label htmlFor="facilitatorName" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="facilitatorName" className="text-sm font-medium text-[#0A1B2C]">
             Your name
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>

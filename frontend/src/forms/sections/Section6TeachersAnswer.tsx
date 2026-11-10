@@ -96,7 +96,7 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec6-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+              <h2 id="sec6-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 Teacher's answer
               </h2>
               {isComplete && (
@@ -106,17 +106,17 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#475569] mt-0.5">
+            <p className="text-xs text-[#243647] mt-0.5">
               Classroom teacher Net Promoter Score (NPS) classification
             </p>
           </div>
         </div>
       </div>
 
-      <p className="text-sm sm:text-[15px] font-medium text-[#0F172A] leading-relaxed">
+      <p className="text-sm sm:text-[15px] font-medium text-[#0A1B2C] leading-relaxed">
         Ask the teachers who sat in: "{TEACHER_NPS_QUESTION}"
       </p>
-      <p className="mt-1 text-xs sm:text-sm text-[#475569] leading-relaxed mb-4">
+      <p className="mt-1 text-xs sm:text-sm text-[#243647] leading-relaxed mb-4">
         {TEACHER_NPS_HELPER}
       </p>
 
@@ -135,14 +135,14 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
                 className={`ct-interactive-tile text-left rounded-xl p-3 border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                   active
                     ? card.activeClass
-                    : 'bg-[#FFFFFF] border-[#CBD5E1] hover:border-[#0F766E]/55'
+                    : 'bg-[#FFFFFF] border-[#8E8674] hover:border-[#0284C7]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Icon className={`w-4 h-4 shrink-0 ${card.iconColor}`} aria-hidden="true" />
                   <div>
-                    <div className="text-sm font-medium text-[#0F172A]">{card.title}</div>
-                    <div className="text-[11px] text-[#475569] ct-num">{card.range}</div>
+                    <div className="text-sm font-medium text-[#0A1B2C]">{card.title}</div>
+                    <div className="text-[11px] text-[#243647] ct-num">{card.range}</div>
                   </div>
                 </div>
                 <span className={`text-[11px] font-medium ct-num ${card.iconColor}`}>
@@ -154,9 +154,9 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="teacherNpsGroup" className="text-sm font-medium text-[#0F172A]">
+          <label htmlFor="teacherNpsGroup" className="text-sm font-medium text-[#0A1B2C]">
             Teacher's score
-            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
+            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
               *
             </span>
           </label>
@@ -185,7 +185,7 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
             type="button"
             aria-expanded={showExactScores}
             onClick={() => setShowExactScores((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[#475569] hover:text-[#0F766E] cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#243647] hover:text-[#006BB8] cursor-pointer transition-colors"
           >
             {showExactScores ? (
               <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
@@ -216,8 +216,8 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
                     }}
                     className={`ct-interactive-tile min-w-[40px] min-h-[40px] px-2 rounded-lg text-sm font-medium ct-num border transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-[#0F766E] text-[#FFFFFF] border-[#0F766E]'
-                        : 'bg-[#FFFFFF] text-[#0F172A] border-[#CBD5E1] hover:bg-[#F1F5F9]'
+                        ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
+                        : 'bg-[#FFFFFF] text-[#0A1B2C] border-[#8E8674] hover:bg-[#F5F2E9]'
                     }`}
                   >
                     {num}
@@ -229,22 +229,22 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
         </div>
 
         {metrics.teacherClassification !== null && metrics.teacherNps !== null && (
-          <div className="px-3.5 py-2.5 rounded-lg bg-[#FFFFFF] border border-[#E2E8F0] flex flex-wrap items-center gap-4 text-xs text-[#475569] ct-num">
+          <div className="px-3.5 py-2.5 rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] flex flex-wrap items-center gap-4 text-xs text-[#243647] ct-num">
             <span>
               Classification:{' '}
-              <strong className="font-medium text-[#0F766E]">{metrics.teacherClassification}</strong>
+              <strong className="font-medium text-[#006BB8]">{metrics.teacherClassification}</strong>
             </span>
             {metrics.teacherScoreExact !== null && (
               <span>
                 Exact score:{' '}
-                <strong className="font-medium text-[#0F172A]">
+                <strong className="font-medium text-[#0A1B2C]">
                   {metrics.teacherScoreExact} / 10
                 </strong>
               </span>
             )}
             <span>
               Teacher NPS:{' '}
-              <strong className="font-medium text-[#0F172A]">
+              <strong className="font-medium text-[#0A1B2C]">
                 {metrics.teacherNps > 0 ? '+100' : metrics.teacherNps}
               </strong>
             </span>

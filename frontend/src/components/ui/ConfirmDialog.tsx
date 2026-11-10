@@ -102,23 +102,23 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </div>
           )}
           <div>
-            <span className="text-[11px] font-medium uppercase tracking-wider text-[#526077]">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[#33475B]">
               {destructive ? 'Confirmation Required' : 'Confirm Action'}
             </span>
-            <h2 id={titleId} className="text-lg font-medium text-[#0F172A] mt-0.5">
+            <h2 id={titleId} className="text-lg font-medium text-[#0A1B2C] mt-0.5">
               {title}
             </h2>
           </div>
         </div>
 
-        <p className="text-sm text-[#475569] leading-relaxed">{description}</p>
+        <p className="text-sm text-[#243647] leading-relaxed">{description}</p>
 
         {metadata && metadata.length > 0 && (
-          <dl className="grid grid-cols-1 gap-1.5 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-xs">
+          <dl className="grid grid-cols-1 gap-1.5 p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] text-xs">
             {metadata.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-3">
-                <dt className="text-[#475569]">{item.label}</dt>
-                <dd className="font-mono text-[#0F172A] text-right truncate">{item.value}</dd>
+                <dt className="text-[#243647]">{item.label}</dt>
+                <dd className="font-mono text-[#0A1B2C] text-right truncate">{item.value}</dd>
               </div>
             ))}
           </dl>

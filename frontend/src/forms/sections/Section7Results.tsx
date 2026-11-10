@@ -121,10 +121,10 @@ export const Section7Results: React.FC<Section7Props> = ({
             <Sparkles className="w-4 h-4" />
           </span>
           <div>
-            <h2 id="sec7-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
+            <h2 id="sec7-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
               Your results
             </h2>
-            <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
+            <p className="text-xs sm:text-sm text-[#243647] mt-0.5">
               These numbers are worked out for you. After you save, view your submission anytime
               under &quot;My classes&quot;.
             </p>
@@ -134,63 +134,63 @@ export const Section7Results: React.FC<Section7Props> = ({
 
       {/* Primary 3 metric scorecard tiles with live visual fill gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-3.5">
-        <div className="rounded-xl p-4 bg-[#E6F6F4] border border-[#0F766E]/35 flex flex-col justify-between">
+        <div className="rounded-xl p-4 bg-[#E8F6FF] border border-[#0284C7]/45 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#0F766E]">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#006BB8]">
               CSAT AVERAGE (ENJOYED)
             </span>
-            <Smile className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
+            <Smile className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0F172A] ct-num">
+          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
             {formatScore2(metrics.overallCsat)}
           </div>
-          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#CBD5E1]/70 overflow-hidden">
+          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden">
             <div
-              className="h-full rounded-full bg-[#0F766E] transition-[width] duration-200"
+              className="h-full rounded-full bg-[#006BB8] transition-[width] duration-200"
               style={{ width: `${csatGaugePct}%` }}
             />
           </div>
           {metrics.totalQuestionAResponses > 0 && (
-            <div className="mt-1.5 text-xs text-[#475569] ct-num">
+            <div className="mt-1.5 text-xs text-[#243647] ct-num">
               {metrics.totalQuestionAResponses} responses · Pos{' '}
               {formatPct1(metrics.questionASentiment.positivePct)}
             </div>
           )}
         </div>
 
-        <div className="rounded-xl p-4 bg-[#F8FAFC] border border-[#E2E8F0] flex flex-col justify-between">
+        <div className="rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2] flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#475569]">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647]">
               ITP AVERAGE (INTEREST)
             </span>
-            <Compass className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
+            <Compass className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0F172A] ct-num">
+          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
             {formatScore2(metrics.overallItp)}
           </div>
-          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#E2E8F0] overflow-hidden">
+          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden">
             <div
-              className="h-full rounded-full bg-[#047857] transition-[width] duration-200"
+              className="h-full rounded-full bg-[#0A1B2C] transition-[width] duration-200"
               style={{ width: `${itpGaugePct}%` }}
             />
           </div>
           {metrics.totalQuestionBResponses > 0 && (
-            <div className="mt-1.5 text-xs text-[#475569] ct-num">
+            <div className="mt-1.5 text-xs text-[#243647] ct-num">
               {metrics.totalQuestionBResponses} responses · Pos{' '}
               {formatPct1(metrics.questionBSentiment.positivePct)}
             </div>
           )}
         </div>
 
-        <div className="rounded-xl p-4 bg-[#F8FAFC] border border-[#E2E8F0] flex flex-col justify-between">
+        <div className="rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2] flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#475569]">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647]">
               TEACHER SCORE (NPS)
             </span>
             <Award
               className={`w-4 h-4 ${
                 metrics.teacherNps === null
-                  ? 'text-[#526077]'
+                  ? 'text-[#33475B]'
                   : metrics.teacherNps > 0
                     ? 'text-[#047857]'
                     : metrics.teacherNps === 0
@@ -200,14 +200,14 @@ export const Section7Results: React.FC<Section7Props> = ({
               aria-hidden="true"
             />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0F172A] ct-num">
+          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
             {metrics.teacherNps !== null
               ? metrics.teacherNps > 0
                 ? '+100'
                 : String(metrics.teacherNps)
               : '—'}
           </div>
-          <div className="mt-2.5 text-xs text-[#475569] ct-num">
+          <div className="mt-2.5 text-xs text-[#243647] ct-num">
             {metrics.teacherClassification
               ? `${metrics.teacherClassification}${metrics.teacherScoreExact !== null ? ` (${metrics.teacherScoreExact}/10)` : ''}`
               : 'Not entered'}
@@ -219,22 +219,22 @@ export const Section7Results: React.FC<Section7Props> = ({
       {(metrics.totalStudentsPresent > 0 || actualResponses > 0) && (
         <div className="ct-bento-well grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4 p-3.5 text-xs ct-num">
           <div>
-            <div className="text-[#526077] uppercase text-[10px] font-medium">Students Present</div>
-            <div className="text-base font-medium text-[#0F172A] mt-0.5">
+            <div className="text-[#33475B] uppercase text-[10px] font-medium">Students Present</div>
+            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">
               {metrics.totalStudentsPresent}
             </div>
           </div>
           <div>
-            <div className="text-[#526077] uppercase text-[10px] font-medium">Expected Responses</div>
-            <div className="text-base font-medium text-[#0F172A] mt-0.5">{expectedResponses}</div>
+            <div className="text-[#33475B] uppercase text-[10px] font-medium">Expected Responses</div>
+            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">{expectedResponses}</div>
           </div>
           <div>
-            <div className="text-[#526077] uppercase text-[10px] font-medium">Actual Responses</div>
-            <div className="text-base font-medium text-[#0F172A] mt-0.5">{actualResponses}</div>
+            <div className="text-[#33475B] uppercase text-[10px] font-medium">Actual Responses</div>
+            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">{actualResponses}</div>
           </div>
           <div>
-            <div className="text-[#526077] uppercase text-[10px] font-medium">Unanswered</div>
-            <div className="text-base font-medium text-[#0F172A] mt-0.5">
+            <div className="text-[#33475B] uppercase text-[10px] font-medium">Unanswered</div>
+            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">
               {unansweredResponses}
             </div>
           </div>
@@ -244,21 +244,21 @@ export const Section7Results: React.FC<Section7Props> = ({
       {/* Session ID Pass Ticket */}
       <div
         className={`ct-bento-well mb-4 p-4 flex items-center justify-between gap-3 border ${
-          savedResult || sessionIdPrefix ? 'border-[#0F766E]/45' : 'border-[#E2E8F0]'
+          savedResult || sessionIdPrefix ? 'border-[#0284C7]/50' : 'border-[#DFD7C2]'
         }`}
       >
         <div className="flex items-start gap-3 min-w-0">
           <div
             aria-hidden="true"
-            className="w-9 h-9 rounded-xl bg-[#E6F6F4] border border-[#0F766E]/25 flex items-center justify-center text-[#0F766E] shrink-0 mt-0.5"
+            className="w-9 h-9 rounded-xl bg-[#0A1B2C] border border-[#0A1B2C] flex items-center justify-center text-[#1EA7FF] shrink-0 mt-0.5"
           >
             <Hash className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <div className="text-[11px] font-medium tracking-wider uppercase text-[#526077]">
+            <div className="text-[11px] font-medium tracking-wider uppercase text-[#33475B]">
               SESSION ID
             </div>
-            <div className="mt-0.5 text-sm sm:text-[15px] font-medium font-mono text-[#0F172A] break-all ct-num">
+            <div className="mt-0.5 text-sm sm:text-[15px] font-medium font-mono text-[#0A1B2C] break-all ct-num">
               {savedResult
                 ? savedResult.session.sessionId
                 : isEditing && editingSessionId
@@ -271,7 +271,7 @@ export const Section7Results: React.FC<Section7Props> = ({
         </div>
 
         {(savedResult || sessionIdPrefix) && (
-          <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E] shrink-0">
+          <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] shrink-0">
             {savedResult ? 'Assigned' : 'Preview'}
           </span>
         )}
@@ -283,7 +283,7 @@ export const Section7Results: React.FC<Section7Props> = ({
           type="button"
           onClick={() => setShowAutoFilled((prev) => !prev)}
           aria-expanded={showAutoFilled}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0F172A] cursor-pointer hover:text-[#0F766E] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0A1B2C] cursor-pointer hover:text-[#006BB8] transition-colors"
         >
           {showAutoFilled ? (
             <ChevronDown className="w-4 h-4" aria-hidden="true" />
@@ -294,7 +294,7 @@ export const Section7Results: React.FC<Section7Props> = ({
         </button>
 
         {showAutoFilled && (
-          <dl className="mt-2.5 p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-[#475569] font-mono ct-num">
+          <dl className="mt-2.5 p-3.5 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-[#243647] font-mono ct-num">
             <div>Month: {monthName}</div>
             <div>Session length: {formatDurationHuman(durationMins)}</div>
             <div>Feedback from: {config.reportingDefaults.feedbackFrom}</div>
@@ -303,7 +303,7 @@ export const Section7Results: React.FC<Section7Props> = ({
             <div>Educator ID: {config.reportingDefaults.educatorId} (the guide asks for none)</div>
             <div>
               Video ID:{' '}
-              <span className={videoInfo.isConfigured ? 'text-[#0F766E]' : 'text-[#B45309]'}>
+              <span className={videoInfo.isConfigured ? 'text-[#006BB8]' : 'text-[#92400E]'}>
                 {videoInfo.videoId || '—'}
               </span>
             </div>
@@ -326,7 +326,7 @@ export const Section7Results: React.FC<Section7Props> = ({
           type="button"
           onClick={() => setShowWorking((prev) => !prev)}
           aria-expanded={showWorking}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0F172A] cursor-pointer hover:text-[#0F766E] transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#0A1B2C] cursor-pointer hover:text-[#006BB8] transition-colors"
         >
           {showWorking ? (
             <ChevronDown className="w-4 h-4" aria-hidden="true" />
@@ -337,7 +337,7 @@ export const Section7Results: React.FC<Section7Props> = ({
         </button>
 
         {showWorking && (
-          <div className="mt-2 p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569] space-y-1.5 font-mono ct-num">
+          <div className="mt-2 p-3.5 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] text-xs text-[#243647] space-y-1.5 font-mono ct-num">
             <p>{working.csatFormula}</p>
             <p>{working.itpFormula}</p>
             <p>{working.teacherFormula}</p>
@@ -361,7 +361,7 @@ export const Section7Results: React.FC<Section7Props> = ({
           <ul className="list-disc pl-5 space-y-1">
             {validation.errors.map((err, idx) => (
               <li key={`${err.code}-${idx}`}>
-                <a href={`#section-${err.section}`} className="underline hover:text-[#0F172A]">
+                <a href={`#section-${err.section}`} className="underline hover:text-[#0A1B2C]">
                   Section {err.section}:
                 </a>{' '}
                 {err.message}
@@ -395,7 +395,7 @@ export const Section7Results: React.FC<Section7Props> = ({
       {savedResult && (
         <div
           role="status"
-          className="mb-5 p-4 rounded-xl bg-[#ECFDF5] border border-[#047857]/35 text-[#0F172A] flex flex-col gap-3"
+          className="mb-5 p-4 rounded-xl bg-[#ECFDF5] border border-[#047857]/35 text-[#0A1B2C] flex flex-col gap-3"
         >
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-[#047857]" aria-hidden="true" />
@@ -403,13 +403,13 @@ export const Section7Results: React.FC<Section7Props> = ({
               <h3 className="text-base font-medium">
                 {isEditing ? 'Session updated successfully!' : 'Session saved successfully!'}
               </h3>
-              <p className="text-xs sm:text-sm mt-1 text-[#475569]">
+              <p className="text-xs sm:text-sm mt-1 text-[#243647]">
                 Generated Session ID:{' '}
-                <strong className="font-mono font-medium text-[#0F766E]">
+                <strong className="font-mono font-medium text-[#006BB8]">
                   {savedResult.session.sessionId}
                 </strong>
                 {savedResult.syncStatus && (
-                  <span className="ml-2 text-xs text-[#475569]">
+                  <span className="ml-2 text-xs text-[#243647]">
                     (
                     {savedResult.syncStatus === 'SYNCED'
                       ? isSuperAdmin
@@ -457,7 +457,7 @@ export const Section7Results: React.FC<Section7Props> = ({
       )}
 
       {/* Action Buttons */}
-      <div className="pt-4 border-t border-[#E2E8F0] flex flex-wrap items-center gap-3">
+      <div className="pt-4 border-t border-[#DFD7C2] flex flex-wrap items-center gap-3">
         <button
           type="button"
           disabled={isSubmitting || Boolean(savedResult && !isEditing)}

@@ -70,8 +70,8 @@ export const AdminNav: React.FC<AdminNavProps> = ({
       {/* Narrow-viewport drawer trigger */}
       <div className="lg:hidden mb-3 flex items-center justify-between gap-3 ct-card px-3.5 py-2.5">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-wider text-[#526077]">Admin Section</div>
-          <div className="text-sm font-medium text-[#0F172A] truncate">{currentItem.label}</div>
+          <div className="text-[11px] uppercase tracking-wider text-[#33475B]">Admin Section</div>
+          <div className="text-sm font-medium text-[#0A1B2C] truncate">{currentItem.label}</div>
         </div>
         <button
           type="button"
@@ -80,7 +80,7 @@ export const AdminNav: React.FC<AdminNavProps> = ({
           aria-controls="admin-nav-drawer"
           className="ct-btn-secondary text-xs min-h-[44px] px-3.5 shrink-0"
         >
-          <Menu className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
+          <Menu className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
           Menu
         </button>
       </div>
@@ -92,8 +92,8 @@ export const AdminNav: React.FC<AdminNavProps> = ({
         aria-label="Administrator"
         className="ct-admin-nav ct-card p-3 lg:sticky lg:top-4"
       >
-        <div className="flex items-center justify-between gap-2 px-2 pb-2.5 mb-2 border-b border-[#E2E8F0]">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-[#526077]">
+        <div className="flex items-center justify-between gap-2 px-2 pb-2.5 mb-2 border-b border-[#DFD7C2]">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-[#33475B]">
             Admin Navigation
           </span>
           <button
@@ -101,7 +101,7 @@ export const AdminNav: React.FC<AdminNavProps> = ({
             popoverTarget="admin-nav-drawer"
             popoverTargetAction="hide"
             aria-label="Close administrator menu"
-            className="lg:hidden p-1.5 rounded-lg text-[#475569] hover:text-[#0F172A] hover:bg-[#F1F5F9] cursor-pointer"
+            className="lg:hidden p-1.5 rounded-lg text-[#243647] hover:text-[#0A1B2C] hover:bg-[#F5F2E9] cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -125,18 +125,18 @@ export const AdminNav: React.FC<AdminNavProps> = ({
                   aria-current={isCurrent ? 'page' : undefined}
                   className={`ct-admin-nav-item w-full text-left px-3 py-2 rounded-lg border flex items-center justify-between gap-2 text-xs sm:text-[13px] cursor-pointer transition-colors ${
                     isCurrent
-                      ? 'bg-[#E6F6F4] border-[#0F766E]/35 text-[#0F172A] font-medium'
-                      : 'border-transparent text-[#475569] hover:text-[#0F172A] hover:bg-[#F1F5F9]'
+                      ? 'bg-[#E8F6FF] border-[#0284C7]/50 text-[#0A1B2C] font-medium'
+                      : 'border-transparent text-[#243647] hover:text-[#0A1B2C] hover:bg-[#F5F2E9]'
                   }`}
                 >
                   <span className="truncate">{item.label}</span>
                   {badgeCount > 0 ? (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[#0F766E] text-[#FFFFFF] ct-num shrink-0">
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-[#1EA7FF] text-[#0A1B2C] ct-num shrink-0">
                       {badgeCount}
                     </span>
                   ) : isCurrent ? (
                     <span
-                      className="w-1.5 h-1.5 rounded-full bg-[#0F766E] shrink-0"
+                      className="w-1.5 h-1.5 rounded-full bg-[#006BB8] shrink-0"
                       aria-hidden="true"
                     />
                   ) : null}

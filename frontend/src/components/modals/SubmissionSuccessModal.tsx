@@ -65,7 +65,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
             Queued offline · Retry pending
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F1F5F9] border border-[#CBD5E1] text-[#475569]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2E9] border border-[#C7BEA7] text-[#243647]">
             <CloudOff className="w-3 h-3" aria-hidden="true" />
             {isSuperAdmin ? 'Local Sandbox (not live Google Sheets)' : 'Saved in Local Sandbox'}
           </span>
@@ -113,7 +113,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
                 <div className="text-[11px] uppercase tracking-wider text-[#047857] font-medium">
                   Generated Session ID
                 </div>
-                <div className="font-mono text-sm sm:text-base font-semibold text-[#0F172A] break-all mt-0.5">
+                <div className="font-mono text-sm sm:text-base font-semibold text-[#0A1B2C] break-all mt-0.5">
                   {session.sessionId}
                 </div>
               </div>
@@ -123,7 +123,7 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
               type="button"
               onClick={() => void handleCopyId()}
               aria-label="Copy Session ID"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-xs font-medium text-[#0F172A] cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#F5F2E9] border border-[#8E8674] text-xs font-medium text-[#0A1B2C] cursor-pointer"
             >
               {copied ? (
                 <>
@@ -140,20 +140,20 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">School</div>
-              <div className="text-[#0F172A] font-medium mt-0.5">{session.schoolName}</div>
+            <div className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+              <div className="text-[#243647]">School</div>
+              <div className="text-[#0A1B2C] font-medium mt-0.5">{session.schoolName}</div>
             </div>
-            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-              <div className="text-[#475569]">Date & Attendance</div>
-              <div className="text-[#0F172A] font-medium ct-num mt-0.5">
+            <div className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2]">
+              <div className="text-[#243647]">Date & Attendance</div>
+              <div className="text-[#0A1B2C] font-medium ct-num mt-0.5">
                 {formatISODateToDDMMYYYY(session.startDate)} · {session.totalStudentsPresent}{' '}
                 students
               </div>
             </div>
-            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] col-span-2 sm:col-span-1">
-              <div className="text-[#475569]">CSAT / ITP / NPS</div>
-              <div className="text-[#0F766E] font-semibold ct-num mt-0.5">
+            <div className="p-3 rounded-lg bg-[#E8F6FF] border border-[#0284C7]/45 col-span-2 sm:col-span-1">
+              <div className="text-[#006BB8] font-medium">CSAT / ITP / NPS</div>
+              <div className="text-[#0A1B2C] font-semibold ct-num mt-0.5">
                 {formatScore2(session.overallCsat)} / {formatScore2(session.overallItp)} /{' '}
                 {session.teacherNps > 0 ? `+${session.teacherNps}` : session.teacherNps}
               </div>
@@ -167,8 +167,8 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
           )}
 
           {warnings.length > 0 && (
-            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569] space-y-1">
-              <div className="font-medium text-[#0F172A]">Recorded notices:</div>
+            <div className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] text-xs text-[#243647] space-y-1">
+              <div className="font-medium text-[#0A1B2C]">Recorded notices:</div>
               <ul className="list-disc pl-4 space-y-0.5">
                 {warnings.map((w, idx) => (
                   <li key={idx}>{w}</li>

@@ -116,7 +116,7 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
             Apps Script Live
           </span>
         ) : !isLiveBackend ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F1F5F9] border border-[#CBD5E1] text-[#475569]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2E9] border border-[#C7BEA7] text-[#243647]">
             <CloudOff className="w-3 h-3" aria-hidden="true" />
             Local Sandbox
           </span>
@@ -157,9 +157,9 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
       }
     >
       {/* Honest Endpoint Status Card */}
-      <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
+      <div className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] space-y-2 text-xs sm:text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="font-medium text-[#0F172A] flex items-center gap-2">
+          <div className="font-medium text-[#0A1B2C] flex items-center gap-2">
             {isLiveBackend ? (
               health?.connectedToGoogleSheets ? (
                 <>
@@ -174,19 +174,19 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
               )
             ) : (
               <>
-                <CloudOff className="w-4 h-4 text-[#475569]" aria-hidden="true" />
+                <CloudOff className="w-4 h-4 text-[#243647]" aria-hidden="true" />
                 <span>Running in Local Sandbox Mode (Not Connected to Live Google Sheets)</span>
               </>
             )}
           </div>
           {health?.checkedAt && (
-            <span className="text-[11px] text-[#475569] ct-num">
+            <span className="text-[11px] text-[#243647] ct-num">
               Checked {new Date(health.checkedAt).toLocaleTimeString()}
             </span>
           )}
         </div>
 
-        <p className="text-xs text-[#475569] leading-relaxed">
+        <p className="text-xs text-[#243647] leading-relaxed">
           {isLiveBackend
             ? 'Every submission carries a deterministic clientSubmissionKey and executes inside Apps Script LockService to prevent duplicate rows or overwritten concurrent sessions.'
             : 'Configure VITE_APPS_SCRIPT_URL and VITE_GOOGLE_CLIENT_ID in frontend/.env to sync live rows into your Google Spreadsheet.'}
@@ -202,14 +202,14 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
       {/* Offline / Failed Retry Queue */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-[#0F172A]">
+          <h3 className="text-sm font-medium text-[#0A1B2C]">
             Pending Retry Outbox ({currentOutbox.length})
           </h3>
-          <span className="text-xs text-[#475569]">Idempotent replay queue</span>
+          <span className="text-xs text-[#243647]">Idempotent replay queue</span>
         </div>
 
         {currentOutbox.length === 0 ? (
-          <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569]">
+          <div className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] text-xs text-[#243647]">
             No failed or offline submissions are waiting for retry.
           </div>
         ) : (
@@ -220,11 +220,11 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                 className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 flex flex-wrap items-center justify-between gap-3 text-xs"
               >
                 <div className="space-y-0.5">
-                  <div className="font-medium text-[#0F172A]">
+                  <div className="font-medium text-[#0A1B2C]">
                     {item.schoolName || 'Unnamed School'} ({item.udiseCode}) ·{' '}
                     {formatISODateToDDMMYYYY(item.startDate)}
                   </div>
-                  <div className="text-[#475569] ct-num">
+                  <div className="text-[#243647] ct-num">
                     Key: <span className="font-mono">{item.clientSubmissionKey.slice(0, 8)}</span> ·
                     Attempts: {item.attempts} · Status: {item.syncStatus}
                   </div>
@@ -245,7 +245,7 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                     type="button"
                     onClick={() => handleDiscardOutboxItem(item.clientSubmissionKey)}
                     aria-label={`Remove queued item ${item.clientSubmissionKey}`}
-                    className="p-2 rounded-lg bg-[#FFFFFF] hover:bg-[#FFF1F2] border border-[#CBD5E1] text-[#475569] hover:text-[#BE123C] cursor-pointer"
+                    className="p-2 rounded-lg bg-[#FFFFFF] hover:bg-[#FFF1F2] border border-[#8E8674] text-[#243647] hover:text-[#BE123C] cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
@@ -258,18 +258,18 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
 
       {/* Sync Log History */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-[#0F172A]">
+        <h3 className="text-sm font-medium text-[#0A1B2C]">
           Recent Sync Activity ({mergedLogs.length})
         </h3>
 
         {mergedLogs.length === 0 ? (
-          <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569]">
+          <div className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] text-xs text-[#243647]">
             Sync history will appear here once sessions are submitted or updated.
           </div>
         ) : (
-          <div className="ct-table-wrapper rounded-xl border border-[#E2E8F0]">
+          <div className="ct-table-wrapper rounded-xl border border-[#DFD7C2]">
             <table className="w-full text-left text-xs border-collapse min-w-[520px]">
-              <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
+              <thead className="bg-[#F5F2E9] text-[#243647] uppercase text-[11px]">
                 <tr>
                   <th scope="col" className="p-2.5 font-medium">Time</th>
                   <th scope="col" className="p-2.5 font-medium">Operation</th>
@@ -277,14 +277,14 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                   <th scope="col" className="p-2.5 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8F0]">
+              <tbody className="divide-y divide-[#DFD7C2]">
                 {mergedLogs.slice(0, 15).map((entry) => (
-                  <tr key={entry.syncId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors">
-                    <td className="p-2.5 text-[#475569] ct-num whitespace-nowrap">
+                  <tr key={entry.syncId} className="bg-[#FFFFFF] hover:bg-[#F5F2E9] transition-colors">
+                    <td className="p-2.5 text-[#243647] ct-num whitespace-nowrap">
                       {new Date(entry.timestamp).toLocaleString()}
                     </td>
-                    <td className="p-2.5 text-[#0F172A]">{entry.operation}</td>
-                    <td className="p-2.5 font-mono text-[#0F766E] whitespace-nowrap">
+                    <td className="p-2.5 text-[#0A1B2C]">{entry.operation}</td>
+                    <td className="p-2.5 font-mono text-[#006BB8] whitespace-nowrap">
                       {entry.sessionId || entry.clientSubmissionKey.slice(0, 12)}
                     </td>
                     <td className="p-2.5">
@@ -294,7 +294,7 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
                             ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
                             : entry.status === 'FAILED'
                               ? 'bg-[#FFF1F2] border-[#BE123C]/40 text-[#BE123C]'
-                              : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#475569]'
+                              : 'bg-[#F5F2E9] border-[#C7BEA7] text-[#243647]'
                         }`}
                       >
                         {entry.status}

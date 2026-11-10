@@ -735,7 +735,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
       <div className={embeddedInModal ? 'mb-4' : 'mb-5 ct-jump-bar lg:hidden'}>
         <div
           className={`${
-            embeddedInModal ? 'bg-[#F1F5F9] border border-[#CBD5E1]' : 'ct-glass ct-jump-bar-surface'
+            embeddedInModal ? 'bg-[#F5F2E9] border border-[#C7BEA7]' : 'ct-glass ct-jump-bar-surface'
           } px-3 py-2 rounded-2xl flex items-center justify-between gap-2.5 text-xs`}
         >
           <nav
@@ -751,8 +751,8 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                   href={`#${s.id}`}
                   className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${
                     done
-                      ? 'bg-[#E6F6F4] border-[#0F766E] text-[#0F172A]'
-                      : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#475569] hover:text-[#0F172A] hover:border-[#0F766E]/60'
+                      ? 'bg-[#E8F6FF] border-[#0284C7] text-[#0A1B2C]'
+                      : 'bg-[#FFFFFF] border-[#8E8674] text-[#243647] hover:text-[#0A1B2C] hover:border-[#0284C7]'
                   }`}
                 >
                   {done ? (
@@ -763,7 +763,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                       <Check className="w-3 h-3" strokeWidth={2.5} />
                     </span>
                   ) : (
-                    <Icon className="w-3.5 h-3.5 text-[#0F766E] shrink-0" aria-hidden="true" />
+                    <Icon className="w-3.5 h-3.5 text-[#006BB8] shrink-0" aria-hidden="true" />
                   )}
                   <span className="font-medium">{s.label}</span>
                 </a>
@@ -805,7 +805,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
               role="status"
               className="mb-4 p-4 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 flex flex-wrap items-center justify-between gap-3"
             >
-              <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#0F172A]">
+              <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#0A1B2C]">
                 <CloudOff className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
                   <p className="font-medium text-[#B45309]">
@@ -835,11 +835,11 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
           {editingSession && (
             <div
               role="status"
-              className="mb-4 p-4 rounded-xl bg-[#E6F6F4] border border-[#0F766E]/45 flex flex-wrap items-center justify-between gap-3"
+              className="mb-4 p-4 rounded-xl bg-[#E8F6FF] border border-[#0284C7]/50 flex flex-wrap items-center justify-between gap-3"
             >
-              <div className="text-sm text-[#0F172A]">
+              <div className="text-sm text-[#0A1B2C]">
                 Editing saved session{' '}
-                <strong className="font-mono font-medium text-[#0F766E]">
+                <strong className="font-mono font-medium text-[#006BB8]">
                   {editingSession.sessionId}
                 </strong>
               </div>
@@ -861,15 +861,15 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
             <div
               role="region"
               aria-label="Local draft recovery"
-              className="mb-4 p-4 rounded-xl bg-[#FFFFFF] border border-[#0F766E]/40 shadow-sm flex flex-wrap items-center justify-between gap-3"
+              className="mb-4 p-4 rounded-xl bg-[#FFFFFF] border border-[#0284C7]/45 shadow-sm flex flex-wrap items-center justify-between gap-3"
             >
-              <div className="flex items-start gap-2.5 text-sm text-[#0F172A]">
-                <History className="w-5 h-5 text-[#0F766E] shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="flex items-start gap-2.5 text-sm text-[#0A1B2C]">
+                <History className="w-5 h-5 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
                   <p className="font-medium">
                     Unfinished local draft found (not submitted yet)
                   </p>
-                  <p className="text-xs text-[#475569] mt-0.5 ct-num">
+                  <p className="text-xs text-[#243647] mt-0.5 ct-num">
                     Saved locally on {new Date(pendingDraft.savedAt).toLocaleString()} · School:{' '}
                     {pendingDraft.values.schoolName || 'Not entered'}
                   </p>
@@ -1003,10 +1003,10 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
             <div className="ct-glass rounded-2xl p-4 flex flex-col gap-3.5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-[#526077]">
+                  <div className="text-[11px] font-medium uppercase tracking-wider text-[#33475B]">
                     Session Checklist
                   </div>
-                  <div className="text-sm font-medium text-[#0F172A] mt-0.5 ct-num">
+                  <div className="text-sm font-medium text-[#0A1B2C] mt-0.5 ct-num">
                     {completedSectionCount} of 6 ready
                   </div>
                 </div>
@@ -1041,10 +1041,10 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                     <a
                       key={s.id}
                       href={`#${s.id}`}
-                      className="ct-interactive-tile flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border border-transparent text-xs sm:text-[13px] text-[#475569] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
+                      className="ct-interactive-tile flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border border-transparent text-xs sm:text-[13px] text-[#243647] hover:text-[#0A1B2C] hover:bg-[#F5F2E9] transition-colors"
                     >
                       <span className="inline-flex items-center gap-2.5 min-w-0">
-                        <Icon className="w-4 h-4 text-[#0F766E] shrink-0" aria-hidden="true" />
+                        <Icon className="w-4 h-4 text-[#006BB8] shrink-0" aria-hidden="true" />
                         <span className="truncate">{s.dockTitle}</span>
                       </span>
                       {done && (
@@ -1064,14 +1064,14 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
             {/* Card 2: Real-Time Telemetry Pulse */}
             <div className="ct-glass rounded-2xl p-4 flex flex-col gap-3.5 ct-num">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-[#526077]">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#33475B]">
                   Live Telemetry
                 </span>
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
                     validation.valid
                       ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
-                      : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#475569]'
+                      : 'bg-[#0A1B2C] border-[#0A1B2C] text-[#FAF8F2]'
                   }`}
                 >
                   {validation.valid ? 'Ready to save' : `${validation.errors.length} pending`}
@@ -1080,26 +1080,26 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="ct-bento-well p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-[#526077]">CSAT</div>
-                  <div className="text-lg font-semibold text-[#0F766E] mt-0.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[#33475B]">CSAT</div>
+                  <div className="text-lg font-semibold text-[#006BB8] mt-0.5">
                     {formatScore2(metrics.overallCsat)}
                   </div>
-                  <div aria-hidden="true" className="mt-2 h-1 rounded-full bg-[#E2E8F0] overflow-hidden">
+                  <div aria-hidden="true" className="mt-2 h-1 rounded-full bg-[#DFD7C2] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#0F766E] transition-[width] duration-200"
+                      className="h-full rounded-full bg-[#006BB8] transition-[width] duration-200"
                       style={{ width: `${csatGaugePct}%` }}
                     />
                   </div>
                 </div>
 
                 <div className="ct-bento-well p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-[#526077]">ITP</div>
-                  <div className="text-lg font-semibold text-[#0F172A] mt-0.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[#33475B]">ITP</div>
+                  <div className="text-lg font-semibold text-[#0A1B2C] mt-0.5">
                     {formatScore2(metrics.overallItp)}
                   </div>
-                  <div aria-hidden="true" className="mt-2 h-1 rounded-full bg-[#E2E8F0] overflow-hidden">
+                  <div aria-hidden="true" className="mt-2 h-1 rounded-full bg-[#DFD7C2] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#047857] transition-[width] duration-200"
+                      className="h-full rounded-full bg-[#0A1B2C] transition-[width] duration-200"
                       style={{ width: `${itpGaugePct}%` }}
                     />
                   </div>
@@ -1108,8 +1108,8 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
 
               <div className="ct-bento-well p-3 flex flex-col gap-2 text-xs">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[#526077]">Teacher rating</span>
-                  <span className="font-medium text-[#0F172A]">
+                  <span className="text-[#33475B]">Teacher rating</span>
+                  <span className="font-medium text-[#0A1B2C]">
                     {metrics.teacherClassification
                       ? `${metrics.teacherClassification} (${
                           metrics.teacherNps && metrics.teacherNps > 0
@@ -1120,24 +1120,24 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[#526077]">Response coverage</span>
-                  <span className="font-medium text-[#0F172A]">
+                  <span className="text-[#33475B]">Response coverage</span>
+                  <span className="font-medium text-[#0A1B2C]">
                     {actualResponses}/{expectedResponses} ({responseCoveragePct}%)
                   </span>
                 </div>
-                <div aria-hidden="true" className="h-1 rounded-full bg-[#E2E8F0] overflow-hidden">
+                <div aria-hidden="true" className="h-1 rounded-full bg-[#DFD7C2] overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#0F766E] transition-[width] duration-200"
+                    className="h-full rounded-full bg-[#006BB8] transition-[width] duration-200"
                     style={{ width: `${responseCoveragePct}%` }}
                   />
                 </div>
               </div>
 
               <div className="ct-bento-well p-3 flex items-start gap-2 text-xs">
-                <Hash className="w-3.5 h-3.5 text-[#0F766E] shrink-0 mt-0.5" aria-hidden="true" />
+                <Hash className="w-3.5 h-3.5 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wider text-[#526077]">ID Preview</div>
-                  <div className="font-mono text-[11px] text-[#0F172A] break-all mt-0.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[#33475B]">ID Preview</div>
+                  <div className="font-mono text-[11px] text-[#0A1B2C] break-all mt-0.5">
                     {savedResult
                       ? savedResult.session.sessionId
                       : editingSession

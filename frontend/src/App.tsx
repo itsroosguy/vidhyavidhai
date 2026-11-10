@@ -324,7 +324,7 @@ export function App() {
     <div className="min-h-dvh flex flex-col">
       <a
         href="#main-content"
-        className="visually-hidden focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#0F766E] focus:text-[#FFFFFF] focus:font-medium"
+        className="visually-hidden focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#1EA7FF] focus:text-[#0A1B2C] focus:font-medium"
       >
         Skip to content
       </a>
@@ -355,10 +355,10 @@ export function App() {
                   <ShieldAlert className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-medium text-[#0F172A]">
+                  <h2 className="text-lg sm:text-xl font-medium text-[#0A1B2C]">
                     Access Denied
                   </h2>
-                  <p className="text-xs sm:text-sm text-[#475569] mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#243647] mt-1 leading-relaxed">
                     Administrator permissions are required to access{' '}
                     <code className="text-[#BE123C]">{currentPath}</code>. Your Facilitator account is
                     strictly restricted to Classroom Data Entry and your own submissions.
@@ -441,13 +441,13 @@ export function App() {
         )}
       </div>
 
-      <footer className="py-5 px-4 sm:px-6 text-center text-xs text-[#475569]">
+      <footer className="py-5 px-4 sm:px-6 text-center text-xs text-[#243647]">
         Developed by{' '}
         <a
           href="https://roosstudiox.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-[#0F172A] hover:text-[#0F766E] underline decoration-[#73849C]/70 hover:decoration-[#0F766E] underline-offset-4 transition-colors"
+          className="font-medium text-[#0A1B2C] hover:text-[#006BB8] underline decoration-[#5F7082] hover:decoration-[#006BB8] underline-offset-4 transition-colors"
         >
           Roos StudioX
         </a>
