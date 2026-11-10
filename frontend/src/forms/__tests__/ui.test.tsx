@@ -458,8 +458,14 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     const user = userEvent.setup();
     render(<App />);
 
-    // 1. Login screen renders clean 2026 sign-in card with Vidhya Vidhai Foundation in front of Career Tours and zero preset role/name leaks
+    // 1. Login screen renders clean 2026 sign-in card with Vidhya Vidhai logo, Foundation in front of Career Tours, Roos StudioX attribution, and zero preset role/name leaks
     expect(screen.getByRole('heading', { name: 'Sign in with email' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Vidhya Vidhai Foundation — Educate, Innovate, Lead/i }),
+    ).toBeInTheDocument();
+    const creditLink = screen.getByRole('link', { name: /Roos StudioX/i });
+    expect(creditLink).toHaveAttribute('href', 'https://roosstudiox.com/');
+    expect(creditLink).toHaveAttribute('rel', 'noopener noreferrer');
     const authSpans = Array.from(document.querySelectorAll('main span')).map((n) => n.textContent ?? '').join(' ');
     expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
     expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(authSpans.indexOf('Career Tours'));

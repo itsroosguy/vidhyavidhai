@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Clock, Eye, EyeOff, Lock, LogIn, Mail, ShieldAlert } from 'lucide-react';
+import { AlertCircle, Clock, Eye, EyeOff, Lock, Mail, ShieldAlert } from 'lucide-react';
+import vidhyaVidhaiLogo from '../../assets/vidhya-vidhai-logo.png';
+import vidhyaVidhaiMark from '../../assets/vidhya-vidhai-mark.png';
 import { loadGoogleIdentityScript } from '../../services/authService';
 
 export interface AuthNoticeState {
@@ -140,7 +142,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   };
 
   return (
-    <main className="ct-auth-stage relative min-h-dvh flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
+    <div className="ct-auth-stage relative min-h-dvh flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
       {/* Sweeping concentric orbital hairline rings */}
       <div
         aria-hidden="true"
@@ -151,53 +153,51 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         <div className="absolute w-[1040px] h-[1040px] rounded-full border border-[#0F172A]/[0.05]" />
       </div>
 
-      {/* Top-left workspace mark — Vidhya Vidhai Foundation in front of Career Tours */}
-      <div className="relative z-10 w-full max-w-[420px] mb-5 sm:mb-0 sm:w-auto sm:fixed sm:top-7 sm:left-8 flex items-center gap-2.5">
-        <div
-          aria-hidden="true"
-          className="w-8 h-8 rounded-xl bg-[#0F172A] text-[#FFFFFF] flex items-center justify-center shadow-[0_8px_20px_rgba(15,23,42,0.18)]"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-4 h-4 text-[#FFFFFF]"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-1.5 text-sm tracking-tight">
-          <span className="font-medium text-[#0F172A]">Vidhya Vidhai Foundation</span>
-          <span className="text-[#526077]" aria-hidden="true">
-            ·
-          </span>
-          <span className="font-medium text-[#0F766E]">Career Tours</span>
-        </div>
-      </div>
-
-      <section
-        aria-labelledby="auth-heading"
-        className="ct-auth-card relative z-10 w-full max-w-[420px] p-7 sm:p-8 flex flex-col gap-5"
-      >
-        {/* Top elevated squircle emblem */}
-        <div className="flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[#FFFFFF] border border-[#E2E8F0] shadow-[0_10px_28px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] flex items-center justify-center text-[#0F172A] mb-4">
-            <LogIn className="w-5 h-5" aria-hidden="true" />
+      <main className="relative z-10 w-full flex flex-col items-center justify-center">
+        {/* Top-left workspace mark — Vidhya Vidhai Foundation in front of Career Tours */}
+        <div className="w-full max-w-[420px] mb-5 sm:mb-0 sm:w-auto sm:fixed sm:top-7 sm:left-8 flex items-center gap-2.5">
+          <img
+            src={vidhyaVidhaiMark}
+            alt=""
+            aria-hidden="true"
+            width={230}
+            height={230}
+            className="w-7 h-7 object-contain shrink-0 select-none"
+          />
+          <div className="flex flex-wrap items-center gap-x-1.5 text-sm tracking-tight">
+            <span className="font-medium text-[#0F172A]">Vidhya Vidhai Foundation</span>
+            <span className="text-[#526077]" aria-hidden="true">
+              ·
+            </span>
+            <span className="font-medium text-[#0F766E]">Career Tours</span>
           </div>
-          <h1
-            id="auth-heading"
-            className="text-xl sm:text-[1.45rem] font-medium text-[#0F172A] tracking-tight"
-          >
-            Sign in with email
-          </h1>
-          <p className="text-xs sm:text-[13px] text-[#475569] mt-1.5 leading-relaxed max-w-[35ch] text-balance">
-            Enter the Vidhya Vidhai Foundation · Career Tours workspace to log classroom data or view programme reports.
-          </p>
         </div>
+
+        <section
+          aria-labelledby="auth-heading"
+          className="ct-auth-card relative w-full max-w-[420px] p-7 sm:p-8 flex flex-col gap-5"
+        >
+          {/* Transparent Vidhya Vidhai Foundation brand logo */}
+          <div className="flex flex-col items-center text-center">
+            <img
+              src={vidhyaVidhaiLogo}
+              alt="Vidhya Vidhai Foundation — Educate, Innovate, Lead"
+              width={824}
+              height={176}
+              fetchPriority="high"
+              decoding="sync"
+              className="w-[224px] sm:w-[252px] h-auto object-contain mb-4 select-none"
+            />
+            <h1
+              id="auth-heading"
+              className="text-xl sm:text-[1.45rem] font-medium text-[#0F172A] tracking-tight"
+            >
+              Sign in with email
+            </h1>
+            <p className="text-xs sm:text-[13px] text-[#475569] mt-1.5 leading-relaxed max-w-[35ch] text-balance">
+              Enter the Vidhya Vidhai Foundation · Career Tours workspace to log classroom data or view programme reports.
+            </p>
+          </div>
 
         {authNotice?.kind === 'pending_approval' ? (
           <div
@@ -399,7 +399,22 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             )}
           </form>
         )}
-      </section>
-    </main>
+        </section>
+      </main>
+
+      <footer className="relative z-10 mt-5 text-center">
+        <p className="text-xs text-[#475569]">
+          Developed by{' '}
+          <a
+            href="https://roosstudiox.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#0F172A] hover:text-[#0F766E] underline decoration-[#73849C]/70 hover:decoration-[#0F766E] underline-offset-4 transition-colors"
+          >
+            Roos StudioX
+          </a>
+        </p>
+      </footer>
+    </div>
   );
 };

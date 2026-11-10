@@ -441,6 +441,18 @@ export function App() {
         )}
       </div>
 
+      <footer className="py-5 px-4 sm:px-6 text-center text-xs text-[#475569]">
+        Developed by{' '}
+        <a
+          href="https://roosstudiox.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-[#0F172A] hover:text-[#0F766E] underline decoration-[#73849C]/70 hover:decoration-[#0F766E] underline-offset-4 transition-colors"
+        >
+          Roos StudioX
+        </a>
+      </footer>
+
       {/* Add / Edit Classroom Submission Modal */}
       <SubmissionFormModal
         open={submissionModalState.open}

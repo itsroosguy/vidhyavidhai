@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
+import vidhyaVidhaiMark from '../../assets/vidhya-vidhai-mark.png';
 import type { UserProfile } from '../../types/domain';
 
 export type ActiveTab = 'enter_class' | 'my_classes' | 'admin_dashboard';
@@ -48,12 +49,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Primary Brand Lockup: Vidhya Vidhai Foundation always in front of Career Tours */}
           <div className="inline-flex items-center gap-2">
-            <div
+            <img
+              src={vidhyaVidhaiMark}
+              alt=""
               aria-hidden="true"
-              className="w-7 h-7 rounded-lg bg-[#0F172A] text-[#FFFFFF] flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.16)] shrink-0"
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-            </div>
+              width={230}
+              height={230}
+              className="w-7 h-7 object-contain shrink-0 select-none"
+            />
             <div className="flex flex-wrap items-center gap-x-1.5 text-xs tracking-tight">
               <span className="font-medium text-[#0F172A]">Vidhya Vidhai Foundation</span>
               <span className="text-[#526077]" aria-hidden="true">
