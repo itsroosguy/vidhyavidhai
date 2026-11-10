@@ -133,13 +133,6 @@ function ctValidateSessionForm_(values, config) {
       severity: 'error',
       message: 'District must be one of: ' + (config.allowedDistricts || []).join(', ') + '.'
     });
-  } else {
-    var approvedBlocks = ctGetBlocksForDistrict_(values.district, config);
-    if (approvedBlocks.length === 0) {
-      errors.push({ code: 'BLOCKS_NOT_CONFIGURED', field: 'block', section: 3, severity: 'error', message: 'Block list not configured. Please contact the administrator.' });
-    } else if (!values.block || !ctArrayIncludes_(approvedBlocks, values.block)) {
-      errors.push({ code: 'BLOCK_REQUIRED', field: 'block', section: 3, severity: 'error', message: 'Select an approved block for the chosen district.' });
-    }
   }
 
   var pin = String(values.pinCode || '').trim();

@@ -18,7 +18,7 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     window.history.replaceState(null, '', '/');
   });
 
-  it('renders all 7 numbered sections, enforces district-dependent block clearing, and opens ValidationErrorModal on invalid save', async () => {
+  it('renders all 7 numbered sections without a Block dropdown and opens ValidationErrorModal on invalid save', async () => {
     const user = userEvent.setup();
     const unconfiguredCfg = createTestConfig({ districtBlocks: [] });
     const api = new LocalSandboxApiClient(() => SANDBOX_USERS.facilitator.userId, unconfiguredCfg);
@@ -47,9 +47,10 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
 
     const districtSelect = screen.getByLabelText(/^District/i);
     await user.selectOptions(districtSelect, 'Cuddalore');
+    expect(screen.queryByLabelText(/^Block/i)).not.toBeInTheDocument();
     expect(
-      screen.getAllByText('Block list not configured. Please contact the administrator.').length,
-    ).toBeGreaterThanOrEqual(1);
+      screen.queryByText('Block list not configured. Please contact the administrator.'),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Save this class/i }));
     const errDialog = await screen.findByRole('dialog', { name: /Please resolve/i });
@@ -103,7 +104,6 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       'Government school',
     );
     await user.selectOptions(screen.getByLabelText(/^District/i), 'Cuddalore');
-    await user.selectOptions(screen.getByLabelText(/^Block/i), 'Panruti');
     await user.type(screen.getByLabelText(/^PIN code/i), '607106');
 
     await user.selectOptions(screen.getByLabelText(/Which class \(grade\) is it\?/i), '8');
@@ -214,7 +214,6 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       'Government school',
     );
     await user.selectOptions(screen.getByLabelText(/^District/i), 'Cuddalore');
-    await user.selectOptions(screen.getByLabelText(/^Block/i), 'Panruti');
     await user.type(screen.getByLabelText(/^PIN code/i), '607106');
 
     await user.selectOptions(screen.getByLabelText(/Which class \(grade\) is it\?/i), '8');
@@ -331,7 +330,6 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       'Government school',
     );
     await user.selectOptions(screen.getByLabelText(/^District/i), 'Cuddalore');
-    await user.selectOptions(screen.getByLabelText(/^Block/i), 'Panruti');
     await user.type(screen.getByLabelText(/^PIN code/i), '607106');
     await user.selectOptions(screen.getByLabelText(/Which class \(grade\) is it\?/i), '8');
     await user.selectOptions(screen.getByLabelText(/^Section/i), 'A');
@@ -681,5 +679,149 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       },
       { timeout: 2600 },
     );
+  });
+
+  it('renders redesigned Analytics & Performance empty state cleanly without fabricated metrics and updates dynamically across all charts and insights when filtered', async () => {
+    const user = userEvent.setup();
+    const cfg = createTestConfig();
+    let actorId: string = SANDBOX_USERS.super_admin_1.userId;
+    const api = new LocalSandboxApiClient(() => actorId, cfg);
+
+    // 1. Empty state on Analytics page (0 sessions)
+    const { rerender } = render(
+      <AdminDashboardPage
+        api={api}
+        user={SANDBOX_USERS.super_admin_1}
+        config={cfg}
+        activeSection="analytics"
+        onSelectSection={vi.fn()}
+        onEditSession={vi.fn()}
+        onNotify={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Analytics & Performance' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Understand programme reach, engagement and performance across districts, schools and facilitators.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Monthly Programme Performance' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'District-wise Performance' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Career Tour Performance' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Language Distribution' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grade-wise Student Reach' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Facilitator Performance' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Feedback & Satisfaction' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Programme Insights' })).toBeInTheDocument();
+    expect(screen.getAllByText('No data yet').length).toBeGreaterThanOrEqual(4);
+
+    // 2. Seed two months / districts / tours / languages / grades
+    actorId = SANDBOX_USERS.facilitator.userId;
+    const c1 = await api.createSession(
+      createValidFormValues({
+        schoolName: 'GHSS Cuddalore Town',
+        udiseCode: '33180100105',
+        district: 'Cuddalore',
+        block: 'Panruti',
+        tourId: 'TOUR_AM',
+        language: 'Tamil',
+        startDate: '2026-10-10',
+        endDate: '2026-10-10',
+        classes: [
+          {
+            rowId: 'a1',
+            grade: '8',
+            section: 'A',
+            studentsPresent: '50',
+            questionA: { score5: '40', score4: '10', score3: '0', score2: '0', score1: '0' },
+            questionB: { score5: '30', score4: '20', score3: '0', score2: '0', score1: '0' },
+          },
+        ],
+        teacherNpsGroup: 'promoter',
+        teacherExactScore: '9',
+      }),
+    );
+    expect(c1.ok).toBe(true);
+    const c2 = await api.createSession(
+      createValidFormValues({
+        schoolName: 'GHSS Nagapattinam Central',
+        udiseCode: '33190200208',
+        district: 'Nagapattinam',
+        block: 'Kilvelur',
+        tourId: 'TOUR_RFC',
+        language: 'English',
+        startDate: '2026-11-05',
+        endDate: '2026-11-05',
+        classes: [
+          {
+            rowId: 'a2',
+            grade: '9',
+            section: 'A',
+            studentsPresent: '80',
+            questionA: { score5: '80', score4: '0', score3: '0', score2: '0', score1: '0' },
+            questionB: { score5: '60', score4: '20', score3: '0', score2: '0', score1: '0' },
+          },
+        ],
+        teacherNpsGroup: 'promoter',
+        teacherExactScore: '10',
+      }),
+    );
+    expect(c2.ok).toBe(true);
+
+    actorId = SANDBOX_USERS.super_admin_1.userId;
+    rerender(
+      <AdminDashboardPage
+        api={api}
+        user={SANDBOX_USERS.super_admin_1}
+        config={cfg}
+        activeSection="analytics"
+        dataVersion={1}
+        onSelectSection={vi.fn()}
+        onEditSession={vi.fn()}
+        onNotify={vi.fn()}
+      />,
+    );
+
+    const kpiSection = screen.getByLabelText('Key programme performance indicators');
+    await waitFor(() => {
+      expect(screen.getByText('Live calculation')).toBeInTheDocument();
+      expect(within(kpiSection).getByText('130')).toBeInTheDocument();
+      expect(within(kpiSection).getByText('+60% vs Oct \'26')).toBeInTheDocument();
+    });
+
+    // Career Tour metric focus toggle updates active column mode
+    const tourSection = screen.getByRole('region', { name: 'Career Tour Performance' });
+    await user.click(within(tourSection).getByRole('button', { name: 'Students' }));
+    expect(within(tourSection).getByRole('button', { name: 'Students' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    // Inspect drill-down opens modal for Nagapattinam
+    await user.click(screen.getByRole('button', { name: 'Inspect Nagapattinam district analytics' }));
+    expect(
+      await screen.findByRole('heading', { name: /Nagapattinam District Analytics/i }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Close$/i }));
+
+    // District filter dynamically updates KPIs, insights, and distributions
+    await user.selectOptions(screen.getByLabelText(/^District$/i), 'Cuddalore');
+    await waitFor(() => {
+      expect(screen.getByText('1 filter active')).toBeInTheDocument();
+      expect(within(kpiSection).getByText('50')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /Clear filters/i }));
+    await waitFor(() => {
+      expect(screen.getByText('All programme records')).toBeInTheDocument();
+      expect(within(kpiSection).getByText('130')).toBeInTheDocument();
+    });
   });
 });

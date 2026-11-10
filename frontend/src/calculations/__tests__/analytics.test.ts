@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { computeDashboardAnalytics, reconcileDashboardAnalytics } from '../analytics';
+import {
+  computeDashboardAnalytics,
+  computeKpiPeriodComparisons,
+  computeProgrammeInsights,
+  reconcileDashboardAnalytics,
+} from '../analytics';
 import { LocalSandboxApiClient } from '../../services/apiClient';
 import { SANDBOX_USERS } from '../../services/authService';
 import { createTestConfig, createValidFormValues } from '../../testFixtures';
@@ -92,6 +97,9 @@ describe('Program Analytics Pooling, Sentiment, Missing Responses & Reconciliati
     expect(analytics.monthlyBreakdown.map((m) => m.monthKey)).toEqual(['2026-10', '2026-11']);
     expect(analytics.schoolBreakdown).toHaveLength(2);
     expect(analytics.languageBreakdown).toHaveLength(2);
+    expect(analytics.tourBreakdown.find((t) => t.tourId === 'TOUR_AM')?.schoolsCount).toBe(1);
+    expect(analytics.tourBreakdown.find((t) => t.tourId === 'TOUR_RFC')?.schoolsCount).toBe(1);
+    expect(analytics.facilitatorPanels[0]?.schoolsCount).toBe(2);
     expect(analytics.dataQuality.excludedPendingCount).toBe(1);
     expect(analytics.dataQuality.qaQbMismatchCount).toBe(1);
     expect(analytics.reconciliation.verified).toBe(true);
@@ -129,5 +137,98 @@ describe('Program Analytics Pooling, Sentiment, Missing Responses & Reconciliati
     const report = reconcileDashboardAnalytics([], tampered);
     expect(report.verified).toBe(false);
     expect(report.discrepancies.length).toBeGreaterThanOrEqual(2);
+
+    // Empty state comparisons & insights never fabricate trends or fake samples
+    const emptyCmp = computeKpiPeriodComparisons(empty);
+    expect(emptyCmp.hasData).toBe(false);
+    expect(emptyCmp.hasMultiPeriod).toBe(false);
+    expect(emptyCmp.metrics.sessions.direction).toBe('unavailable');
+    expect(emptyCmp.metrics.sessions.deltaBadge).toBe('No data yet');
+
+    const emptyInsights = computeProgrammeInsights(empty, cfg);
+    expect(emptyInsights.hasData).toBe(false);
+    expect(emptyInsights.items.every((i) => i.tone === 'empty' && i.headline === '—')).toBe(true);
+  });
+
+  it('computes single-month baseline without invented trends and multi-month authentic comparisons and insights', async () => {
+    const cfg = createTestConfig();
+    const api = new LocalSandboxApiClient(() => SANDBOX_USERS.facilitator.userId, cfg);
+
+    await api.createSession(
+      createValidFormValues({
+        schoolName: 'GHSS Cuddalore Model',
+        udiseCode: '33180100111',
+        district: 'Cuddalore',
+        block: 'Panruti',
+        tourId: 'TOUR_AM',
+        language: 'Tamil',
+        startDate: '2026-10-12',
+        endDate: '2026-10-12',
+        classes: [
+          {
+            rowId: 'm1',
+            grade: '8',
+            section: 'A',
+            studentsPresent: '60',
+            questionA: { score5: '40', score4: '20', score3: '0', score2: '0', score1: '0' },
+            questionB: { score5: '30', score4: '30', score3: '0', score2: '0', score1: '0' },
+          },
+        ],
+        teacherNpsGroup: 'passive',
+        teacherExactScore: '8',
+      }),
+    );
+
+    const singleAnalytics = computeDashboardAnalytics(api.getRawSessionsForTest(), {}, cfg);
+    const singleCmp = computeKpiPeriodComparisons(singleAnalytics);
+    expect(singleCmp.hasData).toBe(true);
+    expect(singleCmp.hasMultiPeriod).toBe(false);
+    expect(singleCmp.metrics.sessions.direction).toBe('unavailable');
+
+    const singleInsights = computeProgrammeInsights(singleAnalytics, cfg);
+    expect(singleInsights.hasData).toBe(true);
+    expect(singleInsights.items.find((i) => i.id === 'monthly-trend')?.headline).toContain('Oct');
+
+    // Add second month session with higher reach, CSAT, ITP, and Promoter NPS in Nagapattinam
+    const secondRes = await api.createSession(
+      createValidFormValues({
+        schoolName: 'GHSS Nagapattinam South',
+        udiseCode: '33190200333',
+        district: 'Nagapattinam',
+        block: 'Kilvelur',
+        tourId: 'TOUR_RFC',
+        language: 'English',
+        startDate: '2026-11-05',
+        endDate: '2026-11-05',
+        classes: [
+          {
+            rowId: 'm2',
+            grade: '10',
+            section: 'A',
+            studentsPresent: '90',
+            questionA: { score5: '90', score4: '0', score3: '0', score2: '0', score1: '0' },
+            questionB: { score5: '90', score4: '0', score3: '0', score2: '0', score1: '0' },
+          },
+        ],
+        teacherNpsGroup: 'promoter',
+        teacherExactScore: '10',
+      }),
+    );
+    expect(secondRes.ok).toBe(true);
+
+    const multiAnalytics = computeDashboardAnalytics(api.getRawSessionsForTest(), {}, cfg);
+    const multiCmp = computeKpiPeriodComparisons(multiAnalytics);
+    expect(multiCmp.hasMultiPeriod).toBe(true);
+    expect(multiCmp.metrics.studentsReached.direction).toBe('up');
+    expect(multiCmp.metrics.studentsReached.deltaBadge).toContain('+50%');
+    expect(multiCmp.metrics.averageCsat.direction).toBe('up');
+    expect(multiCmp.metrics.teacherNps.direction).toBe('up');
+
+    const multiInsights = computeProgrammeInsights(multiAnalytics, cfg);
+    expect(multiInsights.items.find((i) => i.id === 'top-district')?.headline).toBe('Nagapattinam');
+    expect(multiInsights.items.find((i) => i.id === 'top-grade')?.headline).toBe('Grade 10');
+    expect(multiInsights.items.find((i) => i.id === 'coverage-attention')?.detail).toContain(
+      'Sivaganga',
+    );
   });
 });

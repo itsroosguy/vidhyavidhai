@@ -362,7 +362,6 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
         /^\d{11}$/.test(values.udiseCode) &&
         values.schoolType &&
         values.district &&
-        values.block &&
         /^\d{6}$/.test(values.pinCode),
     );
     const s4 =

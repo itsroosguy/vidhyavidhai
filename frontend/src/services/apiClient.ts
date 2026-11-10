@@ -1052,7 +1052,7 @@ export class LocalSandboxApiClient implements BackendApiClient {
         'Session',
         sessionRecordId,
         '',
-        `Session ${sessionId} (${values.district}/${values.block}, ${metrics.totalStudentsPresent} students)`,
+        `Session ${sessionId} (${values.district}${values.block ? `/${values.block}` : ''}, ${metrics.totalStudentsPresent} students)`,
         'SUCCESS',
       );
 

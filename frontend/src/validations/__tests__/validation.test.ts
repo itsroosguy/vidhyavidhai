@@ -41,7 +41,7 @@ describe('Form Validation & Temporal Rules (Asia/Kolkata)', () => {
     expect(res.errors.some((e) => e.code === 'PIN_INVALID')).toBe(true);
   });
 
-  it('rejects unapproved districts and unconfigured block lists', () => {
+  it('rejects unapproved districts and accepts approved districts without requiring a block', () => {
     const cfg = createTestConfig();
     const badDistrict = validateSessionForm(
       createValidFormValues({ district: 'Chennai', block: 'Adyar' }),
@@ -50,17 +50,16 @@ describe('Form Validation & Temporal Rules (Asia/Kolkata)', () => {
     expect(badDistrict.errors.some((e) => e.code === 'DISTRICT_INVALID')).toBe(true);
 
     const emptyBlocksCfg = createTestConfig({ districtBlocks: [] });
-    const unconfiguredBlock = validateSessionForm(
+    const withoutBlock = validateSessionForm(
       createValidFormValues({ district: 'Cuddalore', block: '' }),
       emptyBlocksCfg,
     );
+    expect(withoutBlock.valid).toBe(true);
     expect(
-      unconfiguredBlock.errors.some(
-        (e) =>
-          e.code === 'BLOCKS_NOT_CONFIGURED' &&
-          e.message === 'Block list not configured. Please contact the administrator.',
+      withoutBlock.errors.some(
+        (e) => e.code === 'BLOCKS_NOT_CONFIGURED' || e.code === 'BLOCK_REQUIRED',
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('rejects negative/decimal student counts and response counts exceeding students present', () => {

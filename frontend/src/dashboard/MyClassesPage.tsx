@@ -397,7 +397,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                         </td>
                         <td className="p-3 text-[#243647]">
                           <div className="text-[#0A1B2C]">{s.district}</div>
-                          <div className="text-xs text-[#33475B]">{s.block}</div>
+                          {s.block && <div className="text-xs text-[#33475B]">{s.block}</div>}
                         </td>
                         <td className="p-3 text-[#243647] max-w-[180px] truncate" title={s.tourName}>
                           {s.tourName}

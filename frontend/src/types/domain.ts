@@ -450,6 +450,8 @@ export interface DashboardAnalytics {
     monthLabel: string; // e.g., November 2026
     sessions: number;
     studentsReached: number;
+    schoolsCount?: number;
+    facilitatorsCount?: number;
     averageCsat: number | null;
     averageItp: number | null;
     positiveCsatPct: number | null;
@@ -461,6 +463,7 @@ export interface DashboardAnalytics {
     tourName: string;
     sessions: number;
     studentsReached: number;
+    schoolsCount?: number;
     averageCsat: number | null;
     averageItp: number | null;
     positiveCsatPct: number | null;
@@ -500,6 +503,7 @@ export interface DashboardAnalytics {
     email: string;
     sessions: number;
     studentsReached: number;
+    schoolsCount?: number;
     missingResponsesQa: number;
     averageCsat: number | null;
     averageItp: number | null;

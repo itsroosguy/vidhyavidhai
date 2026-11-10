@@ -189,18 +189,27 @@ function ctHandleGetDashboardSummary_(actor, payload) {
     scAgg.npsSum += s.teacherNps;
 
     var monthKey = /^\d{4}-\d{2}/.test(s.startDate) ? s.startDate.slice(0, 7) : 'Unknown';
-    if (!monthMap[monthKey]) monthMap[monthKey] = makeGroup();
+    if (!monthMap[monthKey]) {
+      var mInit = makeGroup();
+      mInit.schools = {};
+      mInit.facilitators = {};
+      monthMap[monthKey] = mInit;
+    }
     var mAgg = monthMap[monthKey];
     mAgg.sessions++;
+    mAgg.schools[s.udiseCode] = true;
+    mAgg.facilitators[s.facilitatorEmail] = true;
     mAgg.npsSum += s.teacherNps;
 
     if (!tourMap[s.tourId]) {
       var tInit = makeGroup();
       tInit.tourName = s.tourName;
+      tInit.schools = {};
       tourMap[s.tourId] = tInit;
     }
     var tAgg = tourMap[s.tourId];
     tAgg.sessions++;
+    tAgg.schools[s.udiseCode] = true;
     tAgg.npsSum += s.teacherNps;
 
     if (!languageMap[s.language]) languageMap[s.language] = makeGroup();
@@ -215,10 +224,12 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       var fInit = makeGroup();
       fInit.name = s.facilitatorName;
       fInit.latest = s.submissionTimestamp;
+      fInit.schools = {};
       facMap[s.facilitatorEmail] = fInit;
     }
     var fAgg = facMap[s.facilitatorEmail];
     fAgg.sessions++;
+    fAgg.schools[s.udiseCode] = true;
     fAgg.npsSum += s.teacherNps;
     if (s.submissionTimestamp > fAgg.latest) fAgg.latest = s.submissionTimestamp;
 
@@ -353,6 +364,8 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       monthLabel: ctFormatMonthLabel_(mKey),
       sessions: mv.sessions,
       studentsReached: mv.students,
+      schoolsCount: Object.keys(mv.schools || {}).length,
+      facilitatorsCount: Object.keys(mv.facilitators || {}).length,
       averageCsat: mQa.average,
       averageItp: mQb.average,
       positiveCsatPct: mQa.positivePct,
@@ -371,12 +384,16 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       tourName: tv.tourName,
       sessions: tv.sessions,
       studentsReached: tv.students,
+      schoolsCount: Object.keys(tv.schools || {}).length,
       averageCsat: tQa.average,
       averageItp: tQb.average,
       positiveCsatPct: tQa.positivePct,
       positiveItpPct: tQb.positivePct
     });
   }
+  tourBreakdown.sort(function (a, b) {
+    return b.sessions - a.sessions || b.studentsReached - a.studentsReached || a.tourName.localeCompare(b.tourName);
+  });
 
   var languageBreakdown = [];
   for (var lKey in languageMap) {
@@ -446,6 +463,7 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       email: fEmail,
       sessions: fv.sessions,
       studentsReached: fv.students,
+      schoolsCount: Object.keys(fv.schools || {}).length,
       missingResponsesQa: fv.missingQa,
       averageCsat: fQa.average,
       averageItp: fQb.average,

@@ -24,9 +24,9 @@ import {
 import { formatPct1, formatScore2 } from '../calculations/metrics';
 import {
   DistrictComparisonBars,
-  MonthlyTrendsChart,
   SentimentStackedChart,
 } from '../components/charts/AnalyticsCharts';
+import { AnalyticsSectionView } from './AnalyticsSectionView';
 import {
   DetailedAnalyticsModal,
   type DetailedAnalyticsTarget,
@@ -668,154 +668,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
       case 'analytics':
         return (
-          <div className="flex flex-col gap-5">
-            {renderReconciliationBanner()}
-            {renderKpiStrip()}
-            {analytics && analytics.totalSessions > 0 ? (
-              <>
-                <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                  <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#0A1B2C] mb-3">
-                      District Comparison
-                    </h3>
-                    <DistrictComparisonBars
-                      districtBreakdown={analytics.districtBreakdown}
-                      onDrillDown={(target) => setDrillDownTarget(target)}
-                    />
-                  </div>
-                  <div className="ct-card p-5">
-                    <MonthlyTrendsChart
-                      monthlyBreakdown={analytics.monthlyBreakdown}
-                      onDrillDown={(target) => setDrillDownTarget(target)}
-                    />
-                  </div>
-                </section>
-
-                <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                  <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#0A1B2C] mb-3">
-                      Sessions by Career Tour
-                    </h3>
-                    <div className="space-y-2.5 text-xs ct-num">
-                      {analytics.tourBreakdown.map((t) => (
-                        <div
-                          key={t.tourId}
-                          className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] flex flex-wrap justify-between items-center gap-2"
-                        >
-                          <div>
-                            <div className="font-medium text-[#0A1B2C]">{t.tourName}</div>
-                            <div className="text-[#243647] mt-0.5">
-                              CSAT{' '}
-                              <strong className="font-medium text-[#006BB8]">
-                                {formatScore2(t.averageCsat)}
-                              </strong>{' '}
-                              · ITP {formatScore2(t.averageItp)} · Pos{' '}
-                              {formatPct1(t.positiveCsatPct)}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDrillDownTarget({
-                                category: 'Tour',
-                                title: `${t.tourName} Analytics`,
-                                subtitle: `${t.sessions} committed sessions · ${t.studentsReached} students`,
-                                filtersPatch: { tourId: t.tourId },
-                              })
-                            }
-                            aria-label={`Inspect ${t.tourName} breakdown`}
-                            className="px-2.5 py-1 rounded bg-[#FFFFFF] hover:bg-[#E8F6FF] border border-[#8E8674] hover:border-[#0284C7] text-[11px] font-medium text-[#0A1B2C] cursor-pointer transition-colors"
-                          >
-                            Inspect
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#0A1B2C] mb-3">
-                      Grade-wise Reach &amp; Scores
-                    </h3>
-                    <div className="space-y-2 text-xs ct-num">
-                      {analytics.gradeBreakdown.map((g) => (
-                        <div
-                          key={g.grade}
-                          className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] flex flex-wrap justify-between items-center gap-2"
-                        >
-                          <span className="font-medium text-[#0A1B2C]">Grade {g.grade}</span>
-                          <div className="flex items-center gap-2 text-[#243647]">
-                            <span>
-                              {g.studentsReached} std · CSAT{' '}
-                              <strong className="font-medium text-[#006BB8]">
-                                {formatScore2(g.averageCsat)}
-                              </strong>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setDrillDownTarget({
-                                  category: 'Grade',
-                                  title: `Grade ${g.grade} Analytics`,
-                                  subtitle: `${g.classesCount} class rows · ${g.studentsReached} students`,
-                                  filtersPatch: { grade: g.grade },
-                                })
-                              }
-                              aria-label={`Inspect Grade ${g.grade} breakdown`}
-                              className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#E8F6FF] border border-[#8E8674] hover:border-[#0284C7] text-[11px] font-medium text-[#0A1B2C] cursor-pointer transition-colors"
-                            >
-                              Inspect
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#0A1B2C] mb-3">
-                      By Delivery Language
-                    </h3>
-                    <div className="space-y-2 text-xs ct-num">
-                      {analytics.languageBreakdown.map((lang) => (
-                        <div
-                          key={lang.language}
-                          className="p-3 rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] flex items-center justify-between gap-2"
-                        >
-                          <div>
-                            <div className="font-medium text-[#0A1B2C]">{lang.language}</div>
-                            <div className="text-[#243647] mt-0.5">
-                              {lang.sessions} sess · CSAT{' '}
-                              <strong className="font-medium text-[#006BB8]">
-                                {formatScore2(lang.averageCsat)}
-                              </strong>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDrillDownTarget({
-                                category: 'Language',
-                                title: `${lang.language} Sessions Analytics`,
-                                subtitle: `${lang.sessions} sessions · ${lang.studentsReached} students`,
-                                filtersPatch: { language: lang.language },
-                              })
-                            }
-                            aria-label={`Inspect ${lang.language} language breakdown`}
-                            className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#E8F6FF] border border-[#8E8674] hover:border-[#0284C7] text-[11px] font-medium text-[#0A1B2C] cursor-pointer transition-colors"
-                          >
-                            Inspect
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-              </>
-            ) : (
-              renderEmptyAnalytics()
-            )}
-          </div>
+          <AnalyticsSectionView
+            analytics={analytics}
+            loading={loading}
+            config={config}
+            filters={filters}
+            sessionsTotal={sessionsPage.total}
+            preparingExport={preparingExport}
+            onFiltersChange={setFilters}
+            onDistrictFilterChange={handleDistrictFilterChange}
+            onClearFilters={handleClearFilters}
+            onRefresh={() => void loadAdminData()}
+            onExportFiltered={() => void handlePrepareExportModal()}
+            onOpenNewModal={onOpenNewModal}
+            onOpenSyncStatus={onOpenSyncStatus}
+            onDrillDown={(target) => setDrillDownTarget(target)}
+          />
         );
 
       case 'all-submissions':
@@ -880,7 +748,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           </td>
                           <td className="p-3 text-[#243647]">
                             <div className="text-[#0A1B2C]">{s.district}</div>
-                            <div className="text-[11px] text-[#33475B]">{s.block}</div>
+                            {s.block && <div className="text-[11px] text-[#33475B]">{s.block}</div>}
                           </td>
                           <td className="p-3 text-[#243647] max-w-[160px] truncate" title={s.tourName}>
                             {s.tourName}
@@ -1138,7 +1006,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           </th>
                           <td className="p-3 text-[#243647]">
                             <div className="text-[#0A1B2C]">{sc.district}</div>
-                            <div className="text-[11px] text-[#33475B]">{sc.block}</div>
+                            {sc.block && <div className="text-[11px] text-[#33475B]">{sc.block}</div>}
                           </td>
                           <td className="p-3 text-[#0A1B2C]">{sc.sessions}</td>
                           <td className="p-3 text-[#0A1B2C] font-medium">{sc.studentsReached}</td>
@@ -1156,7 +1024,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 setDrillDownTarget({
                                   category: 'School',
                                   title: sc.schoolName,
-                                  subtitle: `UDISE ${sc.udiseCode} · ${sc.block}, ${sc.district}`,
+                                  subtitle: `UDISE ${sc.udiseCode} · ${[sc.block, sc.district].filter(Boolean).join(', ')}`,
                                   filtersPatch: {
                                     search: sc.udiseCode,
                                     district: sc.district,
@@ -1237,7 +1105,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <td className="p-2.5 text-[#0A1B2C] font-medium">{sch.schoolName}</td>
                           <td className="p-2.5 text-[#243647]">{sch.schoolType}</td>
                           <td className="p-2.5 text-[#243647]">
-                            {sch.district} · {sch.block}
+                            {[sch.district, sch.block].filter(Boolean).join(' · ')}
                           </td>
                           <td className="p-2.5 font-mono text-[#243647]">{sch.pinCode}</td>
                         </tr>
@@ -1835,8 +1703,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         />
 
         <div className="min-w-0 flex flex-col gap-5">
-          {/* Active Admin Section Header */}
-          <section className="ct-card p-5">
+          {/* Active Admin Section Header (Analytics renders its dedicated BI header) */}
+          {currentSection !== 'analytics' && (
+            <section className="ct-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-medium text-[#0A1B2C] flex items-center gap-2">
@@ -2129,6 +1998,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </div>
             )}
           </section>
+          )}
 
           {renderSectionBody()}
         </div>

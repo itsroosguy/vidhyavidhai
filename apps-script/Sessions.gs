@@ -470,7 +470,7 @@ function ctCreateSessionCore_(actor, rawValues) {
     'Session',
     sessionRecordId,
     '',
-    'Session ' + sessionId + ' (' + values.district + '/' + values.block + ', ' + metrics.totalStudentsPresent + ' students)',
+    'Session ' + sessionId + ' (' + values.district + (values.block ? '/' + values.block : '') + ', ' + metrics.totalStudentsPresent + ' students)',
     'SUCCESS'
   );
   ctAppendSyncLog_(

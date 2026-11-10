@@ -7,7 +7,7 @@ import type {
   SessionQueryFilters,
   SessionRecord,
 } from '../types/domain';
-import { calculateScaleSentiment, round2 } from './metrics';
+import { calculateScaleSentiment, formatPct1, formatScore2, round1, round2 } from './metrics';
 
 const MONTH_NAMES = [
   'January',
@@ -172,12 +172,18 @@ export function computeDashboardAnalytics(
     string,
     GroupAccum & { udiseCode: string; schoolName: string; district: string; block: string }
   >();
-  const monthMap = new Map<string, GroupAccum>();
-  const tourMap = new Map<string, GroupAccum & { tourName: string }>();
+  const monthMap = new Map<
+    string,
+    GroupAccum & { schools: Set<string>; facilitators: Set<string> }
+  >();
+  const tourMap = new Map<string, GroupAccum & { tourName: string; schools: Set<string> }>();
   const languageMap = new Map<string, GroupAccum>();
   const gradeMap = new Map<string, GroupAccum & { classesCount: number }>();
   const dateMap = new Map<string, { sessions: number; students: number }>();
-  const facMap = new Map<string, GroupAccum & { name: string; latest: string }>();
+  const facMap = new Map<
+    string,
+    GroupAccum & { name: string; latest: string; schools: Set<string> }
+  >();
 
   for (const s of included) {
     uniqueSchools.add(s.udiseCode);
@@ -213,12 +219,23 @@ export function computeDashboardAnalytics(
     scAgg.npsSum += s.teacherNps;
 
     const monthKey = /^\d{4}-\d{2}/.test(s.startDate) ? s.startDate.slice(0, 7) : 'Unknown';
-    const mAgg = monthMap.get(monthKey) ?? createGroupAccum();
+    const mAgg = monthMap.get(monthKey) ?? {
+      ...createGroupAccum(),
+      schools: new Set<string>(),
+      facilitators: new Set<string>(),
+    };
     mAgg.sessions++;
+    mAgg.schools.add(s.udiseCode);
+    mAgg.facilitators.add(s.facilitatorEmail);
     mAgg.npsSum += s.teacherNps;
 
-    const tAgg = tourMap.get(s.tourId) ?? { ...createGroupAccum(), tourName: s.tourName };
+    const tAgg = tourMap.get(s.tourId) ?? {
+      ...createGroupAccum(),
+      tourName: s.tourName,
+      schools: new Set<string>(),
+    };
     tAgg.sessions++;
+    tAgg.schools.add(s.udiseCode);
     tAgg.npsSum += s.teacherNps;
 
     const lAgg = languageMap.get(s.language) ?? createGroupAccum();
@@ -232,8 +249,10 @@ export function computeDashboardAnalytics(
       ...createGroupAccum(),
       name: s.facilitatorName,
       latest: s.submissionTimestamp,
+      schools: new Set<string>(),
     };
     fAgg.sessions++;
+    fAgg.schools.add(s.udiseCode);
     fAgg.npsSum += s.teacherNps;
     if (s.submissionTimestamp > fAgg.latest) fAgg.latest = s.submissionTimestamp;
 
@@ -423,6 +442,8 @@ export function computeDashboardAnalytics(
           monthLabel: formatMonthLabel(monthKey),
           sessions: v.sessions,
           studentsReached: v.students,
+          schoolsCount: v.schools.size,
+          facilitatorsCount: v.facilitators.size,
           averageCsat: qa.average,
           averageItp: qb.average,
           positiveCsatPct: qa.positivePct,
@@ -430,20 +451,28 @@ export function computeDashboardAnalytics(
           teacherNpsAverage: v.sessions > 0 ? round2(v.npsSum / v.sessions) : null,
         };
       }),
-    tourBreakdown: Array.from(tourMap.entries()).map(([tourId, v]) => {
-      const qa = calculateScaleSentiment(v.qaCounts);
-      const qb = calculateScaleSentiment(v.qbCounts);
-      return {
-        tourId,
-        tourName: v.tourName,
-        sessions: v.sessions,
-        studentsReached: v.students,
-        averageCsat: qa.average,
-        averageItp: qb.average,
-        positiveCsatPct: qa.positivePct,
-        positiveItpPct: qb.positivePct,
-      };
-    }),
+    tourBreakdown: Array.from(tourMap.entries())
+      .map(([tourId, v]) => {
+        const qa = calculateScaleSentiment(v.qaCounts);
+        const qb = calculateScaleSentiment(v.qbCounts);
+        return {
+          tourId,
+          tourName: v.tourName,
+          sessions: v.sessions,
+          studentsReached: v.students,
+          schoolsCount: v.schools.size,
+          averageCsat: qa.average,
+          averageItp: qb.average,
+          positiveCsatPct: qa.positivePct,
+          positiveItpPct: qb.positivePct,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.sessions - a.sessions ||
+          b.studentsReached - a.studentsReached ||
+          a.tourName.localeCompare(b.tourName),
+      ),
     languageBreakdown: Array.from(languageMap.entries())
       .map(([language, v]) => {
         const qa = calculateScaleSentiment(v.qaCounts);
@@ -488,6 +517,7 @@ export function computeDashboardAnalytics(
           email,
           sessions: v.sessions,
           studentsReached: v.students,
+          schoolsCount: v.schools.size,
           missingResponsesQa: v.missingQa,
           averageCsat: qa.average,
           averageItp: qb.average,
@@ -734,5 +764,475 @@ export function reconcileDashboardAnalytics(
     checkedAt: new Date().toISOString(),
     checksRun,
     discrepancies,
+  };
+}
+
+export type TrendDirection = 'up' | 'down' | 'flat' | 'unavailable';
+
+export interface KpiPeriodMetricComparison {
+  direction: TrendDirection;
+  deltaBadge: string;
+  comparisonLabel: string;
+}
+
+export interface KpiPeriodComparisons {
+  hasData: boolean;
+  hasMultiPeriod: boolean;
+  periodCount: number;
+  currentPeriodLabel: string | null;
+  previousPeriodLabel: string | null;
+  metrics: {
+    sessions: KpiPeriodMetricComparison;
+    studentsReached: KpiPeriodMetricComparison;
+    schoolsCovered: KpiPeriodMetricComparison;
+    activeFacilitators: KpiPeriodMetricComparison;
+    averageCsat: KpiPeriodMetricComparison;
+    averageItp: KpiPeriodMetricComparison;
+    teacherNps: KpiPeriodMetricComparison;
+  };
+}
+
+function shortMonthLabel(monthKey: string, monthLabel: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(monthKey);
+  if (!m) return monthLabel;
+  const idx = Number.parseInt(m[2]!, 10) - 1;
+  const abbr = (MONTH_NAMES[idx] ?? monthLabel).slice(0, 3);
+  return `${abbr} '${m[1]!.slice(2)}`;
+}
+
+function buildCountDelta(
+  curr: number | undefined,
+  prev: number | undefined,
+  prevShort: string,
+  currShort: string,
+  unit: string,
+  showPct = false,
+): KpiPeriodMetricComparison {
+  if (curr === undefined || prev === undefined) {
+    return {
+      direction: 'unavailable',
+      deltaBadge: 'Single period',
+      comparisonLabel: 'Month-level comparison awaits historical data',
+    };
+  }
+  const diff = curr - prev;
+  if (diff === 0) {
+    return {
+      direction: 'flat',
+      deltaBadge: `0 vs ${prevShort}`,
+      comparisonLabel: `${currShort} (${curr}) matched ${prevShort} (${prev})`,
+    };
+  }
+  const sign = diff > 0 ? '+' : '';
+  let badge = `${sign}${diff} vs ${prevShort}`;
+  if (showPct && prev > 0) {
+    const pct = round1(((curr - prev) / prev) * 100);
+    badge = `${pct > 0 ? '+' : ''}${pct}% vs ${prevShort}`;
+  }
+  return {
+    direction: diff > 0 ? 'up' : 'down',
+    deltaBadge: badge,
+    comparisonLabel: `${currShort}: ${curr} ${unit} vs ${prev} in ${prevShort}`,
+  };
+}
+
+function buildScoreDelta(
+  curr: number | null,
+  prev: number | null,
+  prevShort: string,
+  currShort: string,
+  decimals: 2 | 1,
+): KpiPeriodMetricComparison {
+  if (curr === null || prev === null) {
+    return {
+      direction: 'unavailable',
+      deltaBadge: 'Single period',
+      comparisonLabel: 'Historical score baseline unavailable',
+    };
+  }
+  const diff = round2(curr - prev);
+  if (Math.abs(diff) < 0.005) {
+    return {
+      direction: 'flat',
+      deltaBadge: `0.00 vs ${prevShort}`,
+      comparisonLabel: `${currShort} held steady vs ${prevShort}`,
+    };
+  }
+  const sign = diff > 0 ? '+' : '';
+  const formattedDiff = decimals === 2 ? diff.toFixed(2) : String(round1(diff));
+  const formattedCurr = decimals === 2 ? curr.toFixed(2) : curr > 0 ? `+${round1(curr)}` : String(round1(curr));
+  const formattedPrev = decimals === 2 ? prev.toFixed(2) : prev > 0 ? `+${round1(prev)}` : String(round1(prev));
+  return {
+    direction: diff > 0 ? 'up' : 'down',
+    deltaBadge: `${sign}${formattedDiff} vs ${prevShort}`,
+    comparisonLabel: `${currShort}: ${formattedCurr} vs ${formattedPrev} in ${prevShort}`,
+  };
+}
+
+/**
+ * Derives authentic month-over-month KPI comparisons exclusively when two or more valid
+ * YYYY-MM months exist in filtered analytics. Never fabricates percentages or trends.
+ */
+export function computeKpiPeriodComparisons(analytics: DashboardAnalytics): KpiPeriodComparisons {
+  const validMonths = analytics.monthlyBreakdown.filter((m) => /^\d{4}-\d{2}$/.test(m.monthKey));
+  const emptyItem = (msg: string): KpiPeriodMetricComparison => ({
+    direction: 'unavailable',
+    deltaBadge: 'No data yet',
+    comparisonLabel: msg,
+  });
+
+  if (analytics.totalSessions === 0 || validMonths.length === 0) {
+    return {
+      hasData: false,
+      hasMultiPeriod: false,
+      periodCount: 0,
+      currentPeriodLabel: null,
+      previousPeriodLabel: null,
+      metrics: {
+        sessions: emptyItem('Awaiting committed sessions'),
+        studentsReached: emptyItem('Awaiting attendance logs'),
+        schoolsCovered: emptyItem('Awaiting school participation'),
+        activeFacilitators: emptyItem('Awaiting facilitator activity'),
+        averageCsat: emptyItem('0 student ratings yet'),
+        averageItp: emptyItem('0 interest ratings yet'),
+        teacherNps: emptyItem('0 teacher ratings yet'),
+      },
+    };
+  }
+
+  if (validMonths.length === 1) {
+    const only = validMonths[0]!;
+    const onlyShort = shortMonthLabel(only.monthKey, only.monthLabel);
+    const singleItem: KpiPeriodMetricComparison = {
+      direction: 'unavailable',
+      deltaBadge: onlyShort,
+      comparisonLabel: `Single active month (${only.monthLabel}) · prior period unavailable`,
+    };
+    return {
+      hasData: true,
+      hasMultiPeriod: false,
+      periodCount: 1,
+      currentPeriodLabel: only.monthLabel,
+      previousPeriodLabel: null,
+      metrics: {
+        sessions: singleItem,
+        studentsReached: singleItem,
+        schoolsCovered: singleItem,
+        activeFacilitators: singleItem,
+        averageCsat: singleItem,
+        averageItp: singleItem,
+        teacherNps: singleItem,
+      },
+    };
+  }
+
+  const prev = validMonths[validMonths.length - 2]!;
+  const curr = validMonths[validMonths.length - 1]!;
+  const prevShort = shortMonthLabel(prev.monthKey, prev.monthLabel);
+  const currShort = shortMonthLabel(curr.monthKey, curr.monthLabel);
+
+  return {
+    hasData: true,
+    hasMultiPeriod: true,
+    periodCount: validMonths.length,
+    currentPeriodLabel: curr.monthLabel,
+    previousPeriodLabel: prev.monthLabel,
+    metrics: {
+      sessions: buildCountDelta(curr.sessions, prev.sessions, prevShort, currShort, 'sessions', true),
+      studentsReached: buildCountDelta(
+        curr.studentsReached,
+        prev.studentsReached,
+        prevShort,
+        currShort,
+        'students',
+        true,
+      ),
+      schoolsCovered: buildCountDelta(
+        curr.schoolsCount,
+        prev.schoolsCount,
+        prevShort,
+        currShort,
+        'schools',
+        false,
+      ),
+      activeFacilitators: buildCountDelta(
+        curr.facilitatorsCount,
+        prev.facilitatorsCount,
+        prevShort,
+        currShort,
+        'facilitators',
+        false,
+      ),
+      averageCsat: buildScoreDelta(curr.averageCsat, prev.averageCsat, prevShort, currShort, 2),
+      averageItp: buildScoreDelta(curr.averageItp, prev.averageItp, prevShort, currShort, 2),
+      teacherNps: buildScoreDelta(
+        curr.teacherNpsAverage,
+        prev.teacherNpsAverage,
+        prevShort,
+        currShort,
+        1,
+      ),
+    },
+  };
+}
+
+export interface ProgrammeInsightItem {
+  id: 'top-district' | 'top-tour' | 'top-grade' | 'monthly-trend' | 'coverage-attention';
+  title: string;
+  headline: string;
+  detail: string;
+  tone: 'positive' | 'neutral' | 'attention' | 'empty';
+}
+
+export interface ProgrammeInsightsReport {
+  hasData: boolean;
+  items: ProgrammeInsightItem[];
+}
+
+/**
+ * Generates factual, filter-responsive observations directly from reconciled analytics.
+ * Never outputs fabricated statements or invented trends when historical data is missing.
+ */
+export function computeProgrammeInsights(
+  analytics: DashboardAnalytics,
+  config: AppConfiguration,
+  filters?: SessionQueryFilters,
+): ProgrammeInsightsReport {
+  if (analytics.totalSessions === 0) {
+    return {
+      hasData: false,
+      items: [
+        {
+          id: 'top-district',
+          title: 'Top district',
+          headline: '—',
+          detail: 'Will appear once district sessions are submitted',
+          tone: 'empty',
+        },
+        {
+          id: 'top-tour',
+          title: 'Most active tour',
+          headline: '—',
+          detail: 'Will appear once career tour sessions are logged',
+          tone: 'empty',
+        },
+        {
+          id: 'top-grade',
+          title: 'Most engaged grade',
+          headline: '—',
+          detail: 'Will appear once grade participation is recorded',
+          tone: 'empty',
+        },
+        {
+          id: 'monthly-trend',
+          title: 'Participation trend',
+          headline: '—',
+          detail: 'Will appear across active reporting months',
+          tone: 'empty',
+        },
+        {
+          id: 'coverage-attention',
+          title: 'Coverage watch',
+          headline: '—',
+          detail: 'Highlights districts or tours with lower reach',
+          tone: 'empty',
+        },
+      ],
+    };
+  }
+
+  const activeDistricts = [...analytics.districtBreakdown]
+    .filter((d) => d.sessions > 0)
+    .sort(
+      (a, b) =>
+        b.studentsReached - a.studentsReached ||
+        b.sessions - a.sessions ||
+        a.district.localeCompare(b.district),
+    );
+  const topDistrict = activeDistricts[0];
+  const topDistrictShare =
+    topDistrict && analytics.totalStudentsReached > 0
+      ? round1((topDistrict.studentsReached / analytics.totalStudentsReached) * 100)
+      : 0;
+
+  const topDistrictItem: ProgrammeInsightItem = topDistrict
+    ? {
+        id: 'top-district',
+        title: 'Top district',
+        headline: topDistrict.district,
+        detail: `${topDistrict.studentsReached.toLocaleString()} students (${topDistrictShare}% of reach) across ${topDistrict.sessions} session${topDistrict.sessions === 1 ? '' : 's'} & ${topDistrict.schoolsCount} school${topDistrict.schoolsCount === 1 ? '' : 's'}`,
+        tone: 'positive',
+      }
+    : {
+        id: 'top-district',
+        title: 'Top district',
+        headline: '—',
+        detail: 'No approved district sessions match filters',
+        tone: 'empty',
+      };
+
+  const sortedTours = [...analytics.tourBreakdown].sort(
+    (a, b) =>
+      b.sessions - a.sessions ||
+      b.studentsReached - a.studentsReached ||
+      a.tourName.localeCompare(b.tourName),
+  );
+  const topTour = sortedTours[0];
+  const topTourSchools = topTour?.schoolsCount ?? 0;
+
+  const topTourItem: ProgrammeInsightItem = topTour
+    ? {
+        id: 'top-tour',
+        title: 'Most active tour',
+        headline: topTour.tourName,
+        detail: `${topTour.sessions} session${topTour.sessions === 1 ? '' : 's'} · ${topTour.studentsReached.toLocaleString()} students · ${topTourSchools} school${topTourSchools === 1 ? '' : 's'} · CSAT ${formatScore2(topTour.averageCsat)}`,
+        tone: 'positive',
+      }
+    : {
+        id: 'top-tour',
+        title: 'Most active tour',
+        headline: '—',
+        detail: 'No tour records found',
+        tone: 'empty',
+      };
+
+  const sortedGrades = [...analytics.gradeBreakdown].sort(
+    (a, b) =>
+      b.studentsReached - a.studentsReached ||
+      b.classesCount - a.classesCount ||
+      Number(a.grade) - Number(b.grade),
+  );
+  const topGrade = sortedGrades[0];
+
+  const topGradeItem: ProgrammeInsightItem = topGrade
+    ? {
+        id: 'top-grade',
+        title: 'Most engaged grade',
+        headline: `Grade ${topGrade.grade}`,
+        detail: `${topGrade.studentsReached.toLocaleString()} students across ${topGrade.classesCount} class row${topGrade.classesCount === 1 ? '' : 's'}${topGrade.averageCsat !== null ? ` · CSAT ${formatScore2(topGrade.averageCsat)}` : ''}`,
+        tone: 'positive',
+      }
+    : {
+        id: 'top-grade',
+        title: 'Most engaged grade',
+        headline: '—',
+        detail: 'No grade participation logged',
+        tone: 'empty',
+      };
+
+  const validMonths = analytics.monthlyBreakdown.filter((m) => /^\d{4}-\d{2}$/.test(m.monthKey));
+  let monthlyTrendItem: ProgrammeInsightItem;
+  if (validMonths.length >= 2) {
+    const prev = validMonths[validMonths.length - 2]!;
+    const curr = validMonths[validMonths.length - 1]!;
+    const prevShort = shortMonthLabel(prev.monthKey, prev.monthLabel);
+    const currShort = shortMonthLabel(curr.monthKey, curr.monthLabel);
+    const diff = curr.studentsReached - prev.studentsReached;
+    const pctText =
+      prev.studentsReached > 0
+        ? ` (${diff >= 0 ? '+' : ''}${round1((diff / prev.studentsReached) * 100)}%)`
+        : '';
+    monthlyTrendItem = {
+      id: 'monthly-trend',
+      title: 'Participation trend',
+      headline:
+        diff > 0
+          ? `Growing into ${currShort}`
+          : diff < 0
+            ? `Softer in ${currShort}`
+            : `Steady in ${currShort}`,
+      detail: `${curr.studentsReached.toLocaleString()} students in ${currShort} vs ${prev.studentsReached.toLocaleString()} in ${prevShort}${pctText}`,
+      tone: diff >= 0 ? 'positive' : 'attention',
+    };
+  } else if (validMonths.length === 1) {
+    const only = validMonths[0]!;
+    monthlyTrendItem = {
+      id: 'monthly-trend',
+      title: 'Participation trend',
+      headline: `Baseline · ${shortMonthLabel(only.monthKey, only.monthLabel)}`,
+      detail: `${only.studentsReached.toLocaleString()} students in ${only.sessions} session${only.sessions === 1 ? '' : 's'} — trend compares once 2+ months are logged`,
+      tone: 'neutral',
+    };
+  } else {
+    monthlyTrendItem = {
+      id: 'monthly-trend',
+      title: 'Participation trend',
+      headline: 'Single window',
+      detail: 'Add sessions with valid dates across months to compare trends',
+      tone: 'neutral',
+    };
+  }
+
+  // Coverage watch: if no single district filter is pinning the scope, surface zero-session
+  // or lowest-reach districts first; otherwise surface unrun tours or response completeness.
+  const uncoveredDistricts = analytics.districtBreakdown
+    .filter((d) => d.sessions === 0)
+    .map((d) => d.district);
+  let coverageItem: ProgrammeInsightItem;
+
+  if (
+    !filters?.district &&
+    uncoveredDistricts.length > 0 &&
+    uncoveredDistricts.length < config.allowedDistricts.length
+  ) {
+    coverageItem = {
+      id: 'coverage-attention',
+      title: 'Coverage watch',
+      headline:
+        uncoveredDistricts.length === 1
+          ? `0 sessions in ${uncoveredDistricts[0]}`
+          : `${uncoveredDistricts.length} districts unreached`,
+      detail: `No committed sessions yet in ${uncoveredDistricts.join(', ')} under the active filters`,
+      tone: 'attention',
+    };
+  } else if (activeDistricts.length >= 2) {
+    const lowestDistrict = activeDistricts[activeDistricts.length - 1]!;
+    const lowShare =
+      analytics.totalStudentsReached > 0
+        ? round1((lowestDistrict.studentsReached / analytics.totalStudentsReached) * 100)
+        : 0;
+    coverageItem = {
+      id: 'coverage-attention',
+      title: 'Coverage watch',
+      headline: `Lowest reach · ${lowestDistrict.district}`,
+      detail: `${lowestDistrict.studentsReached.toLocaleString()} students (${lowShare}% share across ${lowestDistrict.schoolsCount} school${lowestDistrict.schoolsCount === 1 ? '' : 's'})`,
+      tone: 'attention',
+    };
+  } else {
+    const activeTourIds = new Set(analytics.tourBreakdown.map((t) => t.tourId));
+    const missingTours = config.tours.filter((t) => t.active && !activeTourIds.has(t.tourId));
+    if (missingTours.length > 0) {
+      coverageItem = {
+        id: 'coverage-attention',
+        title: 'Coverage watch',
+        headline: `${missingTours.length} active tour${missingTours.length === 1 ? '' : 's'} unrun`,
+        detail: `Not yet represented in current scope: ${missingTours.map((t) => t.tourName).join(', ')}`,
+        tone: 'attention',
+      };
+    } else if (
+      analytics.missingResponseRateQaPct !== null &&
+      analytics.missingResponseRateQaPct > 10
+    ) {
+      coverageItem = {
+        id: 'coverage-attention',
+        title: 'Coverage watch',
+        headline: `${formatPct1(analytics.missingResponseRateQaPct)} Q-A gap`,
+        detail: `${analytics.totalMissingResponsesQA.toLocaleString()} unanswered student responses across ${analytics.totalSessions} session${analytics.totalSessions === 1 ? '' : 's'}`,
+        tone: 'attention',
+      };
+    } else {
+      coverageItem = {
+        id: 'coverage-attention',
+        title: 'Coverage watch',
+        headline: 'Balanced coverage',
+        detail: `${analytics.totalSchoolsCovered} school${analytics.totalSchoolsCovered === 1 ? '' : 's'} covered · ${formatPct1(analytics.qaSentiment.positivePct)} positive CSAT`,
+        tone: 'positive',
+      };
+    }
+  }
+
+  return {
+    hasData: true,
+    items: [topDistrictItem, topTourItem, topGradeItem, monthlyTrendItem, coverageItem],
   };
 }

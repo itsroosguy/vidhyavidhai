@@ -224,25 +224,6 @@ export function validateSessionForm(
       severity: 'error',
       message: `District must be one of: ${config.allowedDistricts.join(', ')}.`,
     });
-  } else {
-    const approvedBlocks = getBlocksForDistrict(values.district, config);
-    if (approvedBlocks.length === 0) {
-      errors.push({
-        code: 'BLOCKS_NOT_CONFIGURED',
-        field: 'block',
-        section: 3,
-        severity: 'error',
-        message: 'Block list not configured. Please contact the administrator.',
-      });
-    } else if (!values.block || !approvedBlocks.includes(values.block)) {
-      errors.push({
-        code: 'BLOCK_REQUIRED',
-        field: 'block',
-        section: 3,
-        severity: 'error',
-        message: 'Select an approved block for the chosen district.',
-      });
-    }
   }
 
   const pin = values.pinCode.trim();

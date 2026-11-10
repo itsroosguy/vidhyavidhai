@@ -114,7 +114,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <div>
               <span className="text-[#243647]">Location:</span>{' '}
               <span className="font-medium text-[#0A1B2C]">
-                {session.block}, {session.district}, {session.state}
+                {[session.block, session.district, session.state].filter(Boolean).join(', ')}
               </span>
             </div>
             <div>

@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { AlertTriangle, Building2, CheckCircle2, MapPin } from 'lucide-react';
 import type { AppConfiguration, SchoolRecord, SessionFormValues } from '../../types/domain';
-import { getBlocksForDistrict } from '../../validations/sessionValidation';
 
 interface Section3Props {
   values: SessionFormValues;
@@ -24,17 +23,6 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
   onDistrictChange,
   onApplyMatchedSchool,
 }) => {
-  const [blockSearch, setBlockSearch] = useState('');
-  const districtBlocks = getBlocksForDistrict(values.district, config);
-  const filteredBlocks = useMemo(() => {
-    const q = blockSearch.trim().toLowerCase();
-    if (!q) return districtBlocks;
-    return districtBlocks.filter((b) => b.toLowerCase().includes(q));
-  }, [blockSearch, districtBlocks]);
-
-  const districtSelectedWithoutBlocks =
-    Boolean(values.district) && districtBlocks.length === 0;
-
   const schoolNameConflict =
     matchedSchool &&
     values.schoolName.trim() !== '' &&
@@ -72,14 +60,14 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
               )}
             </div>
             <p className="text-xs text-[#243647] mt-0.5">
-              11-digit UDISE auto-lookup and approved Tamil Nadu district &amp; block mapping
+              11-digit UDISE auto-lookup and approved Tamil Nadu district mapping
             </p>
           </div>
         </div>
 
         <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C]">
           <MapPin className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
-          {values.district ? `${values.district}${values.block ? ` · ${values.block}` : ''}` : 'Tamil Nadu'}
+          {values.district ? values.district : 'Tamil Nadu'}
         </span>
       </div>
 
@@ -253,7 +241,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
         </div>
       )}
 
-      {/* Bento Well 2 — State | District | PIN code | Block */}
+      {/* Bento Well 2 — State | District | PIN code */}
       <div className="ct-bento-well mt-4 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           <div className="flex flex-col gap-1.5">
@@ -283,10 +271,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
               name="district"
               required
               value={values.district}
-              onChange={(e) => {
-                setBlockSearch('');
-                onDistrictChange(e.target.value);
-              }}
+              onChange={(e) => onDistrictChange(e.target.value)}
               aria-invalid={Boolean(errorMap.district)}
               aria-describedby={errorMap.district ? 'district-error' : undefined}
               data-error="district-error"
@@ -369,71 +354,6 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
             )}
           </div>
         </div>
-
-        {/* Dependent Block row */}
-        {(values.district || errorMap.block) && (
-          <div className="mt-4 pt-3.5 border-t border-[#DFD7C2] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="block" className="text-sm font-medium text-[#0A1B2C]">
-                Block ({values.district || 'Approved District'})
-                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                  *
-                </span>
-              </label>
-              <select
-                id="block"
-                name="block"
-                required
-                disabled={!values.district || districtBlocks.length === 0}
-                value={values.block}
-                onChange={(e) => onUpdate('block', e.target.value)}
-                aria-invalid={Boolean(errorMap.block)}
-                aria-describedby={errorMap.block ? 'block-error' : undefined}
-                data-error="block-error"
-                className="ct-input ct-select"
-              >
-                <option value="">
-                  {!values.district
-                    ? 'Select district first...'
-                    : districtBlocks.length === 0
-                      ? 'No blocks configured'
-                      : 'Choose...'}
-                </option>
-                {filteredBlocks.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-              {districtSelectedWithoutBlocks && (
-                <p role="alert" className="text-xs text-[#B45309] font-medium">
-                  Block list not configured. Please contact the administrator.
-                </p>
-              )}
-              {!districtSelectedWithoutBlocks && errorMap.block && (
-                <p id="block-error" className="text-xs text-[#BE123C] font-medium">
-                  {errorMap.block}
-                </p>
-              )}
-            </div>
-
-            {districtBlocks.length > 8 && (
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="blockSearchFilter" className="text-sm font-medium text-[#0A1B2C]">
-                  Search blocks in {values.district}
-                </label>
-                <input
-                  id="blockSearchFilter"
-                  type="search"
-                  placeholder="Filter block list..."
-                  value={blockSearch}
-                  onChange={(e) => setBlockSearch(e.target.value)}
-                  className="ct-input"
-                />
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </section>
   );
