@@ -55,17 +55,17 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
       subtitle="All weighted averages, Session ID sequences, and class breakdown rows have been finalized."
       headerBadge={
         syncStatus === 'SYNCED' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#48B98A]/15 border border-[#48B98A]/40 text-[#48B98A]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
             <Database className="w-3 h-3" aria-hidden="true" />
             {isSuperAdmin ? 'Synced to Google Sheets' : 'Saved to records'}
           </span>
         ) : syncStatus === 'PENDING_RETRY' || syncStatus === 'FAILED' ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#392A11] border border-[#F2B44D]/45 text-[#F2B44D]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FFFBEB] border border-[#B45309]/40 text-[#92400E]">
             <RefreshCw className="w-3 h-3" aria-hidden="true" />
             Queued offline · Retry pending
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#162D55] border border-[#26456F] text-[#A4B7D2]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F1F5F9] border border-[#CBD5E1] text-[#475569]">
             <CloudOff className="w-3 h-3" aria-hidden="true" />
             {isSuperAdmin ? 'Local Sandbox (not live Google Sheets)' : 'Saved in Local Sandbox'}
           </span>
@@ -103,17 +103,17 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
     >
       {session && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-[#48B98A]/12 border border-[#48B98A]/40 flex items-start justify-between gap-3">
+          <div className="p-4 rounded-xl bg-[#ECFDF5] border border-[#047857]/35 flex items-start justify-between gap-3">
             <div className="flex items-start gap-2.5 min-w-0">
               <CheckCircle2
-                className="w-5 h-5 text-[#48B98A] shrink-0 mt-0.5"
+                className="w-5 h-5 text-[#047857] shrink-0 mt-0.5"
                 aria-hidden="true"
               />
               <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-wider text-[#48B98A] font-medium">
+                <div className="text-[11px] uppercase tracking-wider text-[#047857] font-medium">
                   Generated Session ID
                 </div>
-                <div className="font-mono text-sm sm:text-base font-semibold text-[#E8EFFC] break-all mt-0.5">
+                <div className="font-mono text-sm sm:text-base font-semibold text-[#0F172A] break-all mt-0.5">
                   {session.sessionId}
                 </div>
               </div>
@@ -123,11 +123,11 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
               type="button"
               onClick={() => void handleCopyId()}
               aria-label="Copy Session ID"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-xs font-medium text-[#E8EFFC] cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-xs font-medium text-[#0F172A] cursor-pointer"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-[#48B98A]" aria-hidden="true" />
+                  <Check className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
                   Copied
                 </>
               ) : (
@@ -140,20 +140,20 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F]">
-              <div className="text-[#A4B7D2]">School</div>
-              <div className="text-[#E8EFFC] font-medium mt-0.5">{session.schoolName}</div>
+            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="text-[#475569]">School</div>
+              <div className="text-[#0F172A] font-medium mt-0.5">{session.schoolName}</div>
             </div>
-            <div className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F]">
-              <div className="text-[#A4B7D2]">Date & Attendance</div>
-              <div className="text-[#E8EFFC] font-medium ct-num mt-0.5">
+            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="text-[#475569]">Date & Attendance</div>
+              <div className="text-[#0F172A] font-medium ct-num mt-0.5">
                 {formatISODateToDDMMYYYY(session.startDate)} · {session.totalStudentsPresent}{' '}
                 students
               </div>
             </div>
-            <div className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] col-span-2 sm:col-span-1">
-              <div className="text-[#A4B7D2]">CSAT / ITP / NPS</div>
-              <div className="text-[#4EBBBB] font-semibold ct-num mt-0.5">
+            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] col-span-2 sm:col-span-1">
+              <div className="text-[#475569]">CSAT / ITP / NPS</div>
+              <div className="text-[#0F766E] font-semibold ct-num mt-0.5">
                 {formatScore2(session.overallCsat)} / {formatScore2(session.overallItp)} /{' '}
                 {session.teacherNps > 0 ? `+${session.teacherNps}` : session.teacherNps}
               </div>
@@ -161,14 +161,14 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
           </div>
 
           {schoolUdiseConflict && (
-            <div className="p-3 rounded-lg bg-[#392A11] border border-[#F2B44D]/45 text-xs text-[#F2B44D]">
+            <div className="p-3 rounded-lg bg-[#FFFBEB] border border-[#B45309]/40 text-xs text-[#92400E]">
               {schoolUdiseConflict}
             </div>
           )}
 
           {warnings.length > 0 && (
-            <div className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] text-xs text-[#A4B7D2] space-y-1">
-              <div className="font-medium text-[#E8EFFC]">Recorded notices:</div>
+            <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569] space-y-1">
+              <div className="font-medium text-[#0F172A]">Recorded notices:</div>
               <ul className="list-disc pl-4 space-y-0.5">
                 {warnings.map((w, idx) => (
                   <li key={idx}>{w}</li>

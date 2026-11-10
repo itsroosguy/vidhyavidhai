@@ -97,28 +97,28 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="p-6 flex flex-col gap-4">
         <div className="flex items-start gap-3">
           {destructive && (
-            <div className="w-9 h-9 rounded-lg bg-[#E77B83]/15 border border-[#E77B83]/45 flex items-center justify-center text-[#E77B83] shrink-0 mt-0.5">
+            <div className="w-9 h-9 rounded-lg bg-[#FFF1F2] border border-[#BE123C]/35 flex items-center justify-center text-[#BE123C] shrink-0 mt-0.5">
               <AlertTriangle className="w-4 h-4" aria-hidden="true" />
             </div>
           )}
           <div>
-            <span className="text-[11px] font-medium uppercase tracking-wider text-[#A4B7D2]">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[#526077]">
               {destructive ? 'Confirmation Required' : 'Confirm Action'}
             </span>
-            <h2 id={titleId} className="text-lg font-medium text-[#E8EFFC] mt-0.5">
+            <h2 id={titleId} className="text-lg font-medium text-[#0F172A] mt-0.5">
               {title}
             </h2>
           </div>
         </div>
 
-        <p className="text-sm text-[#A4B7D2] leading-relaxed">{description}</p>
+        <p className="text-sm text-[#475569] leading-relaxed">{description}</p>
 
         {metadata && metadata.length > 0 && (
-          <dl className="grid grid-cols-1 gap-1.5 p-3 rounded-lg bg-[#0C1931] border border-[#26456F] text-xs">
+          <dl className="grid grid-cols-1 gap-1.5 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-xs">
             {metadata.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-3">
-                <dt className="text-[#A4B7D2]">{item.label}</dt>
-                <dd className="font-mono text-[#E8EFFC] text-right truncate">{item.value}</dd>
+                <dt className="text-[#475569]">{item.label}</dt>
+                <dd className="font-mono text-[#0F172A] text-right truncate">{item.value}</dd>
               </div>
             ))}
           </dl>

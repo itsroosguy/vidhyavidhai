@@ -379,9 +379,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       return <ArrowUpDown className="w-3.5 h-3.5 opacity-45 shrink-0" aria-hidden="true" />;
     }
     return schoolSort.dir === 'ascending' ? (
-      <ArrowUp className="w-3.5 h-3.5 text-[#4EBBBB] shrink-0" aria-hidden="true" />
+      <ArrowUp className="w-3.5 h-3.5 text-[#0F766E] shrink-0" aria-hidden="true" />
     ) : (
-      <ArrowDown className="w-3.5 h-3.5 text-[#4EBBBB] shrink-0" aria-hidden="true" />
+      <ArrowDown className="w-3.5 h-3.5 text-[#0F766E] shrink-0" aria-hidden="true" />
     );
   };
 
@@ -389,12 +389,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     if (!analytics) return null;
     if (analytics.reconciliation.verified) {
       return (
-        <div className="px-4 py-2.5 rounded-xl bg-[#48B98A]/12 border border-[#48B98A]/40 flex flex-wrap items-center justify-between gap-2 text-xs text-[#48B98A] ct-num">
+        <div className="px-4 py-2.5 rounded-xl bg-[#ECFDF5] border border-[#047857]/35 flex flex-wrap items-center justify-between gap-2 text-xs text-[#047857] ct-num">
           <span className="inline-flex items-center gap-2 font-medium">
-            <CheckCircle2 className="w-4 h-4 text-[#48B98A]" aria-hidden="true" />
+            <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
             Verified · {analytics.reconciliation.checksRun} independent reconciliation checks passed
           </span>
-          <span className="text-[#A4B7D2]">
+          <span className="text-[#475569]">
             Single-counted students · Pooled denominators ·{' '}
             {new Date(analytics.reconciliation.checkedAt).toLocaleTimeString()}
           </span>
@@ -404,13 +404,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     return (
       <div
         role="alert"
-        className="p-4 rounded-xl bg-[#E77B83]/12 border border-[#E77B83]/45 text-xs text-[#E8EFFC] space-y-1.5"
+        className="p-4 rounded-xl bg-[#FFF1F2] border border-[#BE123C]/40 text-xs text-[#0F172A] space-y-1.5"
       >
-        <div className="font-medium flex items-center gap-2 text-[#E77B83]">
-          <AlertTriangle className="w-4 h-4 text-[#E77B83]" aria-hidden="true" />
+        <div className="font-medium flex items-center gap-2 text-[#BE123C]">
+          <AlertTriangle className="w-4 h-4 text-[#BE123C]" aria-hidden="true" />
           Analytics Reconciliation Discrepancy Detected
         </div>
-        <ul className="list-disc pl-5 space-y-0.5 text-[#E77B83]">
+        <ul className="list-disc pl-5 space-y-0.5 text-[#BE123C]">
           {analytics.reconciliation.discrepancies.map((d) => (
             <li key={d}>{d}</li>
           ))}
@@ -427,70 +427,70 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3 ct-num"
       >
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Total Sessions
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {analytics.totalSessions}
           </div>
         </div>
 
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Students Reached
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {analytics.totalStudentsReached}
           </div>
         </div>
 
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Schools Covered
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {analytics.totalSchoolsCovered}
           </div>
         </div>
 
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Active Facilitators
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {analytics.totalFacilitatorsActive}
           </div>
         </div>
 
-        <div className="rounded-xl p-3.5 bg-[#4EBBBB]/12 border border-[#4EBBBB]/50 shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#4EBBBB]">
+        <div className="rounded-xl p-3.5 bg-[#E6F6F4] border border-[#0F766E]/40 shadow-sm">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#0F766E]">
             Pooled CSAT
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {formatScore2(analytics.averageCsat)}
           </div>
-          <div className="text-[11px] text-[#A4B7D2] mt-0.5">
+          <div className="text-[11px] text-[#475569] mt-0.5">
             {analytics.totalQuestionAResponses} responses
           </div>
         </div>
 
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Pooled ITP
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {formatScore2(analytics.averageItp)}
           </div>
-          <div className="text-[11px] text-[#8294B1] mt-0.5">
+          <div className="text-[11px] text-[#526077] mt-0.5">
             {analytics.totalQuestionBResponses} responses
           </div>
         </div>
 
         <div className="ct-card p-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-[#A4B7D2]">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#526077]">
             Teacher NPS
           </div>
-          <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+          <div className="text-2xl font-semibold text-[#0F172A] mt-1">
             {analytics.teacherNpsAverage !== null
               ? analytics.teacherNpsAverage > 0
                 ? `+${analytics.teacherNpsAverage}`
@@ -504,8 +504,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
   const renderEmptyAnalytics = () => (
     <section className="ct-card p-8 text-center">
-      <p className="text-base font-medium text-[#E8EFFC]">No submitted sessions match yet</p>
-      <p className="text-xs sm:text-sm text-[#A4B7D2] mt-1">
+      <p className="text-base font-medium text-[#0F172A]">No submitted sessions match yet</p>
+      <p className="text-xs sm:text-sm text-[#475569] mt-1">
         Metrics, trends, and breakdowns appear automatically once committed sessions exist for the
         active filters.
       </p>
@@ -523,7 +523,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             {analytics && analytics.totalSessions > 0 ? (
               <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="ct-card p-5">
-                  <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                  <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                     Sessions &amp; Students by Approved District
                   </h3>
                   <DistrictComparisonBars
@@ -532,7 +532,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   />
                 </div>
                 <div className="ct-card p-5">
-                  <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                  <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                     Student Sentiment &amp; Teacher NPS Breakdown
                   </h3>
                   <SentimentStackedChart
@@ -548,7 +548,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
             {/* Quick Section Index */}
             <section className="ct-card p-5">
-              <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+              <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                 Administrator Sections Directory
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -557,15 +557,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     key={item.slug}
                     type="button"
                     onClick={() => handleSelectSection(item.slug)}
-                    className="p-3.5 rounded-xl bg-[#0C1931] hover:bg-[#162D55] border border-[#26456F] text-left flex items-start justify-between gap-2 transition-colors cursor-pointer"
+                    className="p-3.5 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-left flex items-start justify-between gap-2 transition-colors cursor-pointer"
                   >
                     <div>
-                      <div className="text-sm font-medium text-[#E8EFFC]">{item.label}</div>
-                      <p className="text-xs text-[#A4B7D2] mt-0.5 leading-relaxed">
+                      <div className="text-sm font-medium text-[#0F172A]">{item.label}</div>
+                      <p className="text-xs text-[#475569] mt-0.5 leading-relaxed">
                         {item.description}
                       </p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-[#4EBBBB] shrink-0 mt-0.5" aria-hidden="true" />
+                    <ArrowRight className="w-4 h-4 text-[#0F766E] shrink-0 mt-0.5" aria-hidden="true" />
                   </button>
                 ))}
               </div>
@@ -582,7 +582,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <>
                 <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                    <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                       District Comparison
                     </h3>
                     <DistrictComparisonBars
@@ -600,20 +600,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
                 <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                   <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                    <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                       Sessions by Career Tour
                     </h3>
                     <div className="space-y-2.5 text-xs ct-num">
                       {analytics.tourBreakdown.map((t) => (
                         <div
                           key={t.tourId}
-                          className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] flex flex-wrap justify-between items-center gap-2"
+                          className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex flex-wrap justify-between items-center gap-2"
                         >
                           <div>
-                            <div className="font-medium text-[#E8EFFC]">{t.tourName}</div>
-                            <div className="text-[#A4B7D2] mt-0.5">
+                            <div className="font-medium text-[#0F172A]">{t.tourName}</div>
+                            <div className="text-[#475569] mt-0.5">
                               CSAT{' '}
-                              <strong className="font-medium text-[#4EBBBB]">
+                              <strong className="font-medium text-[#0F766E]">
                                 {formatScore2(t.averageCsat)}
                               </strong>{' '}
                               · ITP {formatScore2(t.averageItp)} · Pos{' '}
@@ -631,7 +631,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                               })
                             }
                             aria-label={`Inspect ${t.tourName} breakdown`}
-                            className="px-2.5 py-1 rounded bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[11px] text-[#E8EFFC] cursor-pointer transition-colors"
+                            className="px-2.5 py-1 rounded bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-[11px] font-medium text-[#0F172A] cursor-pointer transition-colors"
                           >
                             Inspect
                           </button>
@@ -641,20 +641,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                    <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                       Grade-wise Reach &amp; Scores
                     </h3>
                     <div className="space-y-2 text-xs ct-num">
                       {analytics.gradeBreakdown.map((g) => (
                         <div
                           key={g.grade}
-                          className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] flex flex-wrap justify-between items-center gap-2"
+                          className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex flex-wrap justify-between items-center gap-2"
                         >
-                          <span className="font-medium text-[#E8EFFC]">Grade {g.grade}</span>
-                          <div className="flex items-center gap-2 text-[#A4B7D2]">
+                          <span className="font-medium text-[#0F172A]">Grade {g.grade}</span>
+                          <div className="flex items-center gap-2 text-[#475569]">
                             <span>
                               {g.studentsReached} std · CSAT{' '}
-                              <strong className="font-medium text-[#4EBBBB]">
+                              <strong className="font-medium text-[#0F766E]">
                                 {formatScore2(g.averageCsat)}
                               </strong>
                             </span>
@@ -669,7 +669,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 })
                               }
                               aria-label={`Inspect Grade ${g.grade} breakdown`}
-                              className="px-2 py-0.5 rounded bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[11px] text-[#E8EFFC] cursor-pointer transition-colors"
+                              className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-[11px] font-medium text-[#0F172A] cursor-pointer transition-colors"
                             >
                               Inspect
                             </button>
@@ -680,20 +680,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div className="ct-card p-5">
-                    <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                    <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                       By Delivery Language
                     </h3>
                     <div className="space-y-2 text-xs ct-num">
                       {analytics.languageBreakdown.map((lang) => (
                         <div
                           key={lang.language}
-                          className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] flex items-center justify-between gap-2"
+                          className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between gap-2"
                         >
                           <div>
-                            <div className="font-medium text-[#E8EFFC]">{lang.language}</div>
-                            <div className="text-[#A4B7D2] mt-0.5">
+                            <div className="font-medium text-[#0F172A]">{lang.language}</div>
+                            <div className="text-[#475569] mt-0.5">
                               {lang.sessions} sess · CSAT{' '}
-                              <strong className="font-medium text-[#4EBBBB]">
+                              <strong className="font-medium text-[#0F766E]">
                                 {formatScore2(lang.averageCsat)}
                               </strong>
                             </div>
@@ -709,7 +709,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                               })
                             }
                             aria-label={`Inspect ${lang.language} language breakdown`}
-                            className="px-2 py-0.5 rounded bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[11px] text-[#E8EFFC] cursor-pointer transition-colors"
+                            className="px-2 py-0.5 rounded bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-[11px] font-medium text-[#0F172A] cursor-pointer transition-colors"
                           >
                             Inspect
                           </button>
@@ -728,29 +728,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       case 'all-submissions':
         return (
           <section className="ct-card p-5">
-            <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3 ct-num">
+            <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3 ct-num">
               All Authorized Programme Records ({sessionsPage.total})
             </h3>
 
             {loading ? (
-              <div className="py-10 text-center text-sm text-[#A4B7D2]">
+              <div className="py-10 text-center text-sm text-[#475569]">
                 Loading programme records...
               </div>
             ) : sessionsPage.items.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#A4B7D2]">No records match filters.</div>
+              <div className="py-8 text-center text-xs text-[#475569]">No records match filters.</div>
             ) : (
               <>
                 <div
                   tabIndex={0}
                   role="region"
                   aria-labelledby={recordsCaptionId}
-                  className="ct-table-wrapper rounded-xl border border-[#26456F]"
+                  className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
                 >
                   <table className="w-full text-left text-xs border-collapse min-w-[960px]">
                     <caption id={recordsCaptionId} className="visually-hidden">
                       Authorized programme session records
                     </caption>
-                    <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                    <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                       <tr>
                         <th scope="col" className="p-3 font-medium">Session ID</th>
                         <th scope="col" className="p-3 font-medium">Facilitator</th>
@@ -765,46 +765,46 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         <th scope="col" className="p-3 font-medium">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#26456F]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {sessionsPage.items.map((s) => (
                         <tr
                           key={s.sessionRecordId}
-                          className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num"
+                          className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num"
                         >
                           <th
                             scope="row"
-                            className="p-3 font-mono font-medium text-[#4EBBBB] whitespace-nowrap"
+                            className="p-3 font-mono font-medium text-[#0F766E] whitespace-nowrap"
                           >
                             {s.sessionId}
                           </th>
                           <td className="p-3">
-                            <div className="text-[#E8EFFC] font-medium">{s.facilitatorName}</div>
-                            <div className="text-[11px] text-[#A4B7D2]">{s.facilitatorEmail}</div>
+                            <div className="text-[#0F172A] font-medium">{s.facilitatorName}</div>
+                            <div className="text-[11px] text-[#475569]">{s.facilitatorEmail}</div>
                           </td>
                           <td className="p-3">
-                            <div className="text-[#E8EFFC] font-medium">{s.schoolName}</div>
-                            <div className="text-[11px] font-mono text-[#8294B1]">{s.udiseCode}</div>
+                            <div className="text-[#0F172A] font-medium">{s.schoolName}</div>
+                            <div className="text-[11px] font-mono text-[#526077]">{s.udiseCode}</div>
                           </td>
-                          <td className="p-3 text-[#A4B7D2]">
-                            <div className="text-[#E8EFFC]">{s.district}</div>
-                            <div className="text-[11px] text-[#8294B1]">{s.block}</div>
+                          <td className="p-3 text-[#475569]">
+                            <div className="text-[#0F172A]">{s.district}</div>
+                            <div className="text-[11px] text-[#526077]">{s.block}</div>
                           </td>
-                          <td className="p-3 text-[#A4B7D2] max-w-[160px] truncate" title={s.tourName}>
+                          <td className="p-3 text-[#475569] max-w-[160px] truncate" title={s.tourName}>
                             {s.tourName}
                           </td>
-                          <td className="p-3 text-[#A4B7D2] whitespace-nowrap">
+                          <td className="p-3 text-[#475569] whitespace-nowrap">
                             {formatISODateToDDMMYYYY(s.startDate)}
                           </td>
-                          <td className="p-3 text-[#E8EFFC] font-medium">
+                          <td className="p-3 text-[#0F172A] font-medium">
                             {s.totalStudentsPresent}
                           </td>
-                          <td className="p-3 text-[#4EBBBB] font-semibold">
+                          <td className="p-3 text-[#0F766E] font-semibold">
                             {formatScore2(s.overallCsat)}
                           </td>
-                          <td className="p-3 text-[#E8EFFC] font-medium">
+                          <td className="p-3 text-[#0F172A] font-medium">
                             {formatScore2(s.overallItp)}
                           </td>
-                          <td className="p-3 text-[#E8EFFC]">
+                          <td className="p-3 text-[#0F172A]">
                             {s.teacherNps > 0 ? '+100' : s.teacherNps}
                           </td>
                           <td className="p-3">
@@ -813,7 +813,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 type="button"
                                 onClick={() => setSelectedDetail(s)}
                                 aria-label={`Inspect ${s.sessionId}`}
-                                className="p-2 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#E8EFFC] cursor-pointer transition-colors"
+                                className="p-2 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] text-[#0F172A] cursor-pointer transition-colors"
                               >
                                 <Eye className="w-4 h-4" aria-hidden="true" />
                               </button>
@@ -821,7 +821,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 type="button"
                                 onClick={() => handleEditAction(s)}
                                 aria-label={`Correct ${s.sessionId}`}
-                                className="p-2 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#4EBBBB] cursor-pointer transition-colors"
+                                className="p-2 rounded-lg bg-[#F1F5F9] hover:bg-[#E6F6F4] border border-[#CBD5E1] hover:border-[#0F766E]/45 text-[#0F766E] cursor-pointer transition-colors"
                               >
                                 <Edit3 className="w-4 h-4" aria-hidden="true" />
                               </button>
@@ -830,7 +830,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                   type="button"
                                   onClick={() => setArchiveTarget(s)}
                                   aria-label={`Archive ${s.sessionId}`}
-                                  className="p-2 rounded-lg bg-[#E77B83]/12 hover:bg-[#E77B83]/20 border border-[#E77B83]/40 text-[#E77B83] cursor-pointer transition-colors"
+                                  className="p-2 rounded-lg bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#BE123C]/40 text-[#BE123C] cursor-pointer transition-colors"
                                 >
                                   <Archive className="w-4 h-4" aria-hidden="true" />
                                 </button>
@@ -843,7 +843,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </table>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#A4B7D2] ct-num">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#475569] ct-num">
                   <span>
                     Page {sessionsPage.page} of {sessionsPage.totalPages} · {sessionsPage.total} total
                   </span>
@@ -887,10 +887,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <section className="ct-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div>
-                  <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC]">
+                  <h3 className="text-sm sm:text-base font-medium text-[#0F172A]">
                     School-wise Performance ({sortedSchools.length})
                   </h3>
-                  <p className="text-xs text-[#A4B7D2]">
+                  <p className="text-xs text-[#475569]">
                     Click column headings to sort or inspect any school&apos;s detailed score
                     distribution.
                   </p>
@@ -918,13 +918,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   tabIndex={0}
                   role="region"
                   aria-labelledby={schoolCaptionId}
-                  className="ct-table-wrapper rounded-xl border border-[#26456F]"
+                  className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
                 >
                   <table className="w-full text-left text-xs border-collapse min-w-[780px]">
                     <caption id={schoolCaptionId} className="visually-hidden">
                       School-wise Career Tours metrics
                     </caption>
-                    <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                    <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                       <tr>
                         <th
                           scope="col"
@@ -934,7 +934,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('schoolName', 'School')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>School / UDISE</span>
                             {renderSortIcon('schoolName')}
@@ -948,7 +948,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('district', 'District')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>District / Block</span>
                             {renderSortIcon('district')}
@@ -962,7 +962,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('sessions', 'Sessions')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>Sessions</span>
                             {renderSortIcon('sessions')}
@@ -976,7 +976,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('studentsReached', 'Students')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>Students</span>
                             {renderSortIcon('studentsReached')}
@@ -990,7 +990,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('averageCsat', 'CSAT')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>CSAT</span>
                             {renderSortIcon('averageCsat')}
@@ -1004,7 +1004,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('averageItp', 'ITP')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>ITP</span>
                             {renderSortIcon('averageItp')}
@@ -1020,7 +1020,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSchoolSort('missingResponsesQa', 'Missing Votes')}
-                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#E8EFFC] cursor-pointer"
+                            className="w-full min-h-[36px] p-3 flex items-center gap-1.5 text-left hover:text-[#0F172A] cursor-pointer"
                           >
                             <span>Missing Q-A</span>
                             {renderSortIcon('missingResponsesQa')}
@@ -1031,31 +1031,31 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#26456F]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {visibleSchools.map((sc) => (
                         <tr
                           key={sc.udiseCode}
-                          className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num"
+                          className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num"
                         >
-                          <th scope="row" className="p-3 text-left font-medium text-[#E8EFFC]">
+                          <th scope="row" className="p-3 text-left font-medium text-[#0F172A]">
                             <div>{sc.schoolName}</div>
-                            <div className="text-[11px] font-mono font-normal text-[#8294B1]">
+                            <div className="text-[11px] font-mono font-normal text-[#526077]">
                               {sc.udiseCode}
                             </div>
                           </th>
-                          <td className="p-3 text-[#A4B7D2]">
-                            <div className="text-[#E8EFFC]">{sc.district}</div>
-                            <div className="text-[11px] text-[#8294B1]">{sc.block}</div>
+                          <td className="p-3 text-[#475569]">
+                            <div className="text-[#0F172A]">{sc.district}</div>
+                            <div className="text-[11px] text-[#526077]">{sc.block}</div>
                           </td>
-                          <td className="p-3 text-[#E8EFFC]">{sc.sessions}</td>
-                          <td className="p-3 text-[#E8EFFC] font-medium">{sc.studentsReached}</td>
-                          <td className="p-3 font-semibold text-[#4EBBBB]">
+                          <td className="p-3 text-[#0F172A]">{sc.sessions}</td>
+                          <td className="p-3 text-[#0F172A] font-medium">{sc.studentsReached}</td>
+                          <td className="p-3 font-semibold text-[#0F766E]">
                             {formatScore2(sc.averageCsat)}
                           </td>
-                          <td className="p-3 font-medium text-[#E8EFFC]">
+                          <td className="p-3 font-medium text-[#0F172A]">
                             {formatScore2(sc.averageItp)}
                           </td>
-                          <td className="p-3 text-[#A4B7D2]">{sc.missingResponsesQa}</td>
+                          <td className="p-3 text-[#475569]">{sc.missingResponsesQa}</td>
                           <td className="p-3">
                             <button
                               type="button"
@@ -1071,7 +1071,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 })
                               }
                               aria-label={`Inspect ${sc.schoolName} breakdown`}
-                              className="px-2.5 py-1 rounded bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[11px] text-[#E8EFFC] cursor-pointer transition-colors"
+                              className="px-2.5 py-1 rounded bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#CBD5E1] text-[11px] font-medium text-[#0F172A] cursor-pointer transition-colors"
                             >
                               Inspect
                             </button>
@@ -1088,16 +1088,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <section className="ct-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div>
-                  <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC]">
+                  <h3 className="text-sm sm:text-base font-medium text-[#0F172A]">
                     UDISE School Master Directory ({schoolDirectory.length})
                   </h3>
-                  <p className="text-xs text-[#A4B7D2]">
+                  <p className="text-xs text-[#475569]">
                     Conflict-safe canonical school names keyed by 11-digit UDISE code.
                   </p>
                 </div>
                 <div className="relative w-full sm:w-72">
                   <Search
-                    className="w-4 h-4 text-[#A4B7D2] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                    className="w-4 h-4 text-[#475569] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                     aria-hidden="true"
                   />
                   <input
@@ -1112,7 +1112,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </div>
 
               {schoolDirectory.length === 0 ? (
-                <p className="text-xs text-[#A4B7D2] py-4">
+                <p className="text-xs text-[#475569] py-4">
                   No registered school records match the directory filter yet.
                 </p>
               ) : (
@@ -1120,13 +1120,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   tabIndex={0}
                   role="region"
                   aria-labelledby={schoolDirCaptionId}
-                  className="ct-table-wrapper rounded-xl border border-[#26456F]"
+                  className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
                 >
                   <table className="w-full text-left text-xs border-collapse min-w-[680px]">
                     <caption id={schoolDirCaptionId} className="visually-hidden">
                       Registered UDISE school master records
                     </caption>
-                    <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                    <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                       <tr>
                         <th scope="col" className="p-2.5 font-medium">UDISE Code</th>
                         <th scope="col" className="p-2.5 font-medium">Canonical School Name</th>
@@ -1135,18 +1135,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         <th scope="col" className="p-2.5 font-medium">PIN</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#26456F]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {schoolDirectory.map((sch) => (
-                        <tr key={sch.udiseCode} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                          <th scope="row" className="p-2.5 font-mono text-[#4EBBBB]">
+                        <tr key={sch.udiseCode} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                          <th scope="row" className="p-2.5 font-mono text-[#0F766E]">
                             {sch.udiseCode}
                           </th>
-                          <td className="p-2.5 text-[#E8EFFC] font-medium">{sch.schoolName}</td>
-                          <td className="p-2.5 text-[#A4B7D2]">{sch.schoolType}</td>
-                          <td className="p-2.5 text-[#A4B7D2]">
+                          <td className="p-2.5 text-[#0F172A] font-medium">{sch.schoolName}</td>
+                          <td className="p-2.5 text-[#475569]">{sch.schoolType}</td>
+                          <td className="p-2.5 text-[#475569]">
                             {sch.district} · {sch.block}
                           </td>
-                          <td className="p-2.5 font-mono text-[#A4B7D2]">{sch.pinCode}</td>
+                          <td className="p-2.5 font-mono text-[#475569]">{sch.pinCode}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1162,10 +1162,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <section className="ct-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
-                <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC]">
+                <h3 className="text-sm sm:text-base font-medium text-[#0F172A]">
                   Facilitator-wise Performance ({analytics?.facilitatorPanels.length ?? 0})
                 </h3>
-                <p className="text-xs text-[#A4B7D2]">
+                <p className="text-xs text-[#475569]">
                   Expand any facilitator to inspect session volume, student reach, CSAT, ITP, and
                   average Teacher NPS.
                 </p>
@@ -1188,45 +1188,45 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   return (
                     <div
                       key={f.email}
-                      className="rounded-xl bg-[#0C1931] border border-[#26456F] overflow-hidden"
+                      className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] overflow-hidden"
                     >
                       <button
                         type="button"
                         aria-expanded={isOpen}
                         onClick={() => setExpandedFacilitator(isOpen ? null : f.email)}
-                        className="w-full p-3.5 flex flex-wrap items-center justify-between gap-3 text-left hover:bg-[#162D55] cursor-pointer transition-colors"
+                        className="w-full p-3.5 flex flex-wrap items-center justify-between gap-3 text-left hover:bg-[#F1F5F9] cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
                           {isOpen ? (
-                            <ChevronDown className="w-4 h-4 text-[#4EBBBB]" aria-hidden="true" />
+                            <ChevronDown className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-[#A4B7D2]" aria-hidden="true" />
+                            <ChevronRight className="w-4 h-4 text-[#475569]" aria-hidden="true" />
                           )}
                           <div>
-                            <div className="text-sm font-medium text-[#E8EFFC]">{f.name}</div>
-                            <div className="text-xs text-[#A4B7D2]">{f.email}</div>
+                            <div className="text-sm font-medium text-[#0F172A]">{f.name}</div>
+                            <div className="text-xs text-[#475569]">{f.email}</div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-xs ct-num text-[#A4B7D2]">
+                        <div className="flex flex-wrap gap-4 text-xs ct-num text-[#475569]">
                           <span>
                             Sessions:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">{f.sessions}</strong>
+                            <strong className="font-medium text-[#0F172A]">{f.sessions}</strong>
                           </span>
                           <span>
                             Students:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">
+                            <strong className="font-medium text-[#0F172A]">
                               {f.studentsReached}
                             </strong>
                           </span>
                           <span>
                             CSAT:{' '}
-                            <strong className="font-medium text-[#4EBBBB]">
+                            <strong className="font-medium text-[#0F766E]">
                               {formatScore2(f.averageCsat)}
                             </strong>
                           </span>
                           <span>
                             ITP:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">
+                            <strong className="font-medium text-[#0F172A]">
                               {formatScore2(f.averageItp)}
                             </strong>
                           </span>
@@ -1234,18 +1234,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       </button>
 
                       {isOpen && (
-                        <div className="p-3.5 border-t border-[#26456F] bg-[#162D55] flex flex-wrap items-center justify-between gap-3 text-xs text-[#A4B7D2] ct-num">
+                        <div className="p-3.5 border-t border-[#E2E8F0] bg-[#FFFFFF] flex flex-wrap items-center justify-between gap-3 text-xs text-[#475569] ct-num">
                           <div>
                             Avg Teacher NPS:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">
+                            <strong className="font-medium text-[#0F172A]">
                               {f.teacherNpsAverage !== null ? f.teacherNpsAverage : '—'}
                             </strong>{' '}
                             · Positive CSAT:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">
+                            <strong className="font-medium text-[#0F172A]">
                               {formatPct1(f.positiveCsatPct)}
                             </strong>{' '}
                             · Latest submission:{' '}
-                            <strong className="font-medium text-[#E8EFFC]">
+                            <strong className="font-medium text-[#0F172A]">
                               {new Date(f.latestSubmission).toLocaleString()}
                             </strong>
                           </div>
@@ -1294,7 +1294,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="flex flex-col gap-5">
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div className="ct-card p-5">
-                <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                   Question A (CSAT) &amp; Question B (ITP) Sentiment Mix
                 </h3>
                 <SentimentStackedChart
@@ -1305,33 +1305,33 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </div>
 
               <div className="ct-card p-5">
-                <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                   1–5 Score Vote Distribution
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs ct-num">
-                  <div className="space-y-2 p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                    <div className="font-medium text-[#4EBBBB]">
+                  <div className="space-y-2 p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                    <div className="font-medium text-[#0F766E]">
                       Question A — CSAT ({analytics.totalQuestionAResponses} votes)
                     </div>
                     {analytics.csatDistribution.map((row) => (
                       <div key={row.score} className="flex justify-between gap-2">
-                        <span className="text-[#A4B7D2] truncate">
+                        <span className="text-[#475569] truncate">
                           {row.score} · {row.label}
                         </span>
-                        <strong className="font-medium text-[#E8EFFC]">{row.count}</strong>
+                        <strong className="font-medium text-[#0F172A]">{row.count}</strong>
                       </div>
                     ))}
                   </div>
-                  <div className="space-y-2 p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                    <div className="font-medium text-[#E8EFFC]">
+                  <div className="space-y-2 p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                    <div className="font-medium text-[#0F172A]">
                       Question B — ITP ({analytics.totalQuestionBResponses} votes)
                     </div>
                     {analytics.itpDistribution.map((row) => (
                       <div key={row.score} className="flex justify-between gap-2">
-                        <span className="text-[#A4B7D2] truncate">
+                        <span className="text-[#475569] truncate">
                           {row.score} · {row.label}
                         </span>
-                        <strong className="font-medium text-[#E8EFFC]">{row.count}</strong>
+                        <strong className="font-medium text-[#0F172A]">{row.count}</strong>
                       </div>
                     ))}
                   </div>
@@ -1341,19 +1341,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               <div className="ct-card p-5">
-                <h3 className="text-sm font-medium text-[#E8EFFC] mb-3">
+                <h3 className="text-sm font-medium text-[#0F172A] mb-3">
                   Scores by Delivery Language
                 </h3>
                 <div className="space-y-2 text-xs ct-num">
                   {analytics.languageBreakdown.map((lang) => (
                     <div
                       key={lang.language}
-                      className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] flex justify-between items-center gap-2"
+                      className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex justify-between items-center gap-2"
                     >
-                      <span className="font-medium text-[#E8EFFC]">{lang.language}</span>
-                      <span className="text-[#A4B7D2]">
+                      <span className="font-medium text-[#0F172A]">{lang.language}</span>
+                      <span className="text-[#475569]">
                         {lang.studentsReached} students · CSAT{' '}
-                        <strong className="font-medium text-[#4EBBBB]">
+                        <strong className="font-medium text-[#0F766E]">
                           {formatScore2(lang.averageCsat)}
                         </strong>{' '}
                         · ITP {formatScore2(lang.averageItp)}
@@ -1364,17 +1364,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </div>
 
               <div className="ct-card p-5">
-                <h3 className="text-sm font-medium text-[#E8EFFC] mb-3">Scores by Grade</h3>
+                <h3 className="text-sm font-medium text-[#0F172A] mb-3">Scores by Grade</h3>
                 <div className="space-y-2 text-xs ct-num">
                   {analytics.gradeBreakdown.map((g) => (
                     <div
                       key={g.grade}
-                      className="p-3 rounded-lg bg-[#0C1931] border border-[#26456F] flex justify-between items-center gap-2"
+                      className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex justify-between items-center gap-2"
                     >
-                      <span className="font-medium text-[#E8EFFC]">Grade {g.grade}</span>
-                      <span className="text-[#A4B7D2]">
+                      <span className="font-medium text-[#0F172A]">Grade {g.grade}</span>
+                      <span className="text-[#475569]">
                         {g.classesCount} classes · CSAT{' '}
-                        <strong className="font-medium text-[#4EBBBB]">{formatScore2(g.averageCsat)}</strong> ·
+                        <strong className="font-medium text-[#0F766E]">{formatScore2(g.averageCsat)}</strong> ·
                         ITP {formatScore2(g.averageItp)}
                       </span>
                     </div>
@@ -1397,11 +1397,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="flex flex-col gap-5">
             {analytics && (
               <section className="grid grid-cols-1 sm:grid-cols-4 gap-3 ct-num">
-                <div className="rounded-xl p-4 bg-[#4EBBBB]/12 border border-[#4EBBBB]/50">
-                  <div className="text-[11px] uppercase tracking-wide text-[#4EBBBB] font-medium">
+                <div className="rounded-xl p-4 bg-[#E6F6F4] border border-[#0F766E]/40">
+                  <div className="text-[11px] uppercase tracking-wide text-[#0F766E] font-medium">
                     Overall Teacher NPS
                   </div>
-                  <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+                  <div className="text-2xl font-semibold text-[#0F172A] mt-1">
                     {analytics.teacherNpsAverage !== null
                       ? analytics.teacherNpsAverage > 0
                         ? `+${analytics.teacherNpsAverage}`
@@ -1410,39 +1410,39 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 </div>
                 <div className="ct-card p-4">
-                  <div className="text-[11px] uppercase text-[#48B98A] font-medium">
+                  <div className="text-[11px] uppercase text-[#047857] font-medium">
                     Promoters (+100 / 9–10)
                   </div>
-                  <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+                  <div className="text-2xl font-semibold text-[#0F172A] mt-1">
                     {analytics.npsDistribution.promoter}
                   </div>
-                  <div className="text-xs text-[#A4B7D2] mt-0.5">
+                  <div className="text-xs text-[#475569] mt-0.5">
                     {totalTeachers > 0
                       ? `${Math.round((analytics.npsDistribution.promoter / totalTeachers) * 100)}%`
                       : '—'}
                   </div>
                 </div>
                 <div className="ct-card p-4">
-                  <div className="text-[11px] uppercase text-[#F2B44D] font-medium">
+                  <div className="text-[11px] uppercase text-[#B45309] font-medium">
                     Passives (0 / 7–8)
                   </div>
-                  <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+                  <div className="text-2xl font-semibold text-[#0F172A] mt-1">
                     {analytics.npsDistribution.passive}
                   </div>
-                  <div className="text-xs text-[#A4B7D2] mt-0.5">
+                  <div className="text-xs text-[#475569] mt-0.5">
                     {totalTeachers > 0
                       ? `${Math.round((analytics.npsDistribution.passive / totalTeachers) * 100)}%`
                       : '—'}
                   </div>
                 </div>
                 <div className="ct-card p-4">
-                  <div className="text-[11px] uppercase text-[#E77B83] font-medium">
+                  <div className="text-[11px] uppercase text-[#BE123C] font-medium">
                     Detractors (-100 / 0–6)
                   </div>
-                  <div className="text-2xl font-semibold text-[#E8EFFC] mt-1">
+                  <div className="text-2xl font-semibold text-[#0F172A] mt-1">
                     {analytics.npsDistribution.detractor}
                   </div>
-                  <div className="text-xs text-[#A4B7D2] mt-0.5">
+                  <div className="text-xs text-[#475569] mt-0.5">
                     {totalTeachers > 0
                       ? `${Math.round((analytics.npsDistribution.detractor / totalTeachers) * 100)}%`
                       : '—'}
@@ -1452,7 +1452,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             )}
 
             <section className="ct-card p-5">
-              <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3 ct-num">
+              <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3 ct-num">
                 Session-level Teacher Responses ({sessionsPage.items.length})
               </h3>
               {sessionsPage.items.length === 0 ? (
@@ -1462,13 +1462,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   tabIndex={0}
                   role="region"
                   aria-labelledby={teacherCaptionId}
-                  className="ct-table-wrapper rounded-xl border border-[#26456F]"
+                  className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
                 >
                   <table className="w-full text-left text-xs border-collapse min-w-[720px]">
                     <caption id={teacherCaptionId} className="visually-hidden">
                       Teacher NPS classifications and exact scores per session
                     </caption>
-                    <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                    <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                       <tr>
                         <th scope="col" className="p-3 font-medium">Session ID</th>
                         <th scope="col" className="p-3 font-medium">School</th>
@@ -1478,21 +1478,21 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         <th scope="col" className="p-3 font-medium">NPS Weight</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#26456F]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {sessionsPage.items.map((s) => (
-                        <tr key={s.sessionRecordId} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                          <th scope="row" className="p-3 font-mono text-[#4EBBBB]">
+                        <tr key={s.sessionRecordId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                          <th scope="row" className="p-3 font-mono text-[#0F766E]">
                             {s.sessionId}
                           </th>
-                          <td className="p-3 text-[#E8EFFC]">{s.schoolName}</td>
-                          <td className="p-3 text-[#A4B7D2]">{s.tourName}</td>
-                          <td className="p-3 text-[#E8EFFC] font-medium">
+                          <td className="p-3 text-[#0F172A]">{s.schoolName}</td>
+                          <td className="p-3 text-[#475569]">{s.tourName}</td>
+                          <td className="p-3 text-[#0F172A] font-medium">
                             {s.teacherClassification}
                           </td>
-                          <td className="p-3 text-[#A4B7D2]">
+                          <td className="p-3 text-[#475569]">
                             {s.teacherScore !== null ? `${s.teacherScore} / 10` : '—'}
                           </td>
-                          <td className="p-3 font-semibold text-[#E8EFFC]">
+                          <td className="p-3 font-semibold text-[#0F172A]">
                             {s.teacherNps > 0 ? '+100' : s.teacherNps}
                           </td>
                         </tr>
@@ -1512,11 +1512,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <section className="ct-card p-5 sm:p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-base sm:text-lg font-medium text-[#E8EFFC] flex items-center gap-2">
-                    <FileSpreadsheet className="w-5 h-5 text-[#4EBBBB]" aria-hidden="true" />
+                  <h3 className="text-base sm:text-lg font-medium text-[#0F172A] flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5 text-[#0F766E]" aria-hidden="true" />
                     63-Column Performance Reports &amp; Export Readiness
                   </h3>
-                  <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5">
+                  <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
                     Generate verified class-level `.xlsx` workbooks matching your official
                     63-column partner schema. Strictly restricted to Super Administrators.
                   </p>
@@ -1534,29 +1534,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs ct-num">
-                <div className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                  <div className="text-[#A4B7D2]">School Year</div>
-                  <div className="text-sm font-medium text-[#E8EFFC] mt-1">
+                <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <div className="text-[#475569]">School Year</div>
+                  <div className="text-sm font-medium text-[#0F172A] mt-1">
                     {config.schoolYear}
                   </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                  <div className="text-[#A4B7D2]">Partner Organization</div>
-                  <div className="text-sm font-medium text-[#E8EFFC] mt-1">
+                <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <div className="text-[#475569]">Partner Organization</div>
+                  <div className="text-sm font-medium text-[#0F172A] mt-1">
                     {config.partnerName.trim() || 'Not configured yet'}
                   </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                  <div className="text-[#A4B7D2]">63-Column Template</div>
-                  <div className="text-sm font-medium text-[#E8EFFC] mt-1">
+                <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <div className="text-[#475569]">63-Column Template</div>
+                  <div className="text-sm font-medium text-[#0F172A] mt-1">
                     {config.exportTemplate63?.columns.length === 63
                       ? `Ready (${config.exportTemplate63.templateName})`
                       : 'Pending import in Settings'}
                   </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F]">
-                  <div className="text-[#A4B7D2]">Matching Export Sessions</div>
-                  <div className="text-sm font-semibold text-[#4EBBBB] mt-1">
+                <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                  <div className="text-[#475569]">Matching Export Sessions</div>
+                  <div className="text-sm font-semibold text-[#0F766E] mt-1">
                     {sessionsPage.total} sessions
                   </div>
                 </div>
@@ -1578,47 +1578,47 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   className="ct-card p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs ct-num"
                 >
                   <div>
-                    <div className="text-[#A4B7D2]">Missing Q-A Votes</div>
-                    <div className="text-base font-semibold text-[#E8EFFC] mt-1">
+                    <div className="text-[#475569]">Missing Q-A Votes</div>
+                    <div className="text-base font-semibold text-[#0F172A] mt-1">
                       {analytics.totalMissingResponsesQA} (
                       {formatPct1(analytics.missingResponseRateQaPct)})
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A4B7D2]">Missing Q-B Votes</div>
-                    <div className="text-base font-semibold text-[#E8EFFC] mt-1">
+                    <div className="text-[#475569]">Missing Q-B Votes</div>
+                    <div className="text-base font-semibold text-[#0F172A] mt-1">
                       {analytics.totalMissingResponsesQB} (
                       {formatPct1(analytics.missingResponseRateQbPct)})
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A4B7D2]">Low Coverage (&lt;75%)</div>
-                    <div className="text-base font-semibold text-[#F2B44D] mt-1">
+                    <div className="text-[#475569]">Low Coverage (&lt;75%)</div>
+                    <div className="text-base font-semibold text-[#B45309] mt-1">
                       {analytics.dataQuality.lowCoverageSessionsCount} sessions
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A4B7D2]">Q-A / Q-B Mismatches</div>
-                    <div className="text-base font-semibold text-[#E8EFFC] mt-1">
+                    <div className="text-[#475569]">Q-A / Q-B Mismatches</div>
+                    <div className="text-base font-semibold text-[#0F172A] mt-1">
                       {analytics.dataQuality.qaQbMismatchCount} sessions
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A4B7D2]">Excluded PENDING</div>
-                    <div className="text-base font-semibold text-[#E8EFFC] mt-1">
+                    <div className="text-[#475569]">Excluded PENDING</div>
+                    <div className="text-base font-semibold text-[#0F172A] mt-1">
                       {analytics.dataQuality.excludedPendingCount}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[#A4B7D2]">Unconfigured Video IDs</div>
-                    <div className="text-base font-semibold text-[#E8EFFC] mt-1">
+                    <div className="text-[#475569]">Unconfigured Video IDs</div>
+                    <div className="text-base font-semibold text-[#0F172A] mt-1">
                       {analytics.dataQuality.unconfiguredVideoCount}
                     </div>
                   </div>
                 </section>
 
                 <section className="ct-card p-5">
-                  <h3 className="text-sm sm:text-base font-medium text-[#E8EFFC] mb-3">
+                  <h3 className="text-sm sm:text-base font-medium text-[#0F172A] mb-3">
                     School Response Completeness Audit
                   </h3>
                   {sortedSchools.length === 0 ? (
@@ -1628,13 +1628,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       tabIndex={0}
                       role="region"
                       aria-labelledby={dqCaptionId}
-                      className="ct-table-wrapper rounded-xl border border-[#26456F]"
+                      className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
                     >
                       <table className="w-full text-left text-xs border-collapse min-w-[660px]">
                         <caption id={dqCaptionId} className="visually-hidden">
                           Missing Q-A and Q-B response counts by school
                         </caption>
-                        <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                        <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                           <tr>
                             <th scope="col" className="p-2.5 font-medium">School</th>
                             <th scope="col" className="p-2.5 font-medium">Students</th>
@@ -1644,21 +1644,21 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             <th scope="col" className="p-2.5 font-medium">Missing Q-B</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#26456F]">
+                        <tbody className="divide-y divide-[#E2E8F0]">
                           {[...sortedSchools]
                             .sort((a, b) => b.missingResponsesQa - a.missingResponsesQa)
                             .map((sc) => (
-                              <tr key={sc.udiseCode} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                                <th scope="row" className="p-2.5 text-[#E8EFFC] font-medium">
+                              <tr key={sc.udiseCode} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                                <th scope="row" className="p-2.5 text-[#0F172A] font-medium">
                                   {sc.schoolName}
                                 </th>
-                                <td className="p-2.5 text-[#E8EFFC]">{sc.studentsReached}</td>
-                                <td className="p-2.5 text-[#A4B7D2]">{sc.qaResponses}</td>
-                                <td className="p-2.5 font-semibold text-[#F2B44D]">
+                                <td className="p-2.5 text-[#0F172A]">{sc.studentsReached}</td>
+                                <td className="p-2.5 text-[#475569]">{sc.qaResponses}</td>
+                                <td className="p-2.5 font-semibold text-[#B45309]">
                                   {sc.missingResponsesQa}
                                 </td>
-                                <td className="p-2.5 text-[#A4B7D2]">{sc.qbResponses}</td>
-                                <td className="p-2.5 font-semibold text-[#F2B44D]">
+                                <td className="p-2.5 text-[#475569]">{sc.qbResponses}</td>
+                                <td className="p-2.5 font-semibold text-[#B45309]">
                                   {sc.missingResponsesQb}
                                 </td>
                               </tr>
@@ -1728,15 +1728,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         <div
           role="region"
           aria-label="Administrator setup checklist"
-          className="mb-5 p-4 rounded-xl bg-[#392A11] border border-[#F2B44D]/45 text-[#E8EFFC] flex flex-wrap items-center justify-between gap-3"
+          className="mb-5 p-4 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 text-[#0F172A] flex flex-wrap items-center justify-between gap-3"
         >
           <div className="flex items-start gap-2.5 text-xs sm:text-sm">
-            <AlertTriangle className="w-4 h-4 text-[#F2B44D] shrink-0 mt-0.5" aria-hidden="true" />
+            <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <p className="font-medium text-[#E8EFFC]">
+              <p className="font-medium text-[#0F172A]">
                 Programme setup items pending administrator input:
               </p>
-              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-[#F2B44D]">
+              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-[#92400E]">
                 {missingItems.map((m) => (
                   <li key={m}>{m}</li>
                 ))}
@@ -1766,15 +1766,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <section className="ct-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-medium text-[#E8EFFC] flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-[#4EBBBB]" aria-hidden="true" />
+                <h2 className="text-xl font-medium text-[#0F172A] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-[#0F766E]" aria-hidden="true" />
                   <span>
                     {currentSection === 'overview'
                       ? 'Admin Programme Dashboard'
                       : activeNavMeta.label}
                   </span>
                 </h2>
-                <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5">
+                <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
                   {activeNavMeta.description} · Approved Super Admins:{' '}
                   {INITIAL_SUPER_ADMINS.map((sa) => sa.email).join(', ')}
                 </p>
@@ -1787,7 +1787,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     onClick={onOpenNewModal}
                     className="ct-btn-secondary text-xs min-h-[40px] px-3.5"
                   >
-                    <Plus className="w-4 h-4 text-[#4EBBBB]" aria-hidden="true" />
+                    <Plus className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
                     Add submission
                   </button>
                 )}
@@ -1797,7 +1797,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     onClick={onOpenSyncStatus}
                     className="ct-btn-secondary text-xs min-h-[40px] px-3.5"
                   >
-                    <Database className="w-4 h-4 text-[#A4B7D2]" aria-hidden="true" />
+                    <Database className="w-4 h-4 text-[#475569]" aria-hidden="true" />
                     Sync Status
                   </button>
                 )}
@@ -1824,10 +1824,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             </div>
 
             {FILTER_BAR_SECTIONS.has(currentSection) && (
-              <div role="search" aria-label="Filter programme records" className="mt-4 pt-4 border-t border-[#26456F]">
+              <div role="search" aria-label="Filter programme records" className="mt-4 pt-4 border-t border-[#E2E8F0]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                   <div>
-                    <label htmlFor="adm-district" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-district" className="block text-xs font-medium text-[#0F172A] mb-1">
                       District
                     </label>
                     <select
@@ -1836,7 +1836,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       onChange={(e) => handleDistrictFilterChange(e.target.value)}
                       className="ct-input ct-select text-sm"
                     >
-                      <option value="">All 3 approved districts</option>
+                      <option value="">All districts</option>
                       {config.allowedDistricts.map((d) => (
                         <option key={d} value={d}>
                           {d}
@@ -1846,7 +1846,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-block" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-block" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Block
                     </label>
                     <select
@@ -1859,7 +1859,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       className="ct-input ct-select text-sm"
                     >
                       <option value="">
-                        {!filters.district ? 'Choose district first...' : 'All blocks in district'}
+                        {!filters.district ? 'Select district' : 'All blocks in district'}
                       </option>
                       {districtBlocks.map((b) => (
                         <option key={b} value={b}>
@@ -1870,7 +1870,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-school" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-school" className="block text-xs font-medium text-[#0F172A] mb-1">
                       School Name / Search
                     </label>
                     <input
@@ -1886,7 +1886,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-fac" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-fac" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Facilitator Email
                     </label>
                     <input
@@ -1906,7 +1906,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-tour" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-tour" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Career Tour
                     </label>
                     <select
@@ -1927,7 +1927,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-lang" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-lang" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Language
                     </label>
                     <select
@@ -1948,7 +1948,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-grade" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-grade" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Grade
                     </label>
                     <select
@@ -1969,7 +1969,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-from" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-from" className="block text-xs font-medium text-[#0F172A] mb-1">
                       From Date
                     </label>
                     <input
@@ -1984,7 +1984,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-to" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-to" className="block text-xs font-medium text-[#0F172A] mb-1">
                       To Date
                     </label>
                     <input
@@ -1999,7 +1999,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
 
                   <div>
-                    <label htmlFor="adm-status" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+                    <label htmlFor="adm-status" className="block text-xs font-medium text-[#0F172A] mb-1">
                       Status
                     </label>
                     <select
@@ -2014,7 +2014,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                       }
                       className="ct-input ct-select text-sm"
                     >
-                      <option value="">All active statuses</option>
+                      <option value="">All statuses</option>
                       <option value="COMMITTED">COMMITTED</option>
                       <option value="CORRECTED">CORRECTED</option>
                     </select>
@@ -2022,7 +2022,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  <label className="inline-flex items-center gap-2 text-xs text-[#A4B7D2] cursor-pointer">
+                  <label className="inline-flex items-center gap-2 text-xs text-[#475569] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={Boolean(filters.includeArchived)}
@@ -2033,13 +2033,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                           page: 1,
                         }))
                       }
-                      className="w-4 h-4 accent-[#4EBBBB]"
+                      className="w-4 h-4 accent-[#0F766E]"
                     />
                     Include archived sessions
                   </label>
 
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 text-[11px] text-[#48B98A]">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-[#047857]">
                       <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                       SUPER_ADMIN verified
                     </span>

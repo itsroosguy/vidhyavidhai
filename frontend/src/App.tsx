@@ -117,27 +117,28 @@ export function App() {
 
   // Update document.title dynamically across authentication & navigation routes
   useEffect(() => {
+    const brand = 'Vidhya Vidhai Foundation · Career Tours';
     if (!user) {
       if (authNotice?.kind === 'pending_approval') {
-        document.title = 'Account Pending Approval | Career Tours';
+        document.title = `Account Pending Approval | ${brand}`;
       } else if (authNotice?.kind === 'access_denied') {
-        document.title = 'Access Denied | Career Tours';
+        document.title = `Access Denied | ${brand}`;
       } else {
-        document.title = 'Sign In | Career Tours';
+        document.title = `Sign In | ${brand}`;
       }
       return;
     }
 
     if (route.kind === 'access_denied') {
-      document.title = 'Access Denied | Career Tours';
+      document.title = `Access Denied | ${brand}`;
     } else if (route.kind === 'my_classes') {
-      document.title = 'My Classes | Career Tours';
+      document.title = `My Classes | ${brand}`;
     } else if (route.kind === 'admin') {
       const label =
         ADMIN_NAV_ITEMS.find((i) => i.slug === route.section)?.label ?? 'Overview';
-      document.title = `${label} — Admin | Career Tours`;
+      document.title = `${label} — Admin | ${brand}`;
     } else {
-      document.title = 'Classroom Data Entry | Career Tours';
+      document.title = `Classroom Data Entry | ${brand}`;
     }
   }, [authNotice?.kind, route, user]);
 
@@ -323,7 +324,7 @@ export function App() {
     <div className="min-h-dvh flex flex-col">
       <a
         href="#main-content"
-        className="visually-hidden focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#4EBBBB] focus:text-[#0C1326] focus:font-medium"
+        className="visually-hidden focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#0F766E] focus:text-[#FFFFFF] focus:font-medium"
       >
         Skip to content
       </a>
@@ -347,19 +348,19 @@ export function App() {
           <main className="w-full max-w-xl mx-auto px-4 sm:px-6 pb-16 pt-4">
             <section
               role="alert"
-              className="ct-card rounded-2xl p-6 sm:p-8 border-[#E77B83]/50 flex flex-col gap-4"
+              className="ct-card rounded-2xl p-6 sm:p-8 border-[#BE123C]/40 flex flex-col gap-4"
             >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#E77B83]/14 border border-[#E77B83]/45 flex items-center justify-center text-[#E77B83] shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[#FFF1F2] border border-[#BE123C]/35 flex items-center justify-center text-[#BE123C] shrink-0">
                   <ShieldAlert className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-medium text-[#E8EFFC]">
+                  <h2 className="text-lg sm:text-xl font-medium text-[#0F172A]">
                     Access Denied
                   </h2>
-                  <p className="text-xs sm:text-sm text-[#A4B7D2] mt-1 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#475569] mt-1 leading-relaxed">
                     Administrator permissions are required to access{' '}
-                    <code className="text-[#E77B83]">{currentPath}</code>. Your Facilitator account is
+                    <code className="text-[#BE123C]">{currentPath}</code>. Your Facilitator account is
                     strictly restricted to Classroom Data Entry and your own submissions.
                     Redirecting to Classroom Data Entry...
                   </p>

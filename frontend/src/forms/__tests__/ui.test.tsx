@@ -458,8 +458,11 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     const user = userEvent.setup();
     render(<App />);
 
-    // 1. Login screen renders clean 2026 sign-in card with zero preset role/name leaks
+    // 1. Login screen renders clean 2026 sign-in card with Vidhya Vidhai Foundation in front of Career Tours and zero preset role/name leaks
     expect(screen.getByRole('heading', { name: 'Sign in with email' })).toBeInTheDocument();
+    const authSpans = Array.from(document.querySelectorAll('main span')).map((n) => n.textContent ?? '').join(' ');
+    expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
+    expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(authSpans.indexOf('Career Tours'));
     expect(screen.queryByText(/Super Admin 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Facilitator 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText('brinthajayaprakash888@gmail.com')).not.toBeInTheDocument();
@@ -480,6 +483,11 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     await user.type(screen.getByLabelText(/^Password$/i), 'workspace-session-token');
     await user.click(screen.getByRole('button', { name: /Get Started/i }));
     expect(window.location.pathname).toBe('/admin/overview');
+    expect(screen.getAllByText(/Vidhya Vidhai Foundation\s*·\s*Career Tours/i).length).toBeGreaterThanOrEqual(1);
+    const headerBrandNodes = screen.getByRole('banner').querySelectorAll('span, p');
+    const headerText = Array.from(headerBrandNodes).map((n) => n.textContent ?? '').join(' ');
+    expect(headerText.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
+    expect(headerText.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(headerText.indexOf('Career Tours'));
 
     const primaryNav = await screen.findByRole('navigation', { name: 'Primary application views' });
     expect(within(primaryNav).getByRole('button', { name: 'Enter a class' })).toBeInTheDocument();

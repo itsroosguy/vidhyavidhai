@@ -110,12 +110,12 @@ export const GlassModal: React.FC<GlassModalProps> = ({
     >
       <div className="flex flex-col max-h-[88dvh]">
         {/* Header */}
-        <div className="px-5 sm:px-6 py-4 border-b border-[#26456F] flex items-start justify-between gap-4 shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-b border-[#E2E8F0] flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
             {(eyebrow || headerBadge) && (
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 {eyebrow && (
-                  <span className="text-[11px] font-medium uppercase tracking-wider text-[#4EBBBB]">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-[#0F766E]">
                     {eyebrow}
                   </span>
                 )}
@@ -124,12 +124,12 @@ export const GlassModal: React.FC<GlassModalProps> = ({
             )}
             <h2
               id={titleId}
-              className="text-lg sm:text-xl font-medium text-[#E8EFFC] leading-snug tracking-tight"
+              className="text-lg sm:text-xl font-medium text-[#0F172A] leading-snug tracking-tight"
             >
               {title}
             </h2>
             {subtitle && (
-              <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#475569] mt-0.5 leading-relaxed">
                 {subtitle}
               </p>
             )}
@@ -139,7 +139,7 @@ export const GlassModal: React.FC<GlassModalProps> = ({
             type="button"
             onClick={requestClose}
             aria-label={closeLabel}
-            className="shrink-0 w-9 h-9 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#A4B7D2] hover:text-[#E8EFFC] inline-flex items-center justify-center transition-colors cursor-pointer"
+            className="shrink-0 w-9 h-9 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] text-[#475569] hover:text-[#0F172A] inline-flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" aria-hidden="true" />
           </button>
@@ -152,7 +152,7 @@ export const GlassModal: React.FC<GlassModalProps> = ({
 
         {/* Optional Footer */}
         {footer && (
-          <div className="px-5 sm:px-6 py-4 border-t border-[#26456F] bg-[#0C1931] flex flex-wrap items-center justify-end gap-2.5 shrink-0">
+          <div className="px-5 sm:px-6 py-4 border-t border-[#E2E8F0] bg-[#F8FAFC] flex flex-wrap items-center justify-end gap-2.5 shrink-0">
             {footer}
           </div>
         )}

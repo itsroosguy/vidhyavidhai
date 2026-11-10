@@ -100,11 +100,11 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
       <section className="ct-card p-5 sm:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg sm:text-xl font-medium text-[#E8EFFC] flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#4EBBBB]" aria-hidden="true" />
+            <h2 className="text-lg sm:text-xl font-medium text-[#0F172A] flex items-center gap-2">
+              <Database className="w-5 h-5 text-[#0F766E]" aria-hidden="true" />
               Google Sheets Sync &amp; Apps Script Pipeline
             </h2>
-            <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5">
+            <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
               Administrator-only connectivity telemetry, idempotent LockService sync status, and
               offline retry outbox.
             </p>
@@ -135,41 +135,41 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0C1931] border border-[#26456F] space-y-2 text-xs sm:text-sm">
+        <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs sm:text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="font-medium text-[#E8EFFC] flex items-center gap-2">
+            <div className="font-medium text-[#0F172A] flex items-center gap-2">
               {isLiveBackend ? (
                 health?.connectedToGoogleSheets ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-[#48B98A]" aria-hidden="true" />
+                    <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
                     <span>Connected to Google Sheets Apps Script Web App</span>
                   </>
                 ) : (
                   <>
-                    <AlertTriangle className="w-4 h-4 text-[#F2B44D]" aria-hidden="true" />
+                    <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
                     <span>Apps Script endpoint configured, health probe failed</span>
                   </>
                 )
               ) : (
                 <>
-                  <CloudOff className="w-4 h-4 text-[#A4B7D2]" aria-hidden="true" />
+                  <CloudOff className="w-4 h-4 text-[#475569]" aria-hidden="true" />
                   <span>Running in Local Sandbox Mode (Not Connected to Live Google Sheets)</span>
                 </>
               )}
             </div>
             {health?.checkedAt && (
-              <span className="text-[11px] text-[#A4B7D2] ct-num">
+              <span className="text-[11px] text-[#475569] ct-num">
                 Checked {new Date(health.checkedAt).toLocaleTimeString()}
               </span>
             )}
           </div>
-          <p className="text-xs text-[#A4B7D2] leading-relaxed">
+          <p className="text-xs text-[#475569] leading-relaxed">
             {isLiveBackend
               ? 'Every submission executes under Apps Script LockService with deterministic clientSubmissionKey idempotency and writes to all 8 Google Sheets tabs.'
               : 'Set VITE_APPS_SCRIPT_URL and VITE_GOOGLE_CLIENT_ID in frontend/.env to connect this console to your live Google Apps Script deployment and Google Spreadsheet.'}
           </p>
           {healthError && (
-            <div className="p-2.5 rounded-lg bg-[#E77B83]/12 border border-[#E77B83]/45 text-xs text-[#E77B83]">
+            <div className="p-2.5 rounded-lg bg-[#FFF1F2] border border-[#BE123C]/40 text-xs text-[#BE123C]">
               {healthError}
             </div>
           )}
@@ -179,7 +179,7 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
       {/* Retry Outbox */}
       <section className="ct-card p-5 sm:p-6 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-medium text-[#E8EFFC] ct-num">
+          <h3 className="text-base font-medium text-[#0F172A] ct-num">
             Pending Retry Outbox ({outboxItems.length})
           </h3>
           {outboxItems.length > 0 && onRetryAll && (
@@ -194,7 +194,7 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
         </div>
 
         {outboxItems.length === 0 ? (
-          <div className="p-4 rounded-xl bg-[#0C1931] border border-[#26456F] text-xs text-[#A4B7D2]">
+          <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs text-[#475569]">
             No failed or offline submissions are queued for retry.
           </div>
         ) : (
@@ -202,18 +202,18 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
             {outboxItems.map((item) => (
               <div
                 key={item.clientSubmissionKey}
-                className="p-3.5 rounded-xl bg-[#392A11] border border-[#F2B44D]/45 flex flex-wrap items-center justify-between gap-3 text-xs"
+                className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 flex flex-wrap items-center justify-between gap-3 text-xs"
               >
                 <div className="space-y-0.5">
-                  <div className="font-medium text-[#E8EFFC]">
+                  <div className="font-medium text-[#0F172A]">
                     {item.schoolName || 'Unnamed School'} ({item.udiseCode}) ·{' '}
                     {formatISODateToDDMMYYYY(item.startDate)}
                   </div>
-                  <div className="text-[#A4B7D2] ct-num">
+                  <div className="text-[#475569] ct-num">
                     Key: <span className="font-mono">{item.clientSubmissionKey.slice(0, 8)}</span> ·
                     Attempts: {item.attempts} · Status: {item.syncStatus}
                   </div>
-                  {item.lastError && <div className="text-[#E77B83]">{item.lastError}</div>}
+                  {item.lastError && <div className="text-[#BE123C]">{item.lastError}</div>}
                 </div>
                 <div className="flex items-center gap-2">
                   {onRetryItem && (
@@ -231,7 +231,7 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
                     type="button"
                     onClick={() => handleDiscardOutboxItem(item.clientSubmissionKey)}
                     aria-label={`Remove queued item ${item.clientSubmissionKey}`}
-                    className="p-2 rounded-lg bg-[#162D55] hover:bg-[#E77B83]/20 border border-[#26456F] text-[#A4B7D2] hover:text-[#E77B83] cursor-pointer"
+                    className="p-2 rounded-lg bg-[#FFFFFF] hover:bg-[#FFF1F2] border border-[#CBD5E1] hover:border-[#BE123C]/40 text-[#475569] hover:text-[#BE123C] cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
@@ -244,12 +244,12 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
 
       {/* Sync Log History */}
       <section className="ct-card p-5 sm:p-6 space-y-3">
-        <h3 className="text-base font-medium text-[#E8EFFC] ct-num">
+        <h3 className="text-base font-medium text-[#0F172A] ct-num">
           Recent Sync Activity ({mergedLogs.length})
         </h3>
 
         {mergedLogs.length === 0 ? (
-          <p className="text-xs text-[#A4B7D2] py-4">
+          <p className="text-xs text-[#475569] py-4">
             Sync events will appear here after sessions are saved or updated.
           </p>
         ) : (
@@ -257,13 +257,13 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
             tabIndex={0}
             role="region"
             aria-labelledby={captionId}
-            className="ct-table-wrapper rounded-xl border border-[#26456F]"
+            className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
           >
             <table className="w-full text-left text-xs border-collapse min-w-[680px]">
               <caption id={captionId} className="visually-hidden">
                 Google Sheets sync execution history
               </caption>
-              <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+              <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                 <tr>
                   <th scope="col" className="p-2.5 font-medium">Timestamp</th>
                   <th scope="col" className="p-2.5 font-medium">Operation</th>
@@ -273,26 +273,26 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
                   <th scope="col" className="p-2.5 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#26456F]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {mergedLogs.map((entry) => (
-                  <tr key={entry.syncId} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                    <td className="p-2.5 text-[#A4B7D2] whitespace-nowrap">
+                  <tr key={entry.syncId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                    <td className="p-2.5 text-[#475569] whitespace-nowrap">
                       {new Date(entry.timestamp).toLocaleString()}
                     </td>
-                    <td className="p-2.5 text-[#E8EFFC] font-medium">{entry.operation}</td>
-                    <td className="p-2.5 text-[#A4B7D2]">{entry.actorEmail}</td>
-                    <td className="p-2.5 font-mono text-[#4EBBBB] whitespace-nowrap">
+                    <td className="p-2.5 text-[#0F172A] font-medium">{entry.operation}</td>
+                    <td className="p-2.5 text-[#475569]">{entry.actorEmail}</td>
+                    <td className="p-2.5 font-mono text-[#0F766E] whitespace-nowrap">
                       {entry.sessionId || entry.clientSubmissionKey.slice(0, 12)}
                     </td>
-                    <td className="p-2.5 text-[#A4B7D2]">{entry.attempt}</td>
+                    <td className="p-2.5 text-[#475569]">{entry.attempt}</td>
                     <td className="p-2.5">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                           entry.status === 'SYNCED'
-                            ? 'bg-[#48B98A]/15 border-[#48B98A]/40 text-[#48B98A]'
+                            ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
                             : entry.status === 'FAILED'
-                              ? 'bg-[#E77B83]/15 border-[#E77B83]/45 text-[#E77B83]'
-                              : 'bg-[#162D55] border-[#26456F] text-[#A4B7D2]'
+                              ? 'bg-[#FFF1F2] border-[#BE123C]/40 text-[#BE123C]'
+                              : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#475569]'
                         }`}
                       >
                         {entry.status}

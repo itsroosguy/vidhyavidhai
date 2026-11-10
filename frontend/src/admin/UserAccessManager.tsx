@@ -141,17 +141,17 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
       <section className="ct-card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h2 className="text-lg sm:text-xl font-medium text-[#E8EFFC] flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#4EBBBB]" aria-hidden="true" />
+            <h2 className="text-lg sm:text-xl font-medium text-[#0F172A] flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#0F766E]" aria-hidden="true" />
               Protected Super Administrators ({INITIAL_SUPER_ADMINS.length})
             </h2>
-            <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#475569] mt-0.5 leading-relaxed">
               Enforced strictly via server-side allowlist and Google OAuth authentication. No
               passwords exist in frontend, source code, database sheets, or exports, and no other
               account can be elevated to Administrator.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#4EBBBB]/15 border border-[#4EBBBB]/45 text-[#4EBBBB]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E]">
             <Lock className="w-3.5 h-3.5" aria-hidden="true" />
             Server-Locked Allowlist
           </span>
@@ -161,17 +161,17 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
           {INITIAL_SUPER_ADMINS.map((admin) => (
             <div
               key={admin.userId}
-              className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F] flex items-center justify-between gap-3 text-xs"
+              className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between gap-3 text-xs"
             >
               <div className="min-w-0">
-                <div className="font-medium text-[#E8EFFC]">{admin.name}</div>
-                <div className="font-mono text-[#A4B7D2] truncate">{admin.email}</div>
+                <div className="font-medium text-[#0F172A]">{admin.name}</div>
+                <div className="font-mono text-[#475569] truncate">{admin.email}</div>
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#4EBBBB]/15 border border-[#4EBBBB]/45 text-[#4EBBBB]">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E]">
                   SUPER_ADMIN
                 </span>
-                <span className="text-[11px] text-[#48B98A]">Active · Protected</span>
+                <span className="text-[11px] text-[#047857]">Active · Protected</span>
               </div>
             </div>
           ))}
@@ -183,17 +183,17 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
         <section className="ct-card p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
-              <h3 className="text-base sm:text-lg font-medium text-[#E8EFFC]">
+              <h3 className="text-base sm:text-lg font-medium text-[#0F172A]">
                 Google Sign-In Approval Policy (Non-Admin Users)
               </h3>
-              <p className="text-xs text-[#A4B7D2] mt-0.5">
+              <p className="text-xs text-[#475569] mt-0.5">
                 Every non-allowlisted user authenticates through Google OAuth and always receives
-                the restricted <strong className="font-medium text-[#E8EFFC]">Facilitator</strong>{' '}
+                the restricted <strong className="font-medium text-[#0F172A]">Facilitator</strong>{' '}
                 role.
               </p>
             </div>
             {savingPolicy && (
-              <span className="text-xs text-[#4EBBBB] font-medium">Saving policy...</span>
+              <span className="text-xs text-[#0F766E] font-medium">Saving policy...</span>
             )}
           </div>
 
@@ -201,8 +201,8 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
             <label
               className={`p-3.5 rounded-xl border cursor-pointer transition-colors flex items-start gap-2.5 ${
                 approvalMode === 'manual_allowlist'
-                  ? 'bg-[#4EBBBB]/12 border-[#4EBBBB]/55 text-[#E8EFFC]'
-                  : 'bg-[#0C1931] border-[#26456F] text-[#A4B7D2] hover:border-[#4EBBBB]/40'
+                  ? 'bg-[#E6F6F4] border-[#0F766E]/45 text-[#0F172A]'
+                  : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#475569] hover:border-[#0F766E]/40'
               }`}
             >
               <input
@@ -212,13 +212,13 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                 disabled={!isSuperAdmin || savingPolicy}
                 checked={approvalMode === 'manual_allowlist'}
                 onChange={() => void handleApprovalModeChange('manual_allowlist')}
-                className="mt-0.5 accent-[#4EBBBB]"
+                className="mt-0.5 accent-[#0F766E]"
               />
               <div>
-                <div className="font-medium text-[#E8EFFC]">
+                <div className="font-medium text-[#0F172A]">
                   Manual Allowlist / Approval Queue (Recommended)
                 </div>
-                <p className="text-[#A4B7D2] mt-1 leading-relaxed">
+                <p className="text-[#475569] mt-1 leading-relaxed">
                   Unrecognized Google users are placed into a Pending queue and cannot enter data
                   until a Super Administrator approves them below.
                 </p>
@@ -228,8 +228,8 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
             <label
               className={`p-3.5 rounded-xl border cursor-pointer transition-colors flex items-start gap-2.5 ${
                 approvalMode === 'auto_approve'
-                  ? 'bg-[#4EBBBB]/12 border-[#4EBBBB]/55 text-[#E8EFFC]'
-                  : 'bg-[#0C1931] border-[#26456F] text-[#A4B7D2] hover:border-[#4EBBBB]/40'
+                  ? 'bg-[#E6F6F4] border-[#0F766E]/45 text-[#0F172A]'
+                  : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#475569] hover:border-[#0F766E]/40'
               }`}
             >
               <input
@@ -239,13 +239,13 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                 disabled={!isSuperAdmin || savingPolicy}
                 checked={approvalMode === 'auto_approve'}
                 onChange={() => void handleApprovalModeChange('auto_approve')}
-                className="mt-0.5 accent-[#4EBBBB]"
+                className="mt-0.5 accent-[#0F766E]"
               />
               <div>
-                <div className="font-medium text-[#E8EFFC]">
+                <div className="font-medium text-[#0F172A]">
                   Auto-Approve Verified Google Logins
                 </div>
-                <p className="text-[#A4B7D2] mt-1 leading-relaxed">
+                <p className="text-[#475569] mt-1 leading-relaxed">
                   Any verified Google account signs straight into Classroom Data Entry as a
                   Facilitator unless explicitly denied here.
                 </p>
@@ -259,11 +259,11 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
       {pendingUsers.length > 0 && (
         <section
           aria-label="Pending facilitator approval requests"
-          className="ct-card p-5 sm:p-6 border-[#F2B44D]/50 bg-[#392A11]"
+          className="ct-card p-5 sm:p-6 border-[#B45309]/45 bg-[#FFFBEB]"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-5 h-5 text-[#F2B44D]" aria-hidden="true" />
-            <h3 className="text-base sm:text-lg font-medium text-[#E8EFFC] ct-num">
+            <Clock className="w-5 h-5 text-[#B45309]" aria-hidden="true" />
+            <h3 className="text-base sm:text-lg font-medium text-[#0F172A] ct-num">
               Pending Approval Queue ({pendingUsers.length})
             </h3>
           </div>
@@ -271,11 +271,11 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
             {pendingUsers.map((u) => (
               <div
                 key={u.userId}
-                className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F] flex flex-wrap items-center justify-between gap-3 text-xs"
+                className="p-3.5 rounded-xl bg-[#FFFFFF] border border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3 text-xs"
               >
                 <div>
-                  <div className="font-medium text-[#E8EFFC]">{u.name}</div>
-                  <div className="font-mono text-[#A4B7D2]">{u.email}</div>
+                  <div className="font-medium text-[#0F172A]">{u.name}</div>
+                  <div className="font-mono text-[#475569]">{u.email}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -305,10 +305,10 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
 
       {/* 4. Facilitator Allowlist & Pre-Approval Table */}
       <section className="ct-card p-5 sm:p-6">
-        <h3 className="text-base sm:text-lg font-medium text-[#E8EFFC] mb-1">
+        <h3 className="text-base sm:text-lg font-medium text-[#0F172A] mb-1">
           Facilitator Directory &amp; Pre-Approval ({directoryUsers.length})
         </h3>
-        <p className="text-xs sm:text-sm text-[#A4B7D2] mb-4 leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#475569] mb-4 leading-relaxed">
           Pre-approve a Google email for direct Facilitator access, or deactivate/deny accounts at
           any time. Facilitators only access Classroom Data Entry and their own submissions.
         </p>
@@ -352,13 +352,13 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
           tabIndex={0}
           role="region"
           aria-labelledby={captionId}
-          className="ct-table-wrapper rounded-xl border border-[#26456F]"
+          className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
         >
           <table className="w-full text-left text-xs border-collapse min-w-[660px]">
             <caption id={captionId} className="visually-hidden">
               Facilitator access control directory
             </caption>
-            <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+            <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
               <tr>
                 <th scope="col" className="p-3 font-medium">Name</th>
                 <th scope="col" className="p-3 font-medium">Google Email</th>
@@ -367,21 +367,21 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                 <th scope="col" className="p-3 font-medium">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#26456F]">
+            <tbody className="divide-y divide-[#E2E8F0]">
               {directoryUsers.map((u) => {
                 const status = u.status ?? (u.active ? 'APPROVED' : 'DENIED');
                 const badgeClass =
                   status === 'APPROVED' && u.active
-                    ? 'bg-[#48B98A]/15 border-[#48B98A]/40 text-[#48B98A]'
+                    ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
                     : status === 'PENDING'
-                      ? 'bg-[#392A11] border-[#F2B44D]/45 text-[#F2B44D]'
-                      : 'bg-[#E77B83]/15 border-[#E77B83]/45 text-[#E77B83]';
+                      ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309]'
+                      : 'bg-[#FFF1F2] border-[#BE123C]/40 text-[#BE123C]';
 
                 return (
-                  <tr key={u.userId} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors">
-                    <td className="p-3 font-medium text-[#E8EFFC]">{u.name}</td>
-                    <td className="p-3 font-mono text-[#A4B7D2]">{u.email}</td>
-                    <td className="p-3 uppercase font-medium text-[#A4B7D2]">FACILITATOR</td>
+                  <tr key={u.userId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors">
+                    <td className="p-3 font-medium text-[#0F172A]">{u.name}</td>
+                    <td className="p-3 font-mono text-[#475569]">{u.email}</td>
+                    <td className="p-3 uppercase font-medium text-[#475569]">FACILITATOR</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-full font-medium border ${badgeClass}`}>
                         {status}

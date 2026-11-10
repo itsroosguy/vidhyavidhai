@@ -44,64 +44,83 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className={`w-full ${containerClass} mx-auto pt-4 pb-5 px-4 sm:px-6 transition-all`}>
       {/* Unified Top Studio Bar */}
-      <div className="mb-4 px-4 py-2.5 rounded-2xl bg-[#101E3C]/90 backdrop-blur-md border border-[#26456F] shadow-[inset_0_1px_0_rgba(232,239,252,0.06)] flex flex-wrap items-center justify-between gap-2.5 text-[11px]">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 px-4 py-2.5 rounded-2xl bg-[#FFFFFF]/92 backdrop-blur-md border border-[#E2E8F0] shadow-[0_6px_22px_rgba(15,23,42,0.05),inset_0_1px_0_rgba(255,255,255,0.9)] flex flex-wrap items-center justify-between gap-2.5 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Primary Brand Lockup: Vidhya Vidhai Foundation always in front of Career Tours */}
+          <div className="inline-flex items-center gap-2">
+            <div
+              aria-hidden="true"
+              className="w-7 h-7 rounded-lg bg-[#0F172A] text-[#FFFFFF] flex items-center justify-center shadow-[0_4px_12px_rgba(15,23,42,0.16)] shrink-0"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-1.5 text-xs tracking-tight">
+              <span className="font-medium text-[#0F172A]">Vidhya Vidhai Foundation</span>
+              <span className="text-[#526077]" aria-hidden="true">
+                ·
+              </span>
+              <span className="font-medium text-[#0F766E]">Career Tours</span>
+            </div>
+          </div>
+
           {isSuperAdmin ? (
-            <button
-              type="button"
-              onClick={onOpenSyncStatus}
-              disabled={!onOpenSyncStatus}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border transition-colors ${
-                onOpenSyncStatus ? 'cursor-pointer hover:bg-[#172B4D]' : ''
-              } ${
-                outboxCount > 0
-                  ? 'bg-[#392A11] border-[#F2B44D]/45 text-[#F2B44D]'
-                  : isLiveBackend
-                    ? 'bg-[#48B98A]/12 border-[#48B98A]/45 text-[#48B98A]'
-                    : 'bg-[#162D55] border-[#26456F] text-[#A4B7D2]'
-              }`}
-            >
-              {isLiveBackend ? (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#48B98A]" aria-hidden="true" />
-                  Google Sheets connected
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-[#F2B44D]" aria-hidden="true" />
-                  Local sandbox mode
-                </>
-              )}
-              {outboxCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.25 rounded-full bg-[#4EBBBB] text-[#0C1326] font-medium ct-num">
-                  {outboxCount} queued
-                </span>
-              )}
-            </button>
+            <>
+              <span className="hidden sm:block h-4 w-px bg-[#CBD5E1]" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={onOpenSyncStatus}
+                disabled={!onOpenSyncStatus}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border transition-colors ${
+                  onOpenSyncStatus ? 'cursor-pointer hover:border-[#0F766E]' : ''
+                } ${
+                  outboxCount > 0
+                    ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309]'
+                    : isLiveBackend
+                      ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
+                      : 'bg-[#F1F5F9] border-[#CBD5E1] text-[#475569]'
+                }`}
+              >
+                {isLiveBackend ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
+                    Google Sheets connected
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#B45309]" aria-hidden="true" />
+                    Local sandbox mode
+                  </>
+                )}
+                {outboxCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.25 rounded-full bg-[#0F766E] text-[#FFFFFF] font-medium ct-num">
+                    {outboxCount} queued
+                  </span>
+                )}
+              </button>
+            </>
           ) : outboxCount > 0 ? (
-            <button
-              type="button"
-              onClick={onRetryOutbox}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border bg-[#392A11] border-[#F2B44D]/45 text-[#F2B44D] cursor-pointer hover:bg-[#392A11]/85"
-            >
-              <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-              {outboxCount} offline pending · Retry save
-            </button>
-          ) : (
-            <span className="text-xs font-medium text-[#A4B7D2] px-1">
-              Career Tours Classroom Entry
-            </span>
-          )}
+            <>
+              <span className="hidden sm:block h-4 w-px bg-[#CBD5E1]" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={onRetryOutbox}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309] cursor-pointer hover:bg-[#FEF3C7]"
+              >
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                {outboxCount} offline pending · Retry save
+              </button>
+            </>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-1.5 bg-[#0C1931] border border-[#26456F] rounded-full px-3 py-1 text-[#A4B7D2]">
-            <span className="font-medium text-[#E8EFFC]">{user.name}</span>
-            <span className="hidden sm:inline text-[#8294B1]" aria-hidden="true">
+          <div className="inline-flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full px-3 py-1 text-[#475569]">
+            <span className="font-medium text-[#0F172A]">{user.name}</span>
+            <span className="hidden sm:inline text-[#526077]" aria-hidden="true">
               ·
             </span>
             <span className="hidden sm:inline">{user.email}</span>
-            <span className="ml-1 px-2 py-0.25 rounded-full bg-[#4EBBBB]/14 text-[#4EBBBB] font-medium">
+            <span className="ml-1 px-2 py-0.25 rounded-full bg-[#E6F6F4] text-[#0F766E] font-medium">
               {isSuperAdmin ? 'Super Admin' : 'Facilitator'}
             </span>
           </div>
@@ -109,9 +128,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onSignOut}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#E8EFFC] cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium bg-[#FFFFFF] hover:bg-[#F1F5F9] border border-[#738AA1] hover:border-[#0F766E] text-[#0F172A] cursor-pointer transition-colors"
           >
-            <LogOut className="w-3 h-3 text-[#A4B7D2]" aria-hidden="true" />
+            <LogOut className="w-3 h-3 text-[#475569]" aria-hidden="true" />
             Sign out
           </button>
         </div>
@@ -123,29 +142,32 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {!(isSuperAdmin && activeTab === 'admin_dashboard') && (
             <div
               aria-hidden="true"
-              className="w-11 h-11 rounded-2xl bg-[#162D55] border border-[#26456F] shadow-[inset_0_1px_0_rgba(232,239,252,0.1)] flex items-center justify-center text-[#4EBBBB] shrink-0 mt-0.5"
+              className="w-11 h-11 rounded-2xl bg-[#FFFFFF] border border-[#E2E8F0] shadow-[0_6px_18px_rgba(15,23,42,0.06)] flex items-center justify-center text-[#0F766E] shrink-0 mt-0.5"
             >
               <GraduationCap className="w-5 h-5" />
             </div>
           )}
           <div>
-            <h1 className="text-[1.6rem] sm:text-[2rem] font-medium tracking-tight text-[#E8EFFC] leading-tight">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-[#0F766E] mb-0.5">
+              Vidhya Vidhai Foundation · Career Tours
+            </p>
+            <h1 className="text-[1.6rem] sm:text-[2rem] font-medium tracking-tight text-[#0F172A] leading-tight">
               {isSuperAdmin && activeTab === 'admin_dashboard'
                 ? 'Administrator Console'
                 : 'Classroom Data Entry'}
             </h1>
             {isSuperAdmin && activeTab === 'admin_dashboard' ? (
-              <p className="mt-1 text-sm text-[#A4B7D2] max-w-xl leading-relaxed">
+              <p className="mt-1 text-sm text-[#475569] max-w-xl leading-relaxed">
                 Programme governance, verified metrics, district performance, exports, and access approvals.
               </p>
             ) : (
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#A4B7D2]">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#475569]">
                 <span className="inline-flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#4EBBBB]" aria-hidden="true" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
                   Live CSAT, ITP &amp; Session ID
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#48B98A]" aria-hidden="true" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
                   Auto-saved drafts on this device
                 </span>
               </div>
@@ -157,7 +179,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Primary Navigation Pills — strictly scoped by role */}
           <nav
             aria-label="Primary application views"
-            className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-[#101E3C]/90 border border-[#26456F]"
+            className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-[#FFFFFF]/92 border border-[#E2E8F0] shadow-xs"
           >
             <button
               type="button"
@@ -165,12 +187,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               aria-current={activeTab === 'enter_class' ? 'page' : undefined}
               className={`min-h-[38px] px-4 py-1.5 rounded-xl text-sm font-medium transition-colors cursor-pointer inline-flex items-center gap-2 ${
                 activeTab === 'enter_class'
-                  ? 'bg-[#172B4D] text-[#E8EFFC] border border-[#4EBBBB]/70'
-                  : 'text-[#A4B7D2] border border-transparent hover:bg-[#162D55] hover:text-[#E8EFFC]'
+                  ? 'bg-[#E6F6F4] text-[#0F172A] border border-[#0F766E]/60'
+                  : 'text-[#475569] border border-transparent hover:bg-[#F1F5F9] hover:text-[#0F172A]'
               }`}
             >
               <ClipboardEdit
-                className={`w-4 h-4 ${activeTab === 'enter_class' ? 'text-[#4EBBBB]' : 'text-[#A4B7D2]'}`}
+                className={`w-4 h-4 ${activeTab === 'enter_class' ? 'text-[#0F766E]' : 'text-[#475569]'}`}
                 aria-hidden="true"
               />
               Enter a class
@@ -182,12 +204,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               aria-current={activeTab === 'my_classes' ? 'page' : undefined}
               className={`min-h-[38px] px-4 py-1.5 rounded-xl text-sm font-medium transition-colors cursor-pointer inline-flex items-center gap-2 ${
                 activeTab === 'my_classes'
-                  ? 'bg-[#172B4D] text-[#E8EFFC] border border-[#4EBBBB]/70'
-                  : 'text-[#A4B7D2] border border-transparent hover:bg-[#162D55] hover:text-[#E8EFFC]'
+                  ? 'bg-[#E6F6F4] text-[#0F172A] border border-[#0F766E]/60'
+                  : 'text-[#475569] border border-transparent hover:bg-[#F1F5F9] hover:text-[#0F172A]'
               }`}
             >
               <FolderKanban
-                className={`w-4 h-4 ${activeTab === 'my_classes' ? 'text-[#4EBBBB]' : 'text-[#A4B7D2]'}`}
+                className={`w-4 h-4 ${activeTab === 'my_classes' ? 'text-[#0F766E]' : 'text-[#475569]'}`}
                 aria-hidden="true"
               />
               My classes
@@ -200,12 +222,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 aria-current={activeTab === 'admin_dashboard' ? 'page' : undefined}
                 className={`min-h-[38px] px-4 py-1.5 rounded-xl text-sm font-medium transition-colors cursor-pointer inline-flex items-center gap-2 ${
                   activeTab === 'admin_dashboard'
-                    ? 'bg-[#172B4D] text-[#E8EFFC] border border-[#4EBBBB]/70'
-                    : 'text-[#A4B7D2] border border-transparent hover:bg-[#162D55] hover:text-[#E8EFFC]'
+                    ? 'bg-[#E6F6F4] text-[#0F172A] border border-[#0F766E]/60'
+                    : 'text-[#475569] border border-transparent hover:bg-[#F1F5F9] hover:text-[#0F172A]'
                 }`}
               >
                 <ShieldCheck
-                  className={`w-4 h-4 ${activeTab === 'admin_dashboard' ? 'text-[#4EBBBB]' : 'text-[#A4B7D2]'}`}
+                  className={`w-4 h-4 ${activeTab === 'admin_dashboard' ? 'text-[#0F766E]' : 'text-[#475569]'}`}
                   aria-hidden="true"
                 />
                 Admin Console

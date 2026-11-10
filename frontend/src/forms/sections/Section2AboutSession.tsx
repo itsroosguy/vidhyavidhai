@@ -58,17 +58,17 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
           </span>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="sec2-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#E8EFFC]">
+              <h2 id="sec2-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0F172A]">
                 About the session
               </h2>
               {isComplete && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#48B98A]/12 border border-[#48B98A]/45 text-[#48B98A]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
                   <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
                   Ready
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#A4B7D2] mt-0.5">
+            <p className="text-xs text-[#475569] mt-0.5">
               Career Tour video played, language shown, dates, and exact timings
             </p>
           </div>
@@ -76,14 +76,14 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         <div className="flex flex-wrap items-center gap-2 text-xs ct-num">
           {durationMins !== null && durationMins > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#4EBBBB]/14 border border-[#4EBBBB]/45 text-[#4EBBBB] font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6F6F4] border border-[#0F766E]/35 text-[#0F766E] font-medium">
               <Clock className="w-3.5 h-3.5" aria-hidden="true" />
               {formatDurationHuman(durationMins)}
             </span>
           )}
           {selectedTour && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0C1931] border border-[#26456F] text-[#A4B7D2]">
-              <Globe className="w-3.5 h-3.5 text-[#4EBBBB]" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F8FAFC] border border-[#CBD5E1] text-[#475569]">
+              <Globe className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
               {videoInfo.isConfigured ? videoInfo.videoId : 'Select language'}
             </span>
           )}
@@ -94,9 +94,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
       <div className="ct-bento-well p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start mb-4">
         {/* Career Tour / Video */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="tourId" className="text-sm font-medium text-[#E8EFFC]">
+          <label htmlFor="tourId" className="text-sm font-medium text-[#0F172A]">
             Which video did you show?
-            <span className="ml-1 text-[#4EBBBB]" aria-hidden="true">
+            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
               *
             </span>
           </label>
@@ -119,7 +119,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             ))}
           </select>
           {errorMap.tourId && (
-            <p id="tourId-error" className="text-xs text-[#E77B83] font-medium">
+            <p id="tourId-error" className="text-xs text-[#BE123C] font-medium">
               {errorMap.tourId}
             </p>
           )}
@@ -127,9 +127,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Language */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="language" className="text-sm font-medium text-[#E8EFFC]">
+          <label htmlFor="language" className="text-sm font-medium text-[#0F172A]">
             In which language?
-            <span className="ml-1 text-[#4EBBBB]" aria-hidden="true">
+            <span className="ml-1 text-[#0F766E]" aria-hidden="true">
               *
             </span>
           </label>
@@ -152,7 +152,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             ))}
           </select>
           {errorMap.language && (
-            <p id="language-error" className="text-xs text-[#E77B83] font-medium">
+            <p id="language-error" className="text-xs text-[#BE123C] font-medium">
               {errorMap.language}
             </p>
           )}
@@ -160,7 +160,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Month (auto-filled) */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="reportingMonth" className="text-sm font-medium text-[#E8EFFC]">
+          <label htmlFor="reportingMonth" className="text-sm font-medium text-[#0F172A]">
             Month
           </label>
           <input
@@ -171,14 +171,14 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             aria-describedby="reportingMonth-hint"
             className="ct-input"
           />
-          <p id="reportingMonth-hint" className="text-xs text-[#8294B1]">
+          <p id="reportingMonth-hint" className="text-xs text-[#526077]">
             Filled from the start date.
           </p>
         </div>
 
         {/* Date of submission */}
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="submissionDate" className="text-sm font-medium text-[#E8EFFC]">
+          <label htmlFor="submissionDate" className="text-sm font-medium text-[#0F172A]">
             Date of submission
           </label>
           <input
@@ -189,7 +189,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             aria-describedby="submissionDate-hint"
             className="ct-input ct-num"
           />
-          <p id="submissionDate-hint" className="text-xs text-[#8294B1]">
+          <p id="submissionDate-hint" className="text-xs text-[#526077]">
             Today's date, filled automatically.
           </p>
         </div>
@@ -200,9 +200,9 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
         {/* Start Node */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="startDate" className="text-sm font-medium text-[#E8EFFC]">
+            <label htmlFor="startDate" className="text-sm font-medium text-[#0F172A]">
               Date the session started
-              <span className="ml-1 text-[#4EBBBB]" aria-hidden="true">
+              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
                 *
               </span>
             </label>
@@ -220,7 +220,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
               className="ct-input ct-num"
             />
             {errorMap.startDate && (
-              <p id="startDate-error" className="text-xs text-[#E77B83] font-medium">
+              <p id="startDate-error" className="text-xs text-[#BE123C] font-medium">
                 {errorMap.startDate}
               </p>
             )}
@@ -238,35 +238,35 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
 
         {/* Center Timeline Duration Bridge */}
         <div className="flex flex-col items-center justify-center gap-1.5 px-2 py-2 lg:py-0">
-          <span className="text-[11px] font-medium text-[#8294B1] text-center">
+          <span className="text-[11px] font-medium text-[#526077] text-center">
             Calculated session length
           </span>
           <div className="w-full lg:w-auto flex items-center justify-center gap-2">
-            <span className="hidden lg:block w-5 h-px bg-[#26456F]" aria-hidden="true" />
+            <span className="hidden lg:block w-5 h-px bg-[#CBD5E1]" aria-hidden="true" />
             <div
               className={`min-h-[40px] px-3.5 py-2 rounded-full border flex items-center gap-2 text-xs sm:text-sm ct-num transition-colors ${
                 durationMins && durationMins > 0
-                  ? 'bg-[#4EBBBB]/14 border-[#4EBBBB]/55 text-[#E8EFFC] font-medium'
-                  : 'bg-[#0C1931] border-[#26456F] text-[#8294B1]'
+                  ? 'bg-[#E6F6F4] border-[#0F766E]/45 text-[#0F172A] font-medium'
+                  : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#526077]'
               }`}
             >
-              <Calendar className="w-4 h-4 text-[#4EBBBB] shrink-0" aria-hidden="true" />
+              <Calendar className="w-4 h-4 text-[#0F766E] shrink-0" aria-hidden="true" />
               <span>
                 {durationMins && durationMins > 0
                   ? formatDurationHuman(durationMins)
                   : 'Select start & end time'}
               </span>
             </div>
-            <span className="hidden lg:block w-5 h-px bg-[#26456F]" aria-hidden="true" />
+            <span className="hidden lg:block w-5 h-px bg-[#CBD5E1]" aria-hidden="true" />
           </div>
         </div>
 
         {/* End Node */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="endDate" className="text-sm font-medium text-[#E8EFFC]">
+            <label htmlFor="endDate" className="text-sm font-medium text-[#0F172A]">
               Date the session ended
-              <span className="ml-1 text-[#4EBBBB]" aria-hidden="true">
+              <span className="ml-1 text-[#0F766E]" aria-hidden="true">
                 *
               </span>
             </label>
@@ -285,7 +285,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
               className="ct-input ct-num"
             />
             {errorMap.endDate && (
-              <p id="endDate-error" className="text-xs text-[#E77B83] font-medium">
+              <p id="endDate-error" className="text-xs text-[#BE123C] font-medium">
                 {errorMap.endDate}
               </p>
             )}

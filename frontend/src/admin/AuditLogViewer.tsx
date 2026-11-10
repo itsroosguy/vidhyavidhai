@@ -32,11 +32,11 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ api }) => {
     <section className="ct-card p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
-          <h2 className="text-xl font-medium text-[#E8EFFC] flex items-center gap-2 ct-num">
-            <ShieldAlert className="w-5 h-5 text-[#4EBBBB]" aria-hidden="true" />
+          <h2 className="text-xl font-medium text-[#0F172A] flex items-center gap-2 ct-num">
+            <ShieldAlert className="w-5 h-5 text-[#0F766E]" aria-hidden="true" />
             Security & Change Audit Log ({logs.total})
           </h2>
-          <p className="text-xs text-[#A4B7D2] mt-0.5">
+          <p className="text-xs text-[#475569] mt-0.5">
             Immutable trail of session creations, corrections, archives, exports, configuration
             changes, and denied access attempts.
           </p>
@@ -53,20 +53,20 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ api }) => {
       </div>
 
       {logs.items.length === 0 ? (
-        <p className="text-xs text-[#A4B7D2] py-6 text-center">No audit events recorded yet.</p>
+        <p className="text-xs text-[#475569] py-6 text-center">No audit events recorded yet.</p>
       ) : (
         <>
           <div
             tabIndex={0}
             role="region"
             aria-labelledby={captionId}
-            className="ct-table-wrapper rounded-xl border border-[#26456F]"
+            className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
           >
             <table className="w-full text-left text-xs border-collapse min-w-[780px]">
               <caption id={captionId} className="visually-hidden">
                 Security and change audit trail
               </caption>
-              <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+              <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                 <tr>
                   <th scope="col" className="p-2.5 font-medium">Timestamp</th>
                   <th scope="col" className="p-2.5 font-medium">User</th>
@@ -76,18 +76,18 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ api }) => {
                   <th scope="col" className="p-2.5 font-medium">Result</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#26456F]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {logs.items.map((l) => (
-                  <tr key={l.auditId} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                    <td className="p-2.5 font-mono text-[#A4B7D2] whitespace-nowrap">
+                  <tr key={l.auditId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                    <td className="p-2.5 font-mono text-[#475569] whitespace-nowrap">
                       {new Date(l.timestamp).toLocaleString()}
                     </td>
-                    <td className="p-2.5 text-[#E8EFFC]">{l.userEmail}</td>
-                    <td className="p-2.5 font-medium text-[#4EBBBB]">{l.action}</td>
-                    <td className="p-2.5 text-[#A4B7D2]">
+                    <td className="p-2.5 text-[#0F172A]">{l.userEmail}</td>
+                    <td className="p-2.5 font-medium text-[#0F766E]">{l.action}</td>
+                    <td className="p-2.5 text-[#475569]">
                       {l.entityType} ({l.entityId})
                     </td>
-                    <td className="p-2.5 text-[#A4B7D2] max-w-xs truncate" title={l.newSummary}>
+                    <td className="p-2.5 text-[#475569] max-w-xs truncate" title={l.newSummary}>
                       {l.previousSummary ? `${l.previousSummary} → ` : ''}
                       {l.newSummary}
                     </td>
@@ -95,8 +95,8 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ api }) => {
                       <span
                         className={`px-2 py-0.5 rounded-full font-medium border ${
                           l.result === 'SUCCESS'
-                            ? 'bg-[#48B98A]/15 border-[#48B98A]/40 text-[#48B98A]'
-                            : 'bg-[#E77B83]/15 border-[#E77B83]/45 text-[#E77B83]'
+                            ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
+                            : 'bg-[#FFF1F2] border-[#BE123C]/40 text-[#BE123C]'
                         }`}
                       >
                         {l.result}
@@ -108,7 +108,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ api }) => {
             </table>
           </div>
 
-          <div className="mt-3 flex justify-between items-center text-xs text-[#A4B7D2] ct-num">
+          <div className="mt-3 flex justify-between items-center text-xs text-[#475569] ct-num">
             <span>
               Page {logs.page} of {logs.totalPages}
             </span>

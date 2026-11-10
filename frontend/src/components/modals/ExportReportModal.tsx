@@ -69,7 +69,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
       title="Export Programme Report (.xlsx)"
       subtitle="Expanded rows emit one line per grade and section for combined classes, matching monitoring requirements."
       headerBadge={
-        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#162D55] border border-[#26456F] text-[#E8EFFC] ct-num">
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F1F5F9] border border-[#CBD5E1] text-[#0F172A] ct-num">
           {expandedRowCount} export rows
         </span>
       }
@@ -92,30 +92,30 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     >
       {/* Scope & Expansion Preview */}
       <div className="grid grid-cols-3 gap-3 text-xs">
-        <div className="p-3.5 rounded-lg bg-[#0C1931] border border-[#26456F]">
-          <div className="text-[#A4B7D2]">Matching Sessions</div>
-          <div className="text-lg font-semibold text-[#E8EFFC] ct-num mt-1">{sessions.length}</div>
+        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div className="text-[#475569]">Matching Sessions</div>
+          <div className="text-lg font-semibold text-[#0F172A] ct-num mt-1">{sessions.length}</div>
         </div>
-        <div className="p-3.5 rounded-lg bg-[#0C1931] border border-[#26456F]">
-          <div className="text-[#A4B7D2]">Expanded Rows</div>
-          <div className="text-lg font-semibold text-[#4EBBBB] ct-num mt-1">
+        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div className="text-[#475569]">Expanded Rows</div>
+          <div className="text-lg font-semibold text-[#0F766E] ct-num mt-1">
             {expandedRowCount}
           </div>
         </div>
-        <div className="p-3.5 rounded-lg bg-[#0C1931] border border-[#26456F]">
-          <div className="text-[#A4B7D2]">Students Present</div>
-          <div className="text-lg font-semibold text-[#E8EFFC] ct-num mt-1">{totalStudents}</div>
+        <div className="p-3.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+          <div className="text-[#475569]">Students Present</div>
+          <div className="text-lg font-semibold text-[#0F172A] ct-num mt-1">{totalStudents}</div>
         </div>
       </div>
 
-      <div className="p-3.5 rounded-xl bg-[#0C1931] border border-[#26456F] text-xs space-y-1.5">
-        <div className="flex items-center justify-between text-[#A4B7D2]">
+      <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs space-y-1.5">
+        <div className="flex items-center justify-between text-[#475569]">
           <span>Active Filter Scope</span>
-          <span className="font-mono text-[#E8EFFC]">{scopeLabel}</span>
+          <span className="font-mono text-[#0F172A]">{scopeLabel}</span>
         </div>
-        <div className="flex items-center justify-between text-[#A4B7D2]">
+        <div className="flex items-center justify-between text-[#475569]">
           <span>Partner Name</span>
-          <span className="text-[#E8EFFC]">
+          <span className="text-[#0F172A]">
             {config.partnerName.trim() || 'Not configured yet (blank)'}
           </span>
         </div>
@@ -123,15 +123,15 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
 
       {/* Schema Choice */}
       <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-[#E8EFFC]">Export column schema</legend>
+        <legend className="text-xs font-medium text-[#0F172A]">Export column schema</legend>
 
         <label
           className={`flex items-start gap-3 p-3.5 rounded-xl border transition-colors ${
             hasOfficial63
               ? schemaMode === 'official_63'
-                ? 'bg-[#4EBBBB]/12 border-[#4EBBBB]/55 cursor-pointer'
-                : 'bg-[#0C1931] border-[#26456F] cursor-pointer hover:border-[#4EBBBB]/45'
-              : 'bg-[#0C1931]/60 border-[#26456F] opacity-55 cursor-not-allowed'
+                ? 'bg-[#E6F6F4] border-[#0F766E]/60 cursor-pointer'
+                : 'bg-[#FFFFFF] border-[#E2E8F0] cursor-pointer hover:border-[#0F766E]/45'
+              : 'bg-[#F1F5F9] border-[#E2E8F0] opacity-65 cursor-not-allowed'
           }`}
         >
           <input
@@ -140,14 +140,14 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
             disabled={!hasOfficial63}
             checked={effectiveMode === 'official_63'}
             onChange={() => setSchemaMode('official_63')}
-            className="mt-1 accent-[#4EBBBB]"
+            className="mt-1 accent-[#0F766E]"
           />
           <div className="text-xs space-y-0.5">
-            <div className="font-medium text-[#E8EFFC] flex items-center gap-1.5">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-[#4EBBBB]" aria-hidden="true" />
+            <div className="font-medium text-[#0F172A] flex items-center gap-1.5">
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F766E]" aria-hidden="true" />
               Official 63-Column Monitoring Template
             </div>
-            <p className="text-[#A4B7D2]">
+            <p className="text-[#475569]">
               {hasOfficial63
                 ? `Verified template loaded (${config.exportTemplate63?.templateName}). Preserves exact 63-column order.`
                 : 'Pending upload of the official 63-column header schema in Master Data Settings.'}
@@ -158,8 +158,8 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
         <label
           className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
             effectiveMode === 'standard'
-              ? 'bg-[#4EBBBB]/12 border-[#4EBBBB]/55'
-              : 'bg-[#0C1931] border-[#26456F] hover:border-[#4EBBBB]/45'
+              ? 'bg-[#E6F6F4] border-[#0F766E]/60'
+              : 'bg-[#FFFFFF] border-[#E2E8F0] hover:border-[#0F766E]/45'
           }`}
         >
           <input
@@ -167,13 +167,13 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
             name="export-schema-mode"
             checked={effectiveMode === 'standard'}
             onChange={() => setSchemaMode('standard')}
-            className="mt-1 accent-[#4EBBBB]"
+            className="mt-1 accent-[#0F766E]"
           />
           <div className="text-xs space-y-0.5">
-            <div className="font-medium text-[#E8EFFC]">
+            <div className="font-medium text-[#0F172A]">
               Standard Analytical Workbook (.xlsx)
             </div>
-            <p className="text-[#A4B7D2]">
+            <p className="text-[#475569]">
               Clean multi-column export covering Session ID, UDISE text preservation, CSAT, ITP,
               Teacher NPS, attendance, and Video IDs.
             </p>
@@ -182,8 +182,8 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
       </fieldset>
 
       {(!hasOfficial63 || !config.partnerName.trim()) && (
-        <div className="p-3 rounded-lg bg-[#392A11] border border-[#F2B44D]/45 text-xs text-[#F2B44D] flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+        <div className="p-3 rounded-lg bg-[#FFFBEB] border border-[#B45309]/40 text-xs text-[#92400E] flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             {!hasOfficial63 && 'Official 63-column headers have not been imported yet. '}
             {!config.partnerName.trim() && 'Partner Name is not set in Master Data Settings. '}

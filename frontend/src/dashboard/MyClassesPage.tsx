@@ -157,17 +157,17 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
       <section className="ct-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-xl font-medium text-[#E8EFFC]">My classes</h2>
-            <p className="text-xs sm:text-sm text-[#A4B7D2] mt-0.5 ct-num">
+            <h2 className="text-xl font-medium text-[#0F172A]">My classes</h2>
+            <p className="text-xs sm:text-sm text-[#475569] mt-0.5 ct-num">
               {isSuperAdmin ? (
                 <>
-                  Showing records owned by <strong className="font-medium text-[#E8EFFC]">{user.email}</strong> (
+                  Showing records owned by <strong className="font-medium text-[#0F172A]">{user.email}</strong> (
                   {result.total} {result.total === 1 ? 'session' : 'sessions'})
                 </>
               ) : (
                 <>
                   Your saved classroom entries for{' '}
-                  <strong className="font-medium text-[#E8EFFC]">{user.email}</strong>
+                  <strong className="font-medium text-[#0F172A]">{user.email}</strong>
                 </>
               )}
             </p>
@@ -180,7 +180,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                 onClick={onOpenNewModal}
                 className="ct-btn-secondary text-xs min-h-[40px] px-3.5"
               >
-                <Plus className="w-4 h-4 text-[#4EBBBB]" aria-hidden="true" />
+                <Plus className="w-4 h-4 text-[#0F766E]" aria-hidden="true" />
                 Add submission
               </button>
             )}
@@ -210,12 +210,12 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
         <div role="search" aria-label="Filter saved classes">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div className="sm:col-span-2">
-              <label htmlFor="my-search" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-search" className="block text-xs font-medium text-[#0F172A] mb-1">
                 Search (School, UDISE, Session ID)
               </label>
               <div className="relative">
                 <Search
-                  className="w-4 h-4 text-[#A4B7D2] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  className="w-4 h-4 text-[#526077] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                   aria-hidden="true"
                 />
                 <input
@@ -232,7 +232,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </div>
 
             <div>
-              <label htmlFor="my-district" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-district" className="block text-xs font-medium text-[#0F172A] mb-1">
                 District
               </label>
               <select
@@ -253,7 +253,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </div>
 
             <div>
-              <label htmlFor="my-tour" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-tour" className="block text-xs font-medium text-[#0F172A] mb-1">
                 Career Tour
               </label>
               <select
@@ -274,7 +274,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </div>
 
             <div>
-              <label htmlFor="my-grade" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-grade" className="block text-xs font-medium text-[#0F172A] mb-1">
                 Grade
               </label>
               <select
@@ -295,7 +295,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </div>
 
             <div>
-              <label htmlFor="my-dateFrom" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-dateFrom" className="block text-xs font-medium text-[#0F172A] mb-1">
                 From Date
               </label>
               <input
@@ -312,7 +312,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
 
           <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
             <div className="w-full sm:w-48">
-              <label htmlFor="my-dateTo" className="block text-xs font-medium text-[#E8EFFC] mb-1">
+              <label htmlFor="my-dateTo" className="block text-xs font-medium text-[#0F172A] mb-1">
                 To Date
               </label>
               <input
@@ -341,13 +341,13 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
       {/* Results Table */}
       <section className="ct-card p-4 sm:p-5">
         {loading ? (
-          <div className="py-12 text-center text-sm text-[#A4B7D2]">
+          <div className="py-12 text-center text-sm text-[#475569]">
             Loading your saved sessions...
           </div>
         ) : result.items.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-base font-medium text-[#E8EFFC]">No sessions found</p>
-            <p className="text-xs sm:text-sm text-[#A4B7D2] mt-1">
+            <p className="text-base font-medium text-[#0F172A]">No sessions found</p>
+            <p className="text-xs sm:text-sm text-[#475569] mt-1">
               Submit a session in "Enter a class" or clear your active filters.
             </p>
           </div>
@@ -357,13 +357,13 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
               tabIndex={0}
               role="region"
               aria-labelledby={captionId}
-              className="ct-table-wrapper rounded-xl border border-[#26456F]"
+              className="ct-table-wrapper rounded-xl border border-[#E2E8F0]"
             >
               <table className="w-full text-left text-xs sm:text-sm border-collapse min-w-[920px]">
                 <caption id={captionId} className="visually-hidden">
                   Facilitator submitted classroom sessions
                 </caption>
-                <thead className="bg-[#0C1931] text-[#A4B7D2] uppercase text-[11px]">
+                <thead className="bg-[#F8FAFC] text-[#475569] uppercase text-[11px]">
                   <tr>
                     <th scope="col" className="p-3 font-medium">Session ID</th>
                     <th scope="col" className="p-3 font-medium">School Name</th>
@@ -379,7 +379,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                     <th scope="col" className="p-3 font-medium">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#26456F]">
+                <tbody className="divide-y divide-[#E2E8F0]">
                   {result.items.map((s) => {
                     const classText =
                       s.sessionType === 'single' && s.details[0]
@@ -387,37 +387,37 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                         : `Combined (${s.totalClasses})`;
 
                     return (
-                      <tr key={s.sessionRecordId} className="bg-[#101E3C] hover:bg-[#162D55] transition-colors ct-num">
-                        <th scope="row" className="p-3 font-mono text-xs font-medium text-[#4EBBBB] whitespace-nowrap">
+                      <tr key={s.sessionRecordId} className="bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors ct-num">
+                        <th scope="row" className="p-3 font-mono text-xs font-medium text-[#0F766E] whitespace-nowrap">
                           {s.sessionId}
                         </th>
-                        <td className="p-3 text-[#E8EFFC]">
+                        <td className="p-3 text-[#0F172A]">
                           <div className="font-medium">{s.schoolName}</div>
-                          <div className="text-[11px] font-mono text-[#8294B1]">{s.udiseCode}</div>
+                          <div className="text-[11px] font-mono text-[#526077]">{s.udiseCode}</div>
                         </td>
-                        <td className="p-3 text-[#A4B7D2]">
-                          <div className="text-[#E8EFFC]">{s.district}</div>
-                          <div className="text-xs text-[#8294B1]">{s.block}</div>
+                        <td className="p-3 text-[#475569]">
+                          <div className="text-[#0F172A]">{s.district}</div>
+                          <div className="text-xs text-[#526077]">{s.block}</div>
                         </td>
-                        <td className="p-3 text-[#A4B7D2] max-w-[180px] truncate" title={s.tourName}>
+                        <td className="p-3 text-[#475569] max-w-[180px] truncate" title={s.tourName}>
                           {s.tourName}
                         </td>
-                        <td className="p-3 text-[#E8EFFC] whitespace-nowrap">{classText}</td>
-                        <td className="p-3 text-[#A4B7D2] whitespace-nowrap">
+                        <td className="p-3 text-[#0F172A] whitespace-nowrap">{classText}</td>
+                        <td className="p-3 text-[#475569] whitespace-nowrap">
                           {formatISODateToDDMMYYYY(s.startDate)}
                         </td>
-                        <td className="p-3 text-[#E8EFFC] font-medium">{s.totalStudentsPresent}</td>
-                        <td className="p-3 text-[#4EBBBB] font-semibold">
+                        <td className="p-3 text-[#0F172A] font-medium">{s.totalStudentsPresent}</td>
+                        <td className="p-3 text-[#0F766E] font-semibold">
                           {formatScore2(s.overallCsat)}
                         </td>
-                        <td className="p-3 text-[#E8EFFC] font-medium">
+                        <td className="p-3 text-[#0F172A] font-medium">
                           {formatScore2(s.overallItp)}
                         </td>
-                        <td className="p-3 text-[#E8EFFC] whitespace-nowrap">
+                        <td className="p-3 text-[#0F172A] whitespace-nowrap">
                           {s.teacherNps > 0 ? '+100' : s.teacherNps} ({s.teacherClassification})
                         </td>
                         <td className="p-3">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#48B98A]/15 text-[#48B98A] border border-[#48B98A]/40">
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] text-[#047857] border border-[#047857]/35">
                             {s.submissionStatus}
                           </span>
                         </td>
@@ -427,7 +427,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                               type="button"
                               onClick={() => setSelectedDetail(s)}
                               aria-label={`View ${s.sessionId}`}
-                              className="p-2 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#E8EFFC] cursor-pointer transition-colors"
+                              className="p-2 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] text-[#0F172A] cursor-pointer transition-colors"
                             >
                               <Eye className="w-4 h-4" aria-hidden="true" />
                             </button>
@@ -435,7 +435,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                               type="button"
                               onClick={() => handleEditAction(s)}
                               aria-label={`Edit ${s.sessionId}`}
-                              className="p-2 rounded-lg bg-[#162D55] hover:bg-[#172B4D] border border-[#26456F] text-[#4EBBBB] cursor-pointer transition-colors"
+                              className="p-2 rounded-lg bg-[#E6F6F4] hover:bg-[#0F766E]/15 border border-[#0F766E]/35 text-[#0F766E] cursor-pointer transition-colors"
                             >
                               <Edit3 className="w-4 h-4" aria-hidden="true" />
                             </button>
@@ -444,7 +444,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                                 type="button"
                                 onClick={() => setArchiveTarget(s)}
                                 aria-label={`Archive ${s.sessionId}`}
-                                className="p-2 rounded-lg bg-[#E77B83]/12 hover:bg-[#E77B83]/20 border border-[#E77B83]/40 text-[#E77B83] cursor-pointer transition-colors"
+                                className="p-2 rounded-lg bg-[#FFF1F2] hover:bg-[#BE123C]/15 border border-[#BE123C]/35 text-[#BE123C] cursor-pointer transition-colors"
                               >
                                 <Archive className="w-4 h-4" aria-hidden="true" />
                               </button>
@@ -459,7 +459,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </div>
 
             {/* Pagination */}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#A4B7D2] ct-num">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#475569] ct-num">
               <span>
                 Page {result.page} of {result.totalPages}
                 {isSuperAdmin ? ` · ${result.total} records` : ''}
