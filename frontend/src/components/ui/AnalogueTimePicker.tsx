@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { Clock } from 'lucide-react';
 import { formatTime24To12, from24HourTime, isValidTime24, to24HourTime } from '../../utils/temporal';
 
 interface AnalogueTimePickerProps {
@@ -12,6 +13,12 @@ interface AnalogueTimePickerProps {
 
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+const DIAL_VIEWBOX = 220;
+const DIAL_CENTER = DIAL_VIEWBOX / 2;
+const NUMBER_RADIUS = 79;
+const HAND_LINE_LENGTH = NUMBER_RADIUS - 16;
+const HAND_TIP_RADIUS = NUMBER_RADIUS;
 
 export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
   id,
@@ -29,6 +36,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
   const [selectedMinute, setSelectedMinute] = useState<number>(parsed?.minute ?? 0);
   const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>(parsed?.period ?? 'AM');
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const keyboardInputId = `${id}-keyboard`;
   const errorId = `${id}-error`;
@@ -43,6 +52,27 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
       setSelectedPeriod(next.period);
     }
   }, [value]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const commitSelection = (h12: number, m: number, p: 'AM' | 'PM') => {
     const next24 = to24HourTime(h12, m, p);
@@ -87,17 +117,18 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
       ? (selectedHour12 % 12) * 30 - 90
       : (selectedMinute / 5) * 30 - 90;
 
-  const handLength = 72;
   const handRad = (activeAngleDeg * Math.PI) / 180;
-  const handX = 108 + handLength * Math.cos(handRad);
-  const handY = 108 + handLength * Math.sin(handRad);
+  const handX = DIAL_CENTER + HAND_LINE_LENGTH * Math.cos(handRad);
+  const handY = DIAL_CENTER + HAND_LINE_LENGTH * Math.sin(handRad);
+  const handTipX = DIAL_CENTER + HAND_TIP_RADIUS * Math.cos(handRad);
+  const handTipY = DIAL_CENTER + HAND_TIP_RADIUS * Math.sin(handRad);
 
   const hasValue = isValidTime24(value);
   const displayHourStr = hasValue ? String(selectedHour12).padStart(2, '0') : '--';
   const displayMinStr = hasValue ? String(selectedMinute).padStart(2, '0') : '--';
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div ref={containerRef} className="flex flex-col gap-1.5 min-w-0">
       <label htmlFor={id} className="text-sm font-medium text-[#0A1B2C]">
         {label}
         {required && (
@@ -108,6 +139,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
       </label>
 
       <button
+        ref={triggerRef}
         type="button"
         id={id}
         aria-expanded={isOpen}
@@ -115,13 +147,14 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
         aria-invalid={Boolean(errorMessage)}
         aria-describedby={errorMessage ? errorId : undefined}
         onClick={handleOpenToggle}
-        className={`ct-input flex items-center justify-between text-left cursor-pointer ${
+        className={`ct-input flex items-center justify-between gap-2 text-left cursor-pointer ${
           errorMessage ? 'border-[#BE123C]' : ''
         }`}
       >
-        <span className={hasValue ? 'text-[#0A1B2C] font-medium ct-num' : 'text-[#33475B]'}>
+        <span className={hasValue ? 'text-[#0A1B2C] font-medium ct-num truncate' : 'text-[#33475B] truncate'}>
           {hasValue ? formatTime24To12(value) : 'Choose time'}
         </span>
+        <Clock className="w-4 h-4 text-[#33475B] shrink-0" aria-hidden="true" />
       </button>
 
       {errorMessage && (
@@ -135,25 +168,25 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
           id={panelId}
           role="region"
           aria-label={`${label} clock selector`}
-          className="mt-1 p-4 rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] shadow-[0_14px_34px_rgba(10,27,44,0.16)] w-full max-w-[276px]"
+          className="mt-1.5 p-3.5 sm:p-4 rounded-2xl bg-[#FFFFFF] border border-[#C7BEA7] shadow-[0_14px_34px_rgba(10,27,44,0.14)] w-full max-w-[300px] overflow-hidden"
         >
-          {/* Digital display + AM/PM toggle */}
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-1.5 text-2xl font-medium tracking-wider ct-num">
+          {/* Header: Digital HH:MM readout + segmented AM/PM toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="inline-flex items-center gap-1 ct-num shrink-0">
               <button
                 type="button"
                 onClick={() => setDialMode('hour')}
                 aria-label="Select hour on clock"
                 aria-pressed={dialMode === 'hour'}
-                className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors border ${
+                className={`min-w-[42px] px-2 py-1.5 rounded-lg text-base sm:text-lg font-medium leading-none whitespace-nowrap text-center cursor-pointer transition-colors border ${
                   dialMode === 'hour'
-                    ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
-                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:border-[#0284C7]'
+                    ? 'bg-[#E8F6FF] text-[#006BB8] border-[#0284C7]'
+                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#DFD7C2] hover:border-[#0284C7]'
                 }`}
               >
                 {displayHourStr}
               </button>
-              <span className="text-[#33475B]" aria-hidden="true">
+              <span className="text-base font-medium text-[#33475B] select-none px-0.5" aria-hidden="true">
                 :
               </span>
               <button
@@ -161,17 +194,21 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                 onClick={() => setDialMode('minute')}
                 aria-label="Select minute on clock"
                 aria-pressed={dialMode === 'minute'}
-                className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors border ${
+                className={`min-w-[42px] px-2 py-1.5 rounded-lg text-base sm:text-lg font-medium leading-none whitespace-nowrap text-center cursor-pointer transition-colors border ${
                   dialMode === 'minute'
-                    ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
-                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:border-[#0284C7]'
+                    ? 'bg-[#E8F6FF] text-[#006BB8] border-[#0284C7]'
+                    : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#DFD7C2] hover:border-[#0284C7]'
                 }`}
               >
                 {displayMinStr}
               </button>
             </div>
 
-            <div className="flex flex-col gap-1" role="group" aria-label="AM or PM">
+            <div
+              className="inline-flex rounded-lg bg-[#F5F2E9] border border-[#DFD7C2] p-0.5 shrink-0"
+              role="group"
+              aria-label="AM or PM"
+            >
               {(['AM', 'PM'] as const).map((period) => {
                 const active = selectedPeriod === period;
                 return (
@@ -180,10 +217,10 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                     type="button"
                     aria-pressed={active}
                     onClick={() => handlePeriodChange(period)}
-                    className={`px-3 py-1 rounded text-xs font-medium cursor-pointer transition-colors border ${
+                    className={`min-h-[32px] px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap cursor-pointer ${
                       active
-                        ? 'bg-[#1EA7FF] text-[#0A1B2C] border-[#0284C7]'
-                        : 'bg-[#F5F2E9] text-[#0A1B2C] border-[#8E8674] hover:bg-[#EFE8D6]'
+                        ? 'bg-[#006BB8] text-[#FFFFFF] shadow-2xs'
+                        : 'text-[#243647] hover:text-[#0A1B2C]'
                     }`}
                   >
                     {period}
@@ -193,47 +230,84 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
             </div>
           </div>
 
-          {/* Circular Daylight Ivory analogue clock face */}
-          <div className="relative mx-auto w-[216px] h-[216px] rounded-full bg-[#F5F2E9] border border-[#C7BEA7] select-none shadow-inner">
-            {hasValue && (
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 216 216"
-                className="absolute inset-0 w-full h-full pointer-events-none"
-              >
-                <line
-                  x1="108"
-                  y1="108"
-                  x2={handX}
-                  y2={handY}
-                  stroke="#006BB8"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
+          <p className="text-[11px] font-medium text-[#33475B] text-center mb-2.5">
+            {dialMode === 'hour' ? 'Select hour' : 'Select minutes'}
+          </p>
+
+          {/* Proportional analogue dial that scales cleanly inside any card width */}
+          <div className="relative mx-auto w-full max-w-[216px] aspect-square rounded-full bg-[#F5F2E9] border border-[#C7BEA7] select-none shadow-[inset_0_2px_6px_rgba(10,27,44,0.06)]">
+            <svg
+              aria-hidden="true"
+              viewBox={`0 0 ${DIAL_VIEWBOX} ${DIAL_VIEWBOX}`}
+              className="absolute inset-0 z-0 w-full h-full pointer-events-none"
+            >
+              {/* Subtle dial tick marks */}
+              {Array.from({ length: 12 }, (_, idx) => {
+                const rad = (idx * 30 - 90) * (Math.PI / 180);
+                const innerR = 96;
+                const outerR = 102;
+                return (
+                  <line
+                    key={idx}
+                    x1={DIAL_CENTER + innerR * Math.cos(rad)}
+                    y1={DIAL_CENTER + innerR * Math.sin(rad)}
+                    x2={DIAL_CENTER + outerR * Math.cos(rad)}
+                    y2={DIAL_CENTER + outerR * Math.sin(rad)}
+                    stroke="#C7BEA7"
+                    strokeWidth={idx % 3 === 0 ? '1.75' : '1'}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+
+              {/* Clock hand ending at the outer edge of the target badge so digits remain unobstructed */}
+              <line
+                x1={DIAL_CENTER}
+                y1={DIAL_CENTER}
+                x2={handX}
+                y2={handY}
+                stroke={hasValue ? '#006BB8' : '#8FA6BA'}
+                strokeWidth={hasValue ? '2.5' : '1.75'}
+                strokeDasharray={hasValue ? undefined : '4 3'}
+                strokeLinecap="round"
+              />
+              {!hasValue && (
+                <circle
+                  cx={handTipX}
+                  cy={handTipY}
+                  r="15"
+                  fill="rgba(2, 132, 199, 0.14)"
                 />
-                <circle cx="108" cy="108" r="4" fill="#006BB8" />
-                <circle cx={handX} cy={handY} r="15" fill="rgba(30, 167, 255, 0.24)" />
-              </svg>
-            )}
+              )}
+              <circle
+                cx={DIAL_CENTER}
+                cy={DIAL_CENTER}
+                r="4.5"
+                fill={hasValue ? '#006BB8' : '#8FA6BA'}
+              />
+            </svg>
 
             {(dialMode === 'hour' ? HOURS : MINUTES).map((item, idx) => {
               const angle = (idx * 30 - 90) * (Math.PI / 180);
-              const radius = 82;
-              const left = 108 + radius * Math.cos(angle);
-              const top = 108 + radius * Math.sin(angle);
+              const leftPct = ((DIAL_CENTER + NUMBER_RADIUS * Math.cos(angle)) / DIAL_VIEWBOX) * 100;
+              const topPct = ((DIAL_CENTER + NUMBER_RADIUS * Math.sin(angle)) / DIAL_VIEWBOX) * 100;
               const isSelected =
                 hasValue &&
+                (dialMode === 'hour' ? selectedHour12 === item : selectedMinute === item);
+              const isPreviewed =
+                !hasValue &&
                 (dialMode === 'hour' ? selectedHour12 === item : selectedMinute === item);
 
               return (
                 <button
-                  key={item}
+                  key={`${dialMode}-${item}`}
                   type="button"
                   onClick={() =>
                     dialMode === 'hour' ? handleHourPick(item) : handleMinutePick(item)
                   }
                   style={{
-                    left: `${left}px`,
-                    top: `${top}px`,
+                    left: `${leftPct.toFixed(2)}%`,
+                    top: `${topPct.toFixed(2)}%`,
                     transform: 'translate(-50%, -50%)',
                   }}
                   aria-label={
@@ -242,10 +316,12 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                       : `${String(item).padStart(2, '0')} minutes`
                   }
                   aria-pressed={isSelected}
-                  className={`absolute w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ct-num cursor-pointer transition-colors ${
+                  className={`absolute z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ct-num cursor-pointer ${
                     isSelected
-                      ? 'bg-[#1EA7FF] text-[#0A1B2C] font-medium'
-                      : 'text-[#0A1B2C] hover:bg-[#EFE8D6]'
+                      ? 'bg-[#006BB8] text-[#FFFFFF] shadow-xs'
+                      : isPreviewed
+                        ? 'text-[#006BB8] hover:bg-[#E8F6FF]'
+                        : 'text-[#0A1B2C] hover:bg-[#EFE8D6]'
                   }`}
                 >
                   {dialMode === 'hour' ? item : String(item).padStart(2, '0')}
@@ -254,11 +330,11 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
             })}
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="mt-3.5 flex items-center justify-center gap-2">
             <button
               type="button"
               onClick={handleDone}
-              className="ct-btn-primary text-sm min-h-[38px] px-6 py-1.5"
+              className="ct-btn-primary flex-1 text-sm min-h-[42px] px-4 py-1.5"
             >
               Done
             </button>
@@ -269,7 +345,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                   onChange('');
                   setIsOpen(false);
                 }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#243647] hover:text-[#0A1B2C] hover:bg-[#F5F2E9] cursor-pointer transition-colors"
+                className="ct-btn-secondary text-xs min-h-[42px] px-3 py-1.5"
               >
                 Clear
               </button>
@@ -277,8 +353,11 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
           </div>
 
           {/* Keyboard-accessible direct entry alternative inside clock panel */}
-          <div className="mt-3 pt-2.5 border-t border-[#DFD7C2] flex items-center justify-between gap-2">
-            <label htmlFor={keyboardInputId} className="text-[11px] text-[#243647]">
+          <div className="mt-3 pt-2.5 border-t border-[#DFD7C2] flex flex-wrap items-center justify-between gap-2">
+            <label
+              htmlFor={keyboardInputId}
+              className="text-xs font-medium text-[#243647] whitespace-nowrap shrink-0"
+            >
               Or type time
             </label>
             <input
@@ -297,7 +376,7 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
                 onChange(raw);
               }}
               aria-label={`${label} direct time input`}
-              className="ct-input w-[132px] min-h-[36px] py-1 px-2 text-xs ct-num"
+              className="ct-input w-auto min-w-0 max-w-full flex-1 basis-[132px] min-h-[40px] py-1 px-2.5 text-xs ct-num"
             />
           </div>
         </div>

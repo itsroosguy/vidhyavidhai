@@ -195,10 +195,10 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
         </div>
       </div>
 
-      {/* Bento Well 2 — Connected Start -> Duration Bridge -> End Timeline */}
-      <div className="ct-bento-well p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 items-center">
+      {/* Bento Well 2 — Balanced 2-Column Start & End Timeline with Full-Width Calculated Duration */}
+      <div className="ct-bento-well p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {/* Start Node */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 min-w-0">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="startDate" className="text-sm font-medium text-[#0A1B2C]">
               Date the session started
@@ -236,38 +236,8 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
           />
         </div>
 
-        {/* Center Timeline Duration Bridge */}
-        <div className="flex flex-col items-center justify-center gap-1.5 px-2 py-2 lg:py-0">
-          <span className="text-[11px] font-medium text-[#33475B] text-center">
-            Calculated session length
-          </span>
-          <div className="w-full lg:w-auto flex items-center justify-center gap-2">
-            <span className="hidden lg:block w-5 h-px bg-[#C7BEA7]" aria-hidden="true" />
-            <div
-              className={`min-h-[40px] px-3.5 py-2 rounded-full border flex items-center gap-2 text-xs sm:text-sm ct-num transition-colors ${
-                durationMins && durationMins > 0
-                  ? 'bg-[#E8F6FF] border-[#0284C7]/55 text-[#0A1B2C] font-medium'
-                  : 'bg-[#0A1B2C] border-[#0A1B2C] text-[#FAF8F2]'
-              }`}
-            >
-              <Calendar
-                className={`w-4 h-4 shrink-0 ${
-                  durationMins && durationMins > 0 ? 'text-[#006BB8]' : 'text-[#1EA7FF]'
-                }`}
-                aria-hidden="true"
-              />
-              <span>
-                {durationMins && durationMins > 0
-                  ? formatDurationHuman(durationMins)
-                  : 'Select start & end time'}
-              </span>
-            </div>
-            <span className="hidden lg:block w-5 h-px bg-[#C7BEA7]" aria-hidden="true" />
-          </div>
-        </div>
-
         {/* End Node */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 min-w-0">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="endDate" className="text-sm font-medium text-[#0A1B2C]">
               Date the session ended
@@ -304,6 +274,32 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             required
             errorMessage={errorMap.endTime}
           />
+        </div>
+
+        {/* Full-Width Calculated Session Duration Footer */}
+        <div className="md:col-span-2 pt-3 border-t border-[#DFD7C2] flex flex-wrap items-center justify-between gap-2.5">
+          <span className="text-xs font-medium text-[#33475B]">
+            Calculated session length
+          </span>
+          <div
+            className={`min-h-[38px] px-3.5 py-1.5 rounded-full border inline-flex items-center gap-2 text-xs sm:text-sm ct-num transition-colors ${
+              durationMins && durationMins > 0
+                ? 'bg-[#E8F6FF] border-[#0284C7]/55 text-[#0A1B2C] font-medium'
+                : 'bg-[#0A1B2C] border-[#0A1B2C] text-[#FAF8F2]'
+            }`}
+          >
+            <Calendar
+              className={`w-4 h-4 shrink-0 ${
+                durationMins && durationMins > 0 ? 'text-[#006BB8]' : 'text-[#1EA7FF]'
+              }`}
+              aria-hidden="true"
+            />
+            <span>
+              {durationMins && durationMins > 0
+                ? formatDurationHuman(durationMins)
+                : 'Select start & end time'}
+            </span>
+          </div>
         </div>
       </div>
     </section>
