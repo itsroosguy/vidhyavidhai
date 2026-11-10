@@ -454,46 +454,69 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     expect(await screen.findByText(/District–Block Master Data/i)).toBeInTheDocument();
   });
 
-  it('keeps login clean without exposing account lists, routes only the 2 allowlisted admins to /admin/overview, isolates other accounts to /classroom-entry, and guards manual admin URLs', async () => {
+  it('keeps login clean without exposing account lists, redirects Continue with Google to /auth/google, routes only the 2 allowlisted admins to /admin/overview, isolates other accounts to /classroom-entry, and guards manual admin URLs', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // 1. Login screen renders clean 2026 sign-in card with Vidhya Vidhai logo, Foundation in front of Career Tours, Roos StudioX attribution, and zero preset role/name leaks
-    expect(screen.getByRole('heading', { name: 'Sign in with email' })).toBeInTheDocument();
+    // 1. Login screen renders clean dedicated portal UI with Vidhya Vidhai logo, Foundation in front of Career Tours, Roos StudioX attribution, passwordless auth, and zero preset role/name leaks
+    expect(
+      screen.getByRole('heading', { name: 'Career Tours Classroom Portal' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sign in to your workspace' })).toBeInTheDocument();
     expect(
       screen.getByRole('img', { name: /Vidhya Vidhai Foundation — Educate, Innovate, Lead/i }),
     ).toBeInTheDocument();
     const creditLink = screen.getByRole('link', { name: /Roos StudioX/i });
     expect(creditLink).toHaveAttribute('href', 'https://roosstudiox.com/');
     expect(creditLink).toHaveAttribute('rel', 'noopener noreferrer');
-    const authSpans = Array.from(document.querySelectorAll('main span')).map((n) => n.textContent ?? '').join(' ');
-    expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
-    expect(authSpans.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(authSpans.indexOf('Career Tours'));
+    const brandBannerText = Array.from(document.querySelectorAll('header span'))
+      .map((n) => n.textContent ?? '')
+      .join(' ');
+    expect(brandBannerText.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
+    expect(brandBannerText.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(
+      brandBannerText.indexOf('Career Tours'),
+    );
+    expect(screen.queryByLabelText(/Password/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Super Admin 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Facilitator 1/i)).not.toBeInTheDocument();
     expect(screen.queryByText('brinthajayaprakash888@gmail.com')).not.toBeInTheDocument();
     expect(screen.queryByText('karunya@vidhyavidhai.org')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Preview account switcher')).not.toBeInTheDocument();
 
-    // 2. Denied user blocked with Access Denied screen
-    await user.type(screen.getByLabelText(/^Email$/i), 'denied.user@example.org');
-    await user.type(screen.getByLabelText(/^Password$/i), 'workspace-session-token');
-    await user.click(screen.getByRole('button', { name: /Get Started/i }));
+    // 2. Clicking "Continue with Google" redirects cleanly to dedicated /auth/google experience
+    await user.click(screen.getByRole('button', { name: /Continue with Google/i }));
+    expect(window.location.pathname).toBe('/auth/google');
+    expect(await screen.findByRole('heading', { name: 'Sign in with Google' })).toBeInTheDocument();
+
+    // 3. Denied user blocked with Access Denied screen, then returns cleanly to /auth/google
+    await user.type(screen.getByLabelText(/Google account email/i), 'denied.user@example.org');
+    await user.click(screen.getByRole('button', { name: /Verify & Sign In/i }));
     expect(await screen.findByRole('heading', { name: 'Access Denied' })).toBeInTheDocument();
     expect(screen.getByText('denied.user@example.org')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Try a different Google account/i }));
+    expect(window.location.pathname).toBe('/auth/google');
+    expect(await screen.findByRole('heading', { name: 'Sign in with Google' })).toBeInTheDocument();
 
-    // 3. Super Admin 1 login automatically redirects to /admin/overview with reports & Sync Status
-    await user.clear(screen.getByLabelText(/^Email$/i));
-    await user.type(screen.getByLabelText(/^Email$/i), 'brinthajayaprakash888@gmail.com');
-    await user.type(screen.getByLabelText(/^Password$/i), 'workspace-session-token');
-    await user.click(screen.getByRole('button', { name: /Get Started/i }));
-    expect(window.location.pathname).toBe('/admin/overview');
-    expect(screen.getAllByText(/Vidhya Vidhai Foundation\s*·\s*Career Tours/i).length).toBeGreaterThanOrEqual(1);
+    // 4. Super Admin 1 signs in through /auth/google and redirects automatically to /admin/overview
+    const googleEmailInput = screen.getByLabelText(/Google account email/i);
+    await user.clear(googleEmailInput);
+    await user.type(googleEmailInput, 'brinthajayaprakash888@gmail.com');
+    await user.click(screen.getByRole('button', { name: /Verify & Sign In/i }));
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toBe('/admin/overview');
+      },
+      { timeout: 2000 },
+    );
+    expect(
+      screen.getAllByText(/Vidhya Vidhai Foundation\s*·\s*Career Tours/i).length,
+    ).toBeGreaterThanOrEqual(1);
     const headerBrandNodes = screen.getByRole('banner').querySelectorAll('span, p');
     const headerText = Array.from(headerBrandNodes).map((n) => n.textContent ?? '').join(' ');
     expect(headerText.indexOf('Vidhya Vidhai Foundation')).toBeGreaterThan(-1);
-    expect(headerText.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(headerText.indexOf('Career Tours'));
+    expect(headerText.indexOf('Vidhya Vidhai Foundation')).toBeLessThan(
+      headerText.indexOf('Career Tours'),
+    );
 
     const primaryNav = await screen.findByRole('navigation', { name: 'Primary application views' });
     expect(within(primaryNav).getByRole('button', { name: 'Enter a class' })).toBeInTheDocument();
@@ -506,17 +529,27 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       name: /Google Sheets Sync Status/i,
     });
     expect(
-      within(syncDialog).getByText(/Running in Local Sandbox Mode \(Not Connected to Live Google Sheets\)/i),
+      within(syncDialog).getByText(
+        /Running in Local Sandbox Mode \(Not Connected to Live Google Sheets\)/i,
+      ),
     ).toBeInTheDocument();
     await user.click(within(syncDialog).getByRole('button', { name: /^Close$/ }));
 
-    // Sign out -> test Super Admin 2
+    // 5. Sign out -> navigate to /auth/google -> saved recent Google account tile + Use another Google account -> Super Admin 2
     await user.click(screen.getByRole('button', { name: /Sign out/i }));
-    await user.type(await screen.findByLabelText(/^Email$/i), 'karunya@vidhyavidhai.org');
-    await user.click(screen.getByRole('button', { name: /Continue with Google/i }));
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/admin/overview');
-    });
+    expect(window.location.pathname).toBe('/login');
+    await user.click(await screen.findByRole('button', { name: /Continue with Google/i }));
+    expect(await screen.findByText(/Choose a recently signed-in account/i)).toBeInTheDocument();
+    expect(screen.getByText('brinthajayaprakash888@gmail.com')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Use another Google account/i }));
+    await user.type(screen.getByLabelText(/Google account email/i), 'karunya@vidhyavidhai.org');
+    await user.click(screen.getByRole('button', { name: /Verify & Sign In/i }));
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toBe('/admin/overview');
+      },
+      { timeout: 2000 },
+    );
     expect(
       within(await screen.findByRole('navigation', { name: 'Primary application views' })).getByRole(
         'button',
@@ -524,21 +557,24 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       ),
     ).toBeInTheDocument();
 
-    // Sign out -> any other Google email lands strictly in /classroom-entry with ZERO admin/Sheets UI
+    // 6. Sign out -> facilitator signs in on /login via passwordless Workspace Email -> lands strictly in /classroom-entry with ZERO admin/Sheets UI
     await user.click(screen.getByRole('button', { name: /Sign out/i }));
-    await user.type(await screen.findByLabelText(/^Email$/i), 'teacher.anitha@vidhyavidhai.org');
-    await user.click(screen.getByRole('button', { name: /Continue with Google/i }));
+    await user.type(await screen.findByLabelText(/^Email/i), 'teacher.anitha@vidhyavidhai.org');
+    await user.click(screen.getByRole('button', { name: /^Sign In$/i }));
 
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/classroom-entry');
-      const facNav = screen.getByRole('navigation', { name: 'Primary application views' });
-      expect(within(facNav).queryByRole('button', { name: 'Admin Console' })).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toBe('/classroom-entry');
+        const facNav = screen.getByRole('navigation', { name: 'Primary application views' });
+        expect(within(facNav).queryByRole('button', { name: 'Admin Console' })).not.toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
     expect(screen.queryByRole('button', { name: /Local sandbox mode/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Preview account switcher')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'About you' })).toBeInTheDocument();
 
-    // 4. Facilitator manually visits restricted /admin/overview URL -> Access Denied screen + auto-redirect to /classroom-entry
+    // 7. Facilitator manually visits restricted /admin/overview URL -> Access Denied screen + auto-redirect to /classroom-entry
     await act(async () => {
       window.history.pushState(null, '', '/admin/overview');
       window.dispatchEvent(new PopStateEvent('popstate'));

@@ -11,8 +11,13 @@ import { MyClassesPage } from './dashboard/MyClassesPage';
 import { SessionEntryForm } from './forms/SessionEntryForm';
 import { createApiClient } from './services/apiClient';
 import {
+  clearActiveSandboxEmail,
+  consumeGoogleOAuthCallbackHash,
   decodeJwtClaimsUnsafe,
   getAuthEnvironment,
+  loadActiveSandboxEmail,
+  rememberRecentGoogleAccount,
+  saveActiveSandboxEmail,
 } from './services/authService';
 import {
   appendLocalSyncEvent,
@@ -52,6 +57,9 @@ export function App() {
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authNotice, setAuthNotice] = useState<AuthNoticeState | null>(null);
+  const [oauthProcessing, setOauthProcessing] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const oauthBootHandledRef = useRef(false);
   const [currentPath, setCurrentPath] = useState<string>(() =>
     typeof window !== 'undefined' ? stripBasePath(window.location.pathname || '/') : '/',
   );
@@ -120,10 +128,14 @@ export function App() {
   useEffect(() => {
     const brand = 'Vidhya Vidhai Foundation · Career Tours';
     if (!user) {
-      if (authNotice?.kind === 'pending_approval') {
+      if (authNotice?.kind === 'pending_approval' || route.kind === 'pending_approval') {
         document.title = `Account Pending Approval | ${brand}`;
-      } else if (authNotice?.kind === 'access_denied') {
+      } else if (authNotice?.kind === 'access_denied' || route.kind === 'access_denied') {
         document.title = `Access Denied | ${brand}`;
+      } else if (route.kind === 'google_auth') {
+        document.title = `Sign in with Google | ${brand}`;
+      } else if (route.kind === 'auth_callback') {
+        document.title = `Completing Google Sign-In | ${brand}`;
       } else {
         document.title = `Sign In | ${brand}`;
       }
@@ -153,6 +165,7 @@ export function App() {
   const handleGoogleTokenSuccess = useCallback(
     async (idToken: string) => {
       setAuthNotice(null);
+      setOauthError(null);
       idTokenRef.current = idToken;
       const userRes = await api.getCurrentUser();
       if (!userRes.ok || !userRes.data) {
@@ -169,6 +182,10 @@ export function App() {
         navigate(isPending ? '/pending-approval' : '/access-denied', true);
         return;
       }
+      rememberRecentGoogleAccount({
+        email: userRes.data.email,
+        name: userRes.data.name,
+      });
       setUser(userRes.data);
       setAuthNotice(null);
       navigate(getDefaultPathForRole(userRes.data.role), true);
@@ -180,9 +197,11 @@ export function App() {
   const handleEmailSignIn = useCallback(
     async (emailInput: string) => {
       if (!api.authenticateSandboxEmail) return;
+      setOauthError(null);
       const cleanEmail = emailInput.trim().toLowerCase();
       const res = await api.authenticateSandboxEmail(cleanEmail);
       if (!res.ok || !res.data) {
+        clearActiveSandboxEmail();
         const isPending = res.code === 'PENDING_APPROVAL';
         setAuthNotice({
           kind: isPending ? 'pending_approval' : 'access_denied',
@@ -195,6 +214,11 @@ export function App() {
         return;
       }
 
+      rememberRecentGoogleAccount({
+        email: res.data.email,
+        name: res.data.name,
+      });
+      saveActiveSandboxEmail(res.data.email);
       sandboxActorIdRef.current = res.data.userId;
       setAuthNotice(null);
       setUser(res.data);
@@ -204,11 +228,60 @@ export function App() {
     [api, loadConfig, navigate],
   );
 
+  useEffect(() => {
+    if (oauthBootHandledRef.current || typeof window === 'undefined') return;
+    oauthBootHandledRef.current = true;
+
+    if (env.isLiveBackendConfigured) {
+      const callbackResult = consumeGoogleOAuthCallbackHash();
+      if (callbackResult?.kind === 'id_token') {
+        setOauthProcessing(true);
+        void handleGoogleTokenSuccess(callbackResult.idToken).finally(() => {
+          setOauthProcessing(false);
+        });
+      } else if (callbackResult?.kind === 'error') {
+        setOauthError(callbackResult.message);
+        navigate('/auth/google', true);
+      } else if (stripBasePath(window.location.pathname || '/') === '/auth/callback') {
+        navigate('/auth/google', true);
+      }
+      return;
+    }
+
+    const savedSandboxEmail = loadActiveSandboxEmail();
+    if (!savedSandboxEmail || !api.authenticateSandboxEmail) return;
+
+    void api.authenticateSandboxEmail(savedSandboxEmail).then(async (res) => {
+      if (!res.ok || !res.data) {
+        clearActiveSandboxEmail();
+        return;
+      }
+      sandboxActorIdRef.current = res.data.userId;
+      setAuthNotice(null);
+      setUser(res.data);
+      const currentSubpath = stripBasePath(window.location.pathname || '/').toLowerCase();
+      if (
+        currentSubpath === '/' ||
+        currentSubpath === '/login' ||
+        currentSubpath === '/auth/google' ||
+        currentSubpath === '/auth/sso' ||
+        currentSubpath === '/auth/callback' ||
+        currentSubpath === '/pending-approval' ||
+        currentSubpath === '/access-denied'
+      ) {
+        navigate(getDefaultPathForRole(res.data.role), true);
+      }
+      await loadConfig();
+    });
+  }, [api, env.isLiveBackendConfigured, handleGoogleTokenSuccess, loadConfig, navigate]);
+
   const handleSignOut = () => {
     idTokenRef.current = undefined;
     sandboxActorIdRef.current = '';
+    clearActiveSandboxEmail();
     setUser(null);
     setAuthNotice(null);
+    setOauthError(null);
     setEditingSession(null);
     setSubmissionModalState({ open: false, editingSession: null });
     setSyncModalOpen(false);
@@ -280,17 +353,29 @@ export function App() {
   }, [handleRetryOutboxItem, outboxItems]);
 
   if (!user) {
+    const authRouteKind =
+      route.kind === 'google_auth' ||
+      route.kind === 'auth_callback' ||
+      route.kind === 'pending_approval' ||
+      route.kind === 'access_denied'
+        ? route.kind
+        : 'login';
+
     return (
       <>
         <AuthGate
+          routeKind={authRouteKind}
           isLiveBackend={env.isLiveBackendConfigured}
           googleClientId={env.googleClientId}
+          onNavigate={navigate}
           onGoogleTokenSuccess={handleGoogleTokenSuccess}
           onEmailSignIn={handleEmailSignIn}
           authNotice={authNotice}
+          oauthProcessing={oauthProcessing}
+          oauthError={oauthError}
           onResetAuthNotice={() => {
             setAuthNotice(null);
-            navigate('/login', true);
+            setOauthError(null);
           }}
         />
         <ToastNotification toast={toast} onDismiss={() => setToast(null)} />

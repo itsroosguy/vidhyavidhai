@@ -102,7 +102,9 @@ export type AppRoute =
   | { kind: 'admin'; section: AdminSectionSlug }
   | { kind: 'access_denied' }
   | { kind: 'pending_approval' }
-  | { kind: 'login' };
+  | { kind: 'login' }
+  | { kind: 'google_auth' }
+  | { kind: 'auth_callback' };
 
 const ADMIN_SLUG_SET = new Set<string>(ADMIN_NAV_ITEMS.map((item) => item.slug));
 
@@ -214,6 +216,12 @@ export function parseAppRoute(
 
   if (path === '/login') {
     return role ? (role === 'super_admin' ? { kind: 'admin', section: 'overview' } : { kind: 'classroom_entry' }) : { kind: 'login' };
+  }
+  if (path === '/auth/google' || path === '/auth/sso') {
+    return role ? (role === 'super_admin' ? { kind: 'admin', section: 'overview' } : { kind: 'classroom_entry' }) : { kind: 'google_auth' };
+  }
+  if (path === '/auth/callback') {
+    return role ? (role === 'super_admin' ? { kind: 'admin', section: 'overview' } : { kind: 'classroom_entry' }) : { kind: 'auth_callback' };
   }
   if (path === '/pending-approval') return { kind: 'pending_approval' };
   if (path === '/access-denied') return { kind: 'access_denied' };

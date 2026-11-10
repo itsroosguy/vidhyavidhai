@@ -493,7 +493,7 @@
   }
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+:where(a, button, input, select, textarea, summary, [tabindex="0"]):focus-visible {
   outline: 2px solid var(--ct-accent-azure-ink);
   outline-offset: 2px;
 }

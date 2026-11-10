@@ -18,6 +18,16 @@ describe('SPA route base path normalization', () => {
     expect(parseAppRoute('/admin/analytics', 'facilitator', '/')).toEqual({
       kind: 'access_denied',
     });
+    expect(parseAppRoute('/auth/google', null, '/')).toEqual({ kind: 'google_auth' });
+    expect(parseAppRoute('/auth/sso', null, '/')).toEqual({ kind: 'google_auth' });
+    expect(parseAppRoute('/auth/callback', null, '/')).toEqual({ kind: 'auth_callback' });
+    expect(parseAppRoute('/auth/google', 'super_admin', '/')).toEqual({
+      kind: 'admin',
+      section: 'overview',
+    });
+    expect(parseAppRoute('/auth/google', 'facilitator', '/')).toEqual({
+      kind: 'classroom_entry',
+    });
   });
 
   it('handles GitHub Pages project subpath (/vidhyavidhai/) cleanly', () => {
@@ -39,6 +49,12 @@ describe('SPA route base path normalization', () => {
     expect(parseAppRoute('/vidhyavidhai/', 'super_admin', base)).toEqual({
       kind: 'admin',
       section: 'overview',
+    });
+    expect(parseAppRoute('/vidhyavidhai/auth/google', null, base)).toEqual({
+      kind: 'google_auth',
+    });
+    expect(parseAppRoute('/vidhyavidhai/auth/callback', null, base)).toEqual({
+      kind: 'auth_callback',
     });
     expect(parseAppRoute('/vidhyavidhai/admin/google-sheets-sync', 'super_admin', base)).toEqual({
       kind: 'admin',
