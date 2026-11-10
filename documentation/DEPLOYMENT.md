@@ -65,10 +65,10 @@ Verified bundle layout (Vite production build):
 
 Google Identity Services requires **HTTPS** in production (`http://localhost` works locally). Deploy `frontend/dist/` to any static CDN/host:
 
-- **GitHub Pages (included workflow [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)):**
-  - In GitHub Repository **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions** (or **Deploy from a branch → `gh-pages` / `(root)`** if publishing via branch).
-  - The workflow uses `actions/configure-pages@v5` so `VITE_BASE_PATH` automatically switches between `/vidhyavidhai/` (`https://itsroosguy.github.io/vidhyavidhai/`) and `/` when a custom domain (e.g., `vidhyavidhai.roosstudiox.com`) is configured, while [`vite.config.ts`](../frontend/vite.config.ts) generates `404.html` and `.nojekyll` automatically for SPA deep links.
-  - To connect live Google OAuth + Apps Script in GitHub Actions, set `VITE_APPS_SCRIPT_URL` and `VITE_GOOGLE_CLIENT_ID` under **Settings → Secrets and variables → Actions → Variables**.
+- **GitHub Pages (`gh-pages` branch + custom domain `vidhyavidhai.roosstudiox.com`):**
+  - Build `frontend/dist/` using [`vite.config.ts`](../frontend/vite.config.ts) (`VITE_BASE_PATH=/` for custom domains like `vidhyavidhai.roosstudiox.com`, or `VITE_BASE_PATH=/vidhyavidhai/` if serving directly from `https://<username>.github.io/vidhyavidhai/`). The [`npm run build`](../frontend/package.json) script generates `404.html` and `.nojekyll` automatically for SPA deep links.
+  - Publish the built `frontend/dist/` contents (plus [`CNAME`](../CNAME)) to the `gh-pages` branch, and in GitHub Repository **Settings → Pages → Build and deployment**, set **Source** to **Deploy from a branch** → **`gh-pages` / `/(root)`**.
+  - Wait for Squarespace DNS `CNAME vidhyavidhai -> itsroosguy.github.io` propagation and enable **Enforce HTTPS** once GitHub provisions the TLS certificate.
 - **Firebase Hosting:**
   - Set `public: "frontend/dist"` and SPA rewrite `"source": "**", "destination": "/index.html"` in `firebase.json`.
   - Run `firebase deploy --only hosting`.
