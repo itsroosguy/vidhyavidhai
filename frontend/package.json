@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node -e \"const fs=require('node:fs');if(fs.existsSync('dist/index.html')){fs.copyFileSync('dist/index.html','dist/404.html');fs.writeFileSync('dist/.nojekyll','');}\"",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

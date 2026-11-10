@@ -125,13 +125,56 @@ const RESTRICTED_PREFIXES = [
   '/audit',
 ];
 
-export function normalizePathname(rawPathname: string): string {
-  const cleaned = rawPathname.trim().replace(/\/+$/, '') || '/';
-  return cleaned.toLowerCase();
+export function normalizeBasePrefix(
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): string {
+  const trimmed = baseUrl.trim();
+  if (!trimmed || trimmed === '/') return '';
+  const cleaned = trimmed.replace(/^\/+|\/+$/g, '');
+  return cleaned ? `/${cleaned}` : '';
 }
 
-export function isAdminOnlyPath(rawPathname: string): boolean {
-  const path = normalizePathname(rawPathname);
+export function stripBasePath(
+  rawPathname: string,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): string {
+  const prefix = normalizeBasePrefix(baseUrl).toLowerCase();
+  const cleaned = rawPathname.trim().replace(/\/+$/, '') || '/';
+  const lower = cleaned.toLowerCase();
+  if (prefix && (lower === prefix || lower.startsWith(`${prefix}/`))) {
+    const stripped = cleaned.slice(prefix.length);
+    return stripped || '/';
+  }
+  return cleaned;
+}
+
+export function withBasePath(
+  appPath: string,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): string {
+  const prefix = normalizeBasePrefix(baseUrl);
+  const normalizedApp = appPath.startsWith('/') ? appPath : `/${appPath}`;
+  if (!prefix) return normalizedApp;
+  const lowerApp = normalizedApp.toLowerCase();
+  const lowerPrefix = prefix.toLowerCase();
+  if (lowerApp === lowerPrefix || lowerApp.startsWith(`${lowerPrefix}/`)) {
+    return normalizedApp;
+  }
+  return normalizedApp === '/' ? `${prefix}/` : `${prefix}${normalizedApp}`;
+}
+
+export function normalizePathname(
+  rawPathname: string,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): string {
+  return stripBasePath(rawPathname, baseUrl).toLowerCase();
+}
+
+export function isAdminOnlyPath(
+  rawPathname: string,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): boolean {
+  const path = normalizePathname(rawPathname, baseUrl);
   return RESTRICTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
@@ -139,8 +182,11 @@ export function getDefaultPathForRole(role: UserRole): string {
   return role === 'super_admin' ? '/admin/overview' : '/classroom-entry';
 }
 
-export function resolveAdminSectionFromPath(rawPathname: string): AdminSectionSlug {
-  const path = normalizePathname(rawPathname);
+export function resolveAdminSectionFromPath(
+  rawPathname: string,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): AdminSectionSlug {
+  const path = normalizePathname(rawPathname, baseUrl);
   if (path.startsWith('/admin/')) {
     const slug = path.slice('/admin/'.length).split('/')[0] ?? 'overview';
     if (ADMIN_SLUG_SET.has(slug)) return slug as AdminSectionSlug;
@@ -159,8 +205,12 @@ export function resolveAdminSectionFromPath(rawPathname: string): AdminSectionSl
   return 'overview';
 }
 
-export function parseAppRoute(rawPathname: string, role?: UserRole | null): AppRoute {
-  const path = normalizePathname(rawPathname);
+export function parseAppRoute(
+  rawPathname: string,
+  role?: UserRole | null,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): AppRoute {
+  const path = normalizePathname(rawPathname, baseUrl);
 
   if (path === '/login') {
     return role ? (role === 'super_admin' ? { kind: 'admin', section: 'overview' } : { kind: 'classroom_entry' }) : { kind: 'login' };
@@ -170,11 +220,11 @@ export function parseAppRoute(rawPathname: string, role?: UserRole | null): AppR
   if (path === '/my-classes') return { kind: 'my_classes' };
   if (path === '/classroom-entry') return { kind: 'classroom_entry' };
 
-  if (isAdminOnlyPath(path)) {
+  if (isAdminOnlyPath(path, baseUrl)) {
     if (role !== 'super_admin') {
       return { kind: 'access_denied' };
     }
-    return { kind: 'admin', section: resolveAdminSectionFromPath(path) };
+    return { kind: 'admin', section: resolveAdminSectionFromPath(path, baseUrl) };
   }
 
   if (role === 'super_admin') {
@@ -183,13 +233,18 @@ export function parseAppRoute(rawPathname: string, role?: UserRole | null): AppR
   return { kind: 'classroom_entry' };
 }
 
-export function navigateToPath(path: string, replace = false): void {
+export function navigateToPath(
+  path: string,
+  replace = false,
+  baseUrl: string = import.meta.env.BASE_URL || '/',
+): void {
   if (typeof window === 'undefined') return;
+  const targetPath = withBasePath(path, baseUrl);
   const current = `${window.location.pathname}${window.location.search}`;
-  if (current === path) return;
+  if (current === targetPath) return;
   if (replace) {
-    window.history.replaceState(null, '', path);
+    window.history.replaceState(null, '', targetPath);
   } else {
-    window.history.pushState(null, '', path);
+    window.history.pushState(null, '', targetPath);
   }
 }

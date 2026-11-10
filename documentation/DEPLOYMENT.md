@@ -65,6 +65,10 @@ Verified bundle layout (Vite production build):
 
 Google Identity Services requires **HTTPS** in production (`http://localhost` works locally). Deploy `frontend/dist/` to any static CDN/host:
 
+- **GitHub Pages (included workflow [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)):**
+  - In GitHub Repository **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions** (or **Deploy from a branch → `gh-pages` / `(root)`** if publishing via branch).
+  - The workflow uses `actions/configure-pages@v5` so `VITE_BASE_PATH` automatically switches between `/vidhyavidhai/` (`https://itsroosguy.github.io/vidhyavidhai/`) and `/` when a custom domain (e.g., `vidhyavidhai.roosstudiox.com`) is configured, while [`vite.config.ts`](../frontend/vite.config.ts) generates `404.html` and `.nojekyll` automatically for SPA deep links.
+  - To connect live Google OAuth + Apps Script in GitHub Actions, set `VITE_APPS_SCRIPT_URL` and `VITE_GOOGLE_CLIENT_ID` under **Settings → Secrets and variables → Actions → Variables**.
 - **Firebase Hosting:**
   - Set `public: "frontend/dist"` and SPA rewrite `"source": "**", "destination": "/index.html"` in `firebase.json`.
   - Run `firebase deploy --only hosting`.

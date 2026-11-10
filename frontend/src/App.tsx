@@ -31,6 +31,7 @@ import {
   getDefaultPathForRole,
   navigateToPath,
   parseAppRoute,
+  stripBasePath,
   type AdminSectionSlug,
 } from './utils/routes';
 
@@ -52,7 +53,7 @@ export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authNotice, setAuthNotice] = useState<AuthNoticeState | null>(null);
   const [currentPath, setCurrentPath] = useState<string>(() =>
-    typeof window !== 'undefined' ? window.location.pathname || '/' : '/',
+    typeof window !== 'undefined' ? stripBasePath(window.location.pathname || '/') : '/',
   );
   const [config, setConfig] = useState<AppConfiguration>(DEFAULT_APP_CONFIGURATION);
   const [editingSession, setEditingSession] = useState<SessionRecord | null>(null);
@@ -68,13 +69,13 @@ export function App() {
 
   const navigate = useCallback((nextPath: string, replace = false) => {
     navigateToPath(nextPath, replace);
-    setCurrentPath(nextPath);
+    setCurrentPath(stripBasePath(nextPath));
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      setCurrentPath(stripBasePath(window.location.pathname || '/'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
