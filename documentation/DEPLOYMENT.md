@@ -65,10 +65,10 @@ Verified bundle layout (Vite production build):
 
 Google Identity Services requires **HTTPS** in production (`http://localhost` works locally). Deploy `frontend/dist/` to any static CDN/host:
 
-- **GitHub Pages (`gh-pages` branch + custom domain `vidhyavidhai.roosstudiox.com`):**
+- **GitHub Pages (`main` root or `gh-pages` branch + custom domain `vidhyavidhai.roosstudiox.com`):**
   - Build `frontend/dist/` using [`vite.config.ts`](../frontend/vite.config.ts) (`VITE_BASE_PATH=/` for custom domains like `vidhyavidhai.roosstudiox.com`, or `VITE_BASE_PATH=/vidhyavidhai/` if serving directly from `https://<username>.github.io/vidhyavidhai/`). The [`npm run build`](../frontend/package.json) script generates `404.html` and `.nojekyll` automatically for SPA deep links.
-  - Publish the built `frontend/dist/` contents (plus [`CNAME`](../CNAME)) to the `gh-pages` branch, and in GitHub Repository **Settings → Pages → Build and deployment**, set **Source** to **Deploy from a branch** → **`gh-pages` / `/(root)`**.
-  - Wait for Squarespace DNS `CNAME vidhyavidhai -> itsroosguy.github.io` propagation and enable **Enforce HTTPS** once GitHub provisions the TLS certificate.
+  - Both repository root (`/` on `main`) and the `gh-pages` branch contain the synced static bundle (`index.html`, `404.html`, `.nojekyll`, `assets/`, [`CNAME`](../CNAME)), so either `Deploy from a branch -> main / (root)` or `Deploy from a branch -> gh-pages / (root)` serves the app cleanly. After any future `frontend/` update, re-run `VITE_BASE_PATH=/ npm run build` and sync `frontend/dist/` to root/`gh-pages`.
+  - Once GitHub finishes DNS verification for `vidhyavidhai.roosstudiox.com` (`CNAME -> itsroosguy.github.io`) and provisions the TLS certificate, enable **Enforce HTTPS** in **Settings → Pages**.
 - **Firebase Hosting:**
   - Set `public: "frontend/dist"` and SPA rewrite `"source": "**", "destination": "/index.html"` in `firebase.json`.
   - Run `firebase deploy --only hosting`.
