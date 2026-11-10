@@ -149,9 +149,13 @@ var CT_SCHEMA_DEFINITIONS = [
   }
 ];
 
-function initializeDatabase() {
-  var ss = ctGetSpreadsheet_();
+function ctInitializeSpreadsheetObject_(ss, optActorEmail) {
+  if (!ss) {
+    throw ctApiError_('INVALID_SPREADSHEET', 'A valid Google Spreadsheet instance is required.');
+  }
+  var actorLabel = String(optActorEmail || 'SYSTEM_INIT');
   var nowIso = ctNowIso_();
+  var initializedTabs = [];
 
   for (var i = 0; i < CT_SCHEMA_DEFINITIONS.length; i++) {
     var def = CT_SCHEMA_DEFINITIONS[i];
@@ -185,6 +189,7 @@ function initializeDatabase() {
       var colIdx = def.textColumns[c];
       sheet.getRange(1, colIdx, maxRows, 1).setNumberFormat('@');
     }
+    initializedTabs.push(def.name);
   }
 
   // Seed default configuration keys ONLY if missing (never overwrite custom admin edits)
@@ -218,14 +223,38 @@ function initializeDatabase() {
 
   for (var sIdx = 0; sIdx < seedPairs.length; sIdx++) {
     if (!existingKeys[seedPairs[sIdx][0]]) {
-      ctUpsertConfigKey_(cfgSheet, seedPairs[sIdx][0], seedPairs[sIdx][1], 'SYSTEM_INIT');
+      ctUpsertConfigKey_(cfgSheet, seedPairs[sIdx][0], seedPairs[sIdx][1], actorLabel);
     }
   }
 
   // Idempotently ensure the two protected initial SUPER_ADMIN accounts exist in Admin Users (zero passwords stored)
   var initialSuperAdmins = ctGetInitialSuperAdmins_();
   var adminSheet = ss.getSheetByName(SHEET_NAMES.ADMIN_USERS);
-  var existingAdmins = ctReadUserRowsFromSheet_(SHEET_NAMES.ADMIN_USERS);
+  var existingAdmins = [];
+  var adminLastRow = adminSheet.getLastRow();
+  if (adminLastRow >= 2) {
+    var adminVals = adminSheet.getRange(2, 1, adminLastRow - 1, 8).getValues();
+    for (var av = 0; av < adminVals.length; av++) {
+      var admRow = adminVals[av];
+      var admEmail = String(admRow[2] || '').trim().toLowerCase();
+      if (!admEmail) continue;
+      var activeRaw = admRow[4];
+      var activeBool =
+        activeRaw === true ||
+        String(activeRaw).trim().toLowerCase() === 'true' ||
+        String(activeRaw).trim() === '1';
+      existingAdmins.push({
+        rowNumber: av + 2,
+        userId: String(admRow[0] || '').trim(),
+        name: String(admRow[1] || '').trim(),
+        email: admEmail,
+        role: String(admRow[3] || '').trim().toLowerCase(),
+        active: activeBool,
+        createdAt: String(admRow[5] || ''),
+        status: String(admRow[7] || '').trim().toUpperCase()
+      });
+    }
+  }
 
   for (var saIdx = 0; saIdx < initialSuperAdmins.length; saIdx++) {
     var sa = initialSuperAdmins[saIdx];
@@ -272,5 +301,11 @@ function initializeDatabase() {
   }
 
   ctInvalidateConfigCache_();
-  return 'Career Tours database initialized cleanly at ' + nowIso;
+  return initializedTabs;
+}
+
+function initializeDatabase() {
+  var ss = ctGetSpreadsheet_();
+  ctInitializeSpreadsheetObject_(ss, 'SYSTEM_INIT');
+  return 'Career Tours database initialized cleanly at ' + ctNowIso_();
 }

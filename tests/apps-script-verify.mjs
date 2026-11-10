@@ -9,7 +9,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APPS_SCRIPT_DIR = path.resolve(__dirname, '../apps-script');
 
 function createAppsScriptSandbox() {
-  const sheets = new Map();
   let lockAcquiredCount = 0;
   let lockReleasedCount = 0;
 
@@ -90,16 +89,46 @@ function createAppsScriptSandbox() {
     return sheetObj;
   }
 
-  const spreadsheet = {
-    getSheetByName(name) {
-      return sheets.get(name) || null;
-    },
-    insertSheet(name) {
-      const s = createSheetObj(name);
-      sheets.set(name, s);
-      return s;
-    },
-  };
+  function createSpreadsheetObj(id, name, initialTabName = null) {
+    const ssSheets = new Map();
+    if (initialTabName) {
+      ssSheets.set(initialTabName, createSheetObj(initialTabName));
+    }
+    return {
+      _id: id,
+      _name: name,
+      _sheets: ssSheets,
+      getId() {
+        return id;
+      },
+      getName() {
+        return name;
+      },
+      getUrl() {
+        return `https://docs.google.com/spreadsheets/d/${id}/edit`;
+      },
+      getSheetByName(tabName) {
+        return ssSheets.get(tabName) || null;
+      },
+      insertSheet(tabName) {
+        const s = createSheetObj(tabName);
+        ssSheets.set(tabName, s);
+        return s;
+      },
+    };
+  }
+
+  const spreadsheet = createSpreadsheetObj('TEST_SHEET_ID', 'Initial Bound Sheet');
+  const sheets = spreadsheet._sheets;
+  const targetSheet = createSpreadsheetObj(
+    '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE',
+    'Vidhya Vidhai Official Target',
+    'Sheet1',
+  );
+  const spreadsheetsById = new Map([
+    ['TEST_SHEET_ID', spreadsheet],
+    ['1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE', targetSheet],
+  ]);
 
   const scriptProps = new Map([
     ['SPREADSHEET_ID', 'TEST_SHEET_ID'],
@@ -187,10 +216,22 @@ function createAppsScriptSandbox() {
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: (k) => scriptProps.get(k) ?? null,
+        setProperty: (k, v) => scriptProps.set(k, String(v)),
+        deleteProperty: (k) => scriptProps.delete(k),
       }),
     },
     SpreadsheetApp: {
-      openById: () => spreadsheet,
+      openById: (id) => {
+        const found = spreadsheetsById.get(id);
+        if (!found) throw new Error(`Spreadsheet not found: ${id}`);
+        return found;
+      },
+      create: (title) => {
+        const newId = `CREATED_${spreadsheetsById.size + 1}`;
+        const created = createSpreadsheetObj(newId, title, 'Sheet1');
+        spreadsheetsById.set(newId, created);
+        return created;
+      },
       getActiveSpreadsheet: () => spreadsheet,
       flush: () => undefined,
     },
@@ -278,6 +319,7 @@ function createAppsScriptSandbox() {
   return {
     sandbox,
     sheets,
+    spreadsheetsById,
     getLockStats: () => ({ lockAcquiredCount, lockReleasedCount }),
     callApi(action, idToken, payload = {}) {
       const out = sandbox.doPost({
@@ -435,6 +477,11 @@ function runVerification() {
     ['searchSchools', { query: 'GHSS' }],
     ['saveAppConfiguration', { config: { partnerName: 'Tampered' } }],
     ['importBlockMaster', { entries: [{ district: 'Cuddalore', block: 'Test', active: true }] }],
+    ['getSheetsConnection', {}],
+    ['connectGoogleSheet', { spreadsheetUrlOrId: '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE' }],
+    ['createGoogleSheet', { title: 'Unauthorized Sheet' }],
+    ['disconnectGoogleSheet', {}],
+    ['syncAllToGoogleSheet', {}],
   ]) {
     const res = ctx.callApi(action, 'TOKEN_FAC_1', payload);
     assert.equal(res.ok, false, `Expected ${action} to be forbidden for facilitator`);
@@ -542,9 +589,57 @@ function runVerification() {
   assert.equal(adminCorrect.data.session.submissionStatus, 'CORRECTED');
   assert.equal(ctx.sheets.get('Session Details').getLastRow(), 2);
 
-  // 12. LockService balanced release + Audit & Sync logs verified
+  // 12. Google Sheets Connection management RPCs (connect target URL, sync idempotently, create new, disconnect non-destructively)
+  const connRes = ctx.callApi('connectGoogleSheet', 'TOKEN_SA_1', {
+    spreadsheetUrlOrId:
+      'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0',
+    initializeSchema: true,
+  });
+  assert.equal(connRes.ok, true);
+  assert.equal(connRes.data.connected, true);
+  assert.equal(connRes.data.spreadsheetId, '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+  assert.equal(connRes.data.initializedTabs.length, 8);
+  const targetSs = ctx.spreadsheetsById.get('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+  for (const tabName of expectedSheets) {
+    assert.ok(targetSs.getSheetByName(tabName), `Expected initialized tab ${tabName} on target sheet`);
+  }
+
+  // Sync created session twice -> second sync must skip duplicates and avoid overwrites
+  const firstSync = ctx.callApi('syncAllToGoogleSheet', 'TOKEN_SA_1', {
+    sessions: [adminCorrect.data.session],
+  });
+  assert.equal(firstSync.ok, true);
+  assert.equal(firstSync.data.syncedCount, 1);
+  assert.equal(firstSync.data.skippedDuplicates, 0);
+
+  const secondSync = ctx.callApi('syncAllToGoogleSheet', 'TOKEN_SA_2', {
+    sessions: [adminCorrect.data.session],
+  });
+  assert.equal(secondSync.ok, true);
+  assert.equal(secondSync.data.syncedCount, 0);
+  assert.equal(secondSync.data.skippedDuplicates, 1);
+
+  // Create new sheet & initialize schema
+  const createdRes = ctx.callApi('createGoogleSheet', 'TOKEN_SA_2', {
+    title: 'Vidhya Vidhai · Fresh Sheet 2026',
+  });
+  assert.equal(createdRes.ok, true);
+  assert.equal(createdRes.data.connected, true);
+  assert.equal(createdRes.data.spreadsheetName, 'Vidhya Vidhai · Fresh Sheet 2026');
+  assert.equal(createdRes.data.initializedTabs.length, 8);
+
+  // Disconnect non-destructively -> state becomes disconnected while sheet tabs stay intact
+  const discRes = ctx.callApi('disconnectGoogleSheet', 'TOKEN_SA_1', {});
+  assert.equal(discRes.ok, true);
+  assert.equal(discRes.data.connected, false);
+  const statusAfterDisc = ctx.callApi('getSheetsConnection', 'TOKEN_SA_1', {});
+  assert.equal(statusAfterDisc.ok, true);
+  assert.equal(statusAfterDisc.data.connected, false);
+  assert.ok(targetSs.getSheetByName('Sessions').getLastRow() >= 2);
+
+  // 13. LockService balanced release + Audit & Sync logs verified
   const lockStats = ctx.getLockStats();
-  assert.ok(lockStats.lockAcquiredCount >= 4);
+  assert.ok(lockStats.lockAcquiredCount >= 8);
   assert.equal(lockStats.lockAcquiredCount, lockStats.lockReleasedCount);
 
   const auditRes = ctx.callApi('getAuditLogs', 'TOKEN_SA_1', { page: 1, pageSize: 50 });
@@ -553,7 +648,7 @@ function runVerification() {
   assert.equal(syncLogRes.ok, true);
 
   console.log(
-    `Apps Script RBAC & backend verification passed: ${expectedSheets.length} sheets, dual Super Admins verified, ${lockStats.lockAcquiredCount} locked mutations balanced cleanly, zero passwords, approval flow & strict facilitator isolation verified.`,
+    `Apps Script RBAC & backend verification passed: ${expectedSheets.length} sheets, dual Super Admins verified, Google Sheets connect/create/sync/disconnect verified, ${lockStats.lockAcquiredCount} locked mutations balanced cleanly.`,
   );
 }
 

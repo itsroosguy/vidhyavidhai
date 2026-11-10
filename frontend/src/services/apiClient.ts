@@ -3,7 +3,10 @@ import { calculateSessionMetrics } from '../calculations/metrics';
 import { INITIAL_SUPER_ADMINS, isAllowlistedSuperAdmin, normalizeEmail } from '../config/accessControl';
 import {
   DEFAULT_APP_CONFIGURATION,
+  DEFAULT_TARGET_SPREADSHEET_ID,
+  DEFAULT_TARGET_SPREADSHEET_URL,
   generateUuid,
+  parseGoogleSpreadsheetId,
 } from '../config/defaults';
 import type {
   ApiResponse,
@@ -11,6 +14,8 @@ import type {
   AuditLogEntry,
   DashboardAnalytics,
   DistrictBlockEntry,
+  GoogleSheetsConnectionState,
+  GoogleSpreadsheetSummary,
   ManagedUser,
   PaginatedResult,
   SchoolRecord,
@@ -18,6 +23,7 @@ import type {
   SessionFormValues,
   SessionQueryFilters,
   SessionRecord,
+  SheetsSyncSummary,
   SyncLogEntry,
   UserApprovalStatus,
   UserProfile,
@@ -79,16 +85,69 @@ export interface BackendApiClient {
   getAuditLogs(page?: number, pageSize?: number): Promise<ApiResponse<PaginatedResult<AuditLogEntry>>>;
   getSyncLogs(page?: number, pageSize?: number): Promise<ApiResponse<PaginatedResult<SyncLogEntry>>>;
   logExportEvent(scope: string, rowCount: number, format: string): Promise<ApiResponse<{ logged: boolean }>>;
+  getSheetsConnection(): Promise<ApiResponse<GoogleSheetsConnectionState>>;
+  listGoogleSpreadsheets(): Promise<ApiResponse<GoogleSpreadsheetSummary[]>>;
+  connectGoogleSheet(params: {
+    spreadsheetUrlOrId: string;
+    spreadsheetName?: string;
+    initializeSchema?: boolean;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>>;
+  createGoogleSheet(params: {
+    title: string;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>>;
+  disconnectGoogleSheet(): Promise<ApiResponse<GoogleSheetsConnectionState>>;
+  syncAllToGoogleSheet(): Promise<ApiResponse<SheetsSyncSummary>>;
+  getSheetsOAuthStartUrl?(loginHint?: string): string | null;
+}
+
+const DEFAULT_SCHEMA_TABS = [
+  'Sessions',
+  'Session Details',
+  'Facilitators',
+  'Schools',
+  'Configuration',
+  'Admin Users',
+  'Audit Log',
+  'Sync Log',
+];
+
+const SANDBOX_SHEETS_CONN_KEY = 'ct_sandbox_sheets_conn_v1';
+
+function buildDisconnectedState(
+  authMethod: GoogleSheetsConnectionState['authMethod'],
+  oauthConfigured = false,
+): GoogleSheetsConnectionState {
+  return {
+    connected: false,
+    authMethod,
+    oauthConfigured,
+    connectedAccount: '',
+    spreadsheetId: '',
+    spreadsheetName: '',
+    spreadsheetUrl: '',
+    connectedAt: '',
+    connectedBy: '',
+    lastSyncedAt: '',
+    lastSyncStatus: 'IDLE',
+    lastSyncMessage: '',
+    initializedTabs: [],
+    defaultSpreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+    defaultSpreadsheetUrl: DEFAULT_TARGET_SPREADSHEET_URL,
+  };
 }
 
 class AppsScriptApiClient implements BackendApiClient {
   mode = 'apps_script' as const;
   private url: string;
+  private sheetsBackendUrl: string;
   private getIdToken: () => string | undefined;
 
-  constructor(url: string, getIdToken: () => string | undefined) {
+  constructor(url: string, getIdToken: () => string | undefined, sheetsBackendUrl = '') {
     this.url = url;
     this.getIdToken = getIdToken;
+    this.sheetsBackendUrl = sheetsBackendUrl;
   }
 
   async pingHealth(): Promise<ApiResponse<BackendHealthInfo>> {
@@ -229,6 +288,156 @@ class AppsScriptApiClient implements BackendApiClient {
   logExportEvent(scope: string, rowCount: number, format: string) {
     return this.call<{ logged: boolean }>('logExportEvent', { scope, rowCount, format });
   }
+
+  getSheetsOAuthStartUrl(loginHint?: string): string | null {
+    if (!this.sheetsBackendUrl) return null;
+    const base = this.sheetsBackendUrl.replace(/\/$/, '');
+    const q = new URLSearchParams({ action: 'oauthStart' });
+    if (loginHint) q.set('login_hint', loginHint);
+    return `${base}?${q.toString()}`;
+  }
+
+  private async callSheetsBackend<T>(
+    method: 'GET' | 'POST',
+    action: string,
+    payload: Record<string, unknown> = {},
+  ): Promise<ApiResponse<T>> {
+    const base = this.sheetsBackendUrl.replace(/\/$/, '');
+    const idToken = this.getIdToken();
+    try {
+      const url = method === 'GET' ? `${base}?action=${encodeURIComponent(action)}` : base;
+      const res = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: {
+          ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: method === 'POST' ? JSON.stringify({ action, ...payload }) : undefined,
+      });
+      return (await res.json()) as ApiResponse<T>;
+    } catch (err) {
+      return {
+        ok: false,
+        code: 'NETWORK_ERROR',
+        error: err instanceof Error ? err.message : 'Unable to reach OAuth Google Sheets backend.',
+      };
+    }
+  }
+
+  async getSheetsConnection(): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    if (this.sheetsBackendUrl) {
+      const oauthRes = await this.callSheetsBackend<GoogleSheetsConnectionState>('GET', 'status');
+      if (oauthRes.ok && oauthRes.data?.connected) {
+        return oauthRes;
+      }
+      const asRes = await this.call<GoogleSheetsConnectionState>('getSheetsConnection');
+      if (asRes.ok && asRes.data) {
+        return {
+          ok: true,
+          data: {
+            ...asRes.data,
+            oauthConfigured: Boolean(oauthRes.data?.oauthConfigured),
+            connectedAccount:
+              asRes.data.connectedAccount || oauthRes.data?.connectedAccount || '',
+          },
+        };
+      }
+      return oauthRes;
+    }
+    return this.call<GoogleSheetsConnectionState>('getSheetsConnection');
+  }
+
+  async listGoogleSpreadsheets(): Promise<ApiResponse<GoogleSpreadsheetSummary[]>> {
+    if (this.sheetsBackendUrl) {
+      return this.callSheetsBackend<GoogleSpreadsheetSummary[]>('POST', 'listSpreadsheets');
+    }
+    const current = await this.call<GoogleSheetsConnectionState>('getSheetsConnection');
+    if (current.ok && current.data?.connected && current.data.spreadsheetId) {
+      return {
+        ok: true,
+        data: [
+          {
+            spreadsheetId: current.data.spreadsheetId,
+            name: current.data.spreadsheetName,
+            url: current.data.spreadsheetUrl,
+          },
+        ],
+      };
+    }
+    return {
+      ok: true,
+      data: [
+        {
+          spreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+          name: 'Vidhya Vidhai · Target Career Tours Sheet',
+          url: DEFAULT_TARGET_SPREADSHEET_URL,
+        },
+      ],
+    };
+  }
+
+  async connectGoogleSheet(params: {
+    spreadsheetUrlOrId: string;
+    spreadsheetName?: string;
+    initializeSchema?: boolean;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    if (this.sheetsBackendUrl) {
+      const oauthStatus = await this.callSheetsBackend<GoogleSheetsConnectionState>('GET', 'status');
+      if (oauthStatus.ok && oauthStatus.data?.oauthConfigured) {
+        return this.callSheetsBackend<GoogleSheetsConnectionState>('POST', 'connect', params);
+      }
+    }
+    return this.call<GoogleSheetsConnectionState>('connectGoogleSheet', params);
+  }
+
+  async createGoogleSheet(params: {
+    title: string;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    if (this.sheetsBackendUrl) {
+      const oauthStatus = await this.callSheetsBackend<GoogleSheetsConnectionState>('GET', 'status');
+      if (oauthStatus.ok && oauthStatus.data?.oauthConfigured) {
+        return this.callSheetsBackend<GoogleSheetsConnectionState>('POST', 'create', params);
+      }
+    }
+    return this.call<GoogleSheetsConnectionState>('createGoogleSheet', params);
+  }
+
+  async disconnectGoogleSheet(): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    if (this.sheetsBackendUrl) {
+      const oauthStatus = await this.callSheetsBackend<GoogleSheetsConnectionState>('GET', 'status');
+      if (oauthStatus.ok && oauthStatus.data?.oauthConfigured && oauthStatus.data.connected) {
+        await this.callSheetsBackend<GoogleSheetsConnectionState>('POST', 'disconnect');
+      }
+    }
+    return this.call<GoogleSheetsConnectionState>('disconnectGoogleSheet');
+  }
+
+  async syncAllToGoogleSheet(): Promise<ApiResponse<SheetsSyncSummary>> {
+    if (this.sheetsBackendUrl) {
+      const oauthStatus = await this.callSheetsBackend<GoogleSheetsConnectionState>('GET', 'status');
+      if (oauthStatus.ok && oauthStatus.data?.oauthConfigured && oauthStatus.data.connected) {
+        const collected: SessionRecord[] = [];
+        let page = 1;
+        let totalPages = 1;
+        do {
+          const allRes = await this.call<PaginatedResult<SessionRecord>>('getAdminSessions', {
+            filters: { includeArchived: true, page, pageSize: 100 },
+          });
+          if (!allRes.ok || !allRes.data) break;
+          collected.push(...allRes.data.items);
+          totalPages = allRes.data.totalPages || 1;
+          page++;
+        } while (page <= totalPages);
+        return this.callSheetsBackend<SheetsSyncSummary>('POST', 'sync', {
+          sessions: collected,
+        });
+      }
+    }
+    return this.call<SheetsSyncSummary>('syncAllToGoogleSheet', {});
+  }
 }
 
 /**
@@ -246,11 +455,15 @@ export class LocalSandboxApiClient implements BackendApiClient {
   private schools: SchoolRecord[] = [];
   private auditLogs: AuditLogEntry[] = [];
   private syncLogs: SyncLogEntry[] = [];
+  private syncedSessionKeys: Set<string> = new Set();
   private lockQueue: Promise<void> = Promise.resolve();
   private simulatePartialFailureOnce = false;
+  private sheetsConnection: GoogleSheetsConnectionState;
+  private sheetsBackendUrl: string;
 
-  constructor(getActorId: () => string, initialConfig?: Partial<AppConfiguration>) {
+  constructor(getActorId: () => string, initialConfig?: Partial<AppConfiguration>, sheetsBackendUrl = '') {
     this.getActorId = getActorId;
+    this.sheetsBackendUrl = sheetsBackendUrl;
     this.config = {
       ...DEFAULT_APP_CONFIGURATION,
       ...initialConfig,
@@ -267,6 +480,46 @@ export class LocalSandboxApiClient implements BackendApiClient {
       createdAt: now,
       updatedAt: now,
     }));
+
+    this.sheetsConnection = this.loadPersistedSheetsConnection();
+  }
+
+  private loadPersistedSheetsConnection(): GoogleSheetsConnectionState {
+    if (typeof localStorage === 'undefined') {
+      return this.sheetsConnection ?? buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl));
+    }
+    try {
+      const raw = localStorage.getItem(SANDBOX_SHEETS_CONN_KEY);
+      if (!raw) {
+        return buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl));
+      }
+      const parsed = JSON.parse(raw) as Partial<GoogleSheetsConnectionState>;
+      if (!parsed || typeof parsed.connected !== 'boolean') {
+        return buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl));
+      }
+      return {
+        ...buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl)),
+        ...parsed,
+        defaultSpreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+        defaultSpreadsheetUrl: DEFAULT_TARGET_SPREADSHEET_URL,
+      };
+    } catch {
+      return buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl));
+    }
+  }
+
+  private savePersistedSheetsConnection(next: GoogleSheetsConnectionState): void {
+    this.sheetsConnection = next;
+    if (typeof localStorage === 'undefined') return;
+    try {
+      if (!next.connected) {
+        localStorage.removeItem(SANDBOX_SHEETS_CONN_KEY);
+      } else {
+        localStorage.setItem(SANDBOX_SHEETS_CONN_KEY, JSON.stringify(next));
+      }
+    } catch {
+      // Ignore storage quota errors
+    }
   }
 
   async pingHealth(): Promise<ApiResponse<BackendHealthInfo>> {
@@ -1216,6 +1469,373 @@ export class LocalSandboxApiClient implements BackendApiClient {
     this.recordAudit(actor, 'EXPORT_XLSX', 'Export', scope, '', `${rowCount} rows (${format})`, 'SUCCESS');
     return { ok: true, data: { logged: true } };
   }
+
+  getSheetsOAuthStartUrl(loginHint?: string): string | null {
+    if (!this.sheetsBackendUrl) return null;
+    const base = this.sheetsBackendUrl.replace(/\/$/, '');
+    const q = new URLSearchParams({ action: 'oauthStart' });
+    if (loginHint) q.set('login_hint', loginHint);
+    return `${base}?${q.toString()}`;
+  }
+
+  async getSheetsConnection(): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    const actor = this.resolveActor();
+    if (!actor || actor.role !== 'super_admin') {
+      this.recordAudit(actor, 'VIEW_SHEETS_CONN', 'Configuration', 'SHEETS', '', 'Unauthorized sheets connection read', 'DENIED');
+      return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+    }
+    const localConn = structuredClone(this.loadPersistedSheetsConnection());
+    if (this.sheetsBackendUrl) {
+      try {
+        const res = await fetch(`${this.sheetsBackendUrl.replace(/\/$/, '')}?action=status`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const parsed = (await res.json()) as ApiResponse<GoogleSheetsConnectionState>;
+          if (parsed.ok && parsed.data) {
+            if (parsed.data.connected) {
+              return parsed;
+            }
+            return {
+              ok: true,
+              data: {
+                ...localConn,
+                oauthConfigured: parsed.data.oauthConfigured,
+                connectedAccount:
+                  localConn.connectedAccount || parsed.data.connectedAccount || '',
+              },
+            };
+          }
+        }
+      } catch {
+        // Fallback to local sandbox connection state cleanly
+      }
+    }
+    return { ok: true, data: localConn };
+  }
+
+  async listGoogleSpreadsheets(): Promise<ApiResponse<GoogleSpreadsheetSummary[]>> {
+    const actor = this.resolveActor();
+    if (!actor || actor.role !== 'super_admin') {
+      return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+    }
+    if (this.sheetsBackendUrl) {
+      try {
+        const res = await fetch(this.sheetsBackendUrl.replace(/\/$/, ''), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'listSpreadsheets' }),
+        });
+        const parsed = (await res.json()) as ApiResponse<GoogleSpreadsheetSummary[]>;
+        if (parsed.ok && parsed.data) {
+          return parsed;
+        }
+      } catch {
+        // Ignore and fallback below
+      }
+    }
+    const items: GoogleSpreadsheetSummary[] = [
+      {
+        spreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+        name: 'Vidhya Vidhai · Career Tours Sheet (Target)',
+        url: DEFAULT_TARGET_SPREADSHEET_URL,
+      },
+    ];
+    const current = this.loadPersistedSheetsConnection();
+    if (current.connected && current.spreadsheetId && current.spreadsheetId !== DEFAULT_TARGET_SPREADSHEET_ID) {
+      items.unshift({
+        spreadsheetId: current.spreadsheetId,
+        name: current.spreadsheetName,
+        url: current.spreadsheetUrl,
+      });
+    }
+    return { ok: true, data: items };
+  }
+
+  async connectGoogleSheet(params: {
+    spreadsheetUrlOrId: string;
+    spreadsheetName?: string;
+    initializeSchema?: boolean;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    return this.withMutex(async () => {
+      const actor = this.resolveActor();
+      if (!actor || actor.role !== 'super_admin') {
+        this.recordAudit(actor, 'CONNECT_GOOGLE_SHEET', 'Configuration', 'SHEETS', '', 'Unauthorized connection attempt', 'DENIED');
+        return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+      }
+
+      if (this.sheetsBackendUrl) {
+        try {
+          const res = await fetch(this.sheetsBackendUrl.replace(/\/$/, ''), {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'connect', ...params }),
+          });
+          const parsed = (await res.json()) as ApiResponse<GoogleSheetsConnectionState>;
+          if (parsed.ok && parsed.data) {
+            return parsed;
+          }
+          if (parsed.code !== 'OAUTH_REQUIRED' && parsed.code !== 'SERVER_MISCONFIGURED') {
+            return parsed;
+          }
+        } catch {
+          // Fall through cleanly to local sandbox connection
+        }
+      }
+
+      const spreadsheetId = parseGoogleSpreadsheetId(
+        params.spreadsheetUrlOrId || DEFAULT_TARGET_SPREADSHEET_ID,
+      );
+      if (!spreadsheetId) {
+        return {
+          ok: false,
+          code: 'INVALID_SPREADSHEET_ID',
+          error: 'Please enter a valid Google Spreadsheet URL or Spreadsheet ID.',
+        };
+      }
+
+      const nowIso = new Date().toISOString();
+      const account = (params.googleAccount || actor.email).trim().toLowerCase();
+      const name =
+        (params.spreadsheetName || '').trim() ||
+        (spreadsheetId === DEFAULT_TARGET_SPREADSHEET_ID
+          ? 'Vidhya Vidhai · Career Tours Database'
+          : `Career Tours Sheet (${spreadsheetId.slice(0, 8)}…)`);
+
+      const nextState: GoogleSheetsConnectionState = {
+        connected: true,
+        authMethod: 'local_sandbox',
+        oauthConfigured: Boolean(this.sheetsBackendUrl),
+        connectedAccount: account,
+        spreadsheetId,
+        spreadsheetName: name,
+        spreadsheetUrl:
+          spreadsheetId === DEFAULT_TARGET_SPREADSHEET_ID
+            ? DEFAULT_TARGET_SPREADSHEET_URL
+            : `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        connectedAt: nowIso,
+        connectedBy: actor.email,
+        lastSyncedAt: nowIso,
+        lastSyncStatus: 'SYNCED',
+        lastSyncMessage: `${this.sessions.length} session(s) staged · 8 schema tabs ready`,
+        initializedTabs: [...DEFAULT_SCHEMA_TABS],
+        defaultSpreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+        defaultSpreadsheetUrl: DEFAULT_TARGET_SPREADSHEET_URL,
+      };
+      this.syncedSessionKeys.clear();
+      for (const s of this.sessions) {
+        this.syncedSessionKeys.add(s.sessionRecordId);
+      }
+
+      this.savePersistedSheetsConnection(nextState);
+      this.recordAudit(
+        actor,
+        'CONNECT_GOOGLE_SHEET',
+        'Configuration',
+        spreadsheetId,
+        '',
+        `Connected "${name}" as ${account}`,
+        'SUCCESS',
+      );
+      return { ok: true, data: structuredClone(nextState) };
+    });
+  }
+
+  async createGoogleSheet(params: {
+    title: string;
+    googleAccount?: string;
+  }): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    return this.withMutex(async () => {
+      const actor = this.resolveActor();
+      if (!actor || actor.role !== 'super_admin') {
+        this.recordAudit(actor, 'CREATE_GOOGLE_SHEET', 'Configuration', 'SHEETS', '', 'Unauthorized sheet creation', 'DENIED');
+        return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+      }
+
+      const cleanTitle = params.title.trim();
+      if (!cleanTitle) {
+        return { ok: false, code: 'INVALID_TITLE', error: 'Spreadsheet name is required.' };
+      }
+
+      if (this.sheetsBackendUrl) {
+        try {
+          const res = await fetch(this.sheetsBackendUrl.replace(/\/$/, ''), {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'create', title: cleanTitle }),
+          });
+          const parsed = (await res.json()) as ApiResponse<GoogleSheetsConnectionState>;
+          if (parsed.ok && parsed.data) {
+            return parsed;
+          }
+          if (parsed.code !== 'OAUTH_REQUIRED' && parsed.code !== 'SERVER_MISCONFIGURED') {
+            return parsed;
+          }
+        } catch {
+          // Fall through cleanly
+        }
+      }
+
+      const newId = `SANDBOX_SHEET_${generateUuid().slice(0, 12)}`;
+      const nowIso = new Date().toISOString();
+      const account = (params.googleAccount || actor.email).trim().toLowerCase();
+      const nextState: GoogleSheetsConnectionState = {
+        connected: true,
+        authMethod: 'local_sandbox',
+        oauthConfigured: Boolean(this.sheetsBackendUrl),
+        connectedAccount: account,
+        spreadsheetId: newId,
+        spreadsheetName: cleanTitle,
+        spreadsheetUrl: DEFAULT_TARGET_SPREADSHEET_URL,
+        connectedAt: nowIso,
+        connectedBy: actor.email,
+        lastSyncedAt: nowIso,
+        lastSyncStatus: 'SYNCED',
+        lastSyncMessage: `Created "${cleanTitle}" schema (${DEFAULT_SCHEMA_TABS.length} tabs)`,
+        initializedTabs: [...DEFAULT_SCHEMA_TABS],
+        defaultSpreadsheetId: DEFAULT_TARGET_SPREADSHEET_ID,
+        defaultSpreadsheetUrl: DEFAULT_TARGET_SPREADSHEET_URL,
+      };
+      this.savePersistedSheetsConnection(nextState);
+      this.recordAudit(
+        actor,
+        'CREATE_GOOGLE_SHEET',
+        'Configuration',
+        newId,
+        '',
+        `Created "${cleanTitle}" (${account})`,
+        'SUCCESS',
+      );
+      return { ok: true, data: structuredClone(nextState) };
+    });
+  }
+
+  async disconnectGoogleSheet(): Promise<ApiResponse<GoogleSheetsConnectionState>> {
+    return this.withMutex(async () => {
+      const actor = this.resolveActor();
+      if (!actor || actor.role !== 'super_admin') {
+        this.recordAudit(actor, 'DISCONNECT_GOOGLE_SHEET', 'Configuration', 'SHEETS', '', 'Unauthorized disconnect attempt', 'DENIED');
+        return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+      }
+
+      if (this.sheetsBackendUrl) {
+        await fetch(this.sheetsBackendUrl.replace(/\/$/, ''), {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect' }),
+        }).catch(() => undefined);
+      }
+
+      const prev = this.loadPersistedSheetsConnection();
+      const next = buildDisconnectedState('local_sandbox', Boolean(this.sheetsBackendUrl));
+      this.savePersistedSheetsConnection(next);
+      this.recordAudit(
+        actor,
+        'DISCONNECT_GOOGLE_SHEET',
+        'Configuration',
+        prev.spreadsheetId || 'NONE',
+        prev.spreadsheetName,
+        'Disconnected spreadsheet link non-destructively',
+        'SUCCESS',
+      );
+      return { ok: true, data: structuredClone(next) };
+    });
+  }
+
+  async syncAllToGoogleSheet(): Promise<ApiResponse<SheetsSyncSummary>> {
+    return this.withMutex(async () => {
+      const actor = this.resolveActor();
+      if (!actor || actor.role !== 'super_admin') {
+        return { ok: false, code: 'FORBIDDEN', error: 'Super Administrator access required.' };
+      }
+
+      if (this.sheetsBackendUrl) {
+        try {
+          const statusRes = await fetch(
+            `${this.sheetsBackendUrl.replace(/\/$/, '')}?action=status`,
+            { credentials: 'include' },
+          );
+          const statusJson = (await statusRes.json()) as ApiResponse<GoogleSheetsConnectionState>;
+          if (statusJson.ok && statusJson.data?.oauthConfigured && statusJson.data.connected) {
+            const syncRes = await fetch(this.sheetsBackendUrl.replace(/\/$/, ''), {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', sessions: this.sessions }),
+            });
+            const syncJson = (await syncRes.json()) as ApiResponse<SheetsSyncSummary>;
+            if (syncJson.ok || (syncJson.code !== 'OAUTH_REQUIRED' && syncJson.code !== 'SERVER_MISCONFIGURED')) {
+              return syncJson;
+            }
+          }
+        } catch {
+          // Fall through cleanly to local sandbox sync
+        }
+      }
+
+      const conn = this.loadPersistedSheetsConnection();
+      if (!conn.connected || !conn.spreadsheetId) {
+        return {
+          ok: false,
+          code: 'NOT_CONNECTED',
+          error: 'Connect a Google Sheet before syncing programme data.',
+        };
+      }
+
+      let syncedCount = 0;
+      let skippedDuplicates = 0;
+      for (const s of this.sessions) {
+        if (this.syncedSessionKeys.has(s.sessionRecordId)) {
+          skippedDuplicates++;
+        } else {
+          this.syncedSessionKeys.add(s.sessionRecordId);
+          syncedCount++;
+        }
+      }
+      const nowIso = new Date().toISOString();
+      const message =
+        syncedCount > 0
+          ? `Synced ${syncedCount} session(s); skipped ${skippedDuplicates} existing duplicate(s).`
+          : `Verified ${this.sessions.length} session(s) up to date (0 duplicates written).`;
+
+      const updatedConn: GoogleSheetsConnectionState = {
+        ...conn,
+        lastSyncedAt: nowIso,
+        lastSyncStatus: 'SYNCED',
+        lastSyncMessage: message,
+      };
+      this.savePersistedSheetsConnection(updatedConn);
+      this.recordAudit(actor, 'SYNC_GOOGLE_SHEET', 'Configuration', conn.spreadsheetId, '', message, 'SUCCESS');
+      this.syncLogs.unshift({
+        syncId: `SYNC_${generateUuid().slice(0, 8).toUpperCase()}`,
+        timestamp: nowIso,
+        clientSubmissionKey: 'BULK_SYNC',
+        sessionRecordId: conn.spreadsheetId,
+        sessionId: 'ALL',
+        actorEmail: actor.email,
+        operation: 'syncAllToGoogleSheet',
+        attempt: 1,
+        status: 'LOCAL_SANDBOX',
+        errorMessage: '',
+      });
+
+      return {
+        ok: true,
+        data: {
+          syncedCount,
+          skippedDuplicates,
+          totalSheetSessions: this.sessions.length,
+          syncedAt: nowIso,
+          message,
+        },
+      };
+    });
+  }
 }
 
 export function createApiClient(
@@ -1224,7 +1844,7 @@ export function createApiClient(
 ): BackendApiClient {
   const env = getAuthEnvironment();
   if (env.isLiveBackendConfigured) {
-    return new AppsScriptApiClient(env.appsScriptUrl, getIdToken);
+    return new AppsScriptApiClient(env.appsScriptUrl, getIdToken, env.sheetsBackendUrl);
   }
-  return new LocalSandboxApiClient(getSandboxActorId);
+  return new LocalSandboxApiClient(getSandboxActorId, undefined, env.sheetsBackendUrl);
 }

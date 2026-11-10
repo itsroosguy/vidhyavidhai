@@ -13,21 +13,61 @@ var SHEET_NAMES = {
   SYNC_LOG: 'Sync Log'
 };
 
+var CT_DEFAULT_TARGET_SPREADSHEET_ID = '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE';
+var CT_DEFAULT_TARGET_SPREADSHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+
+/**
+ * Extracts a valid Google Spreadsheet ID from either a full docs.google.com URL or a raw ID.
+ */
+function ctParseSpreadsheetId_(urlOrId) {
+  var raw = String(urlOrId || '').trim();
+  if (!raw) return '';
+  var urlMatch = /\/spreadsheets\/d\/([a-zA-Z0-9-_]{10,})/.exec(raw);
+  if (urlMatch && urlMatch[1]) {
+    return urlMatch[1];
+  }
+  if (/^[a-zA-Z0-9-_]{10,120}$/.test(raw)) {
+    return raw;
+  }
+  return '';
+}
+
 /**
  * Returns the configured database Spreadsheet.
- * Reads ScriptProperty SPREADSHEET_ID first; falls back to getActiveSpreadsheet() if bound.
+ * Resolution order:
+ *   1. CONNECTED_SPREADSHEET_ID (set via administrator Connect Google Sheets flow)
+ *   2. SPREADSHEET_ID Script Property
+ *   3. Approved programme default spreadsheet ID (if accessible)
+ *   4. Active container-bound spreadsheet
  */
 function ctGetSpreadsheet_() {
   var props = PropertiesService.getScriptProperties();
+  var connectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+  if (connectedId) {
+    return SpreadsheetApp.openById(connectedId);
+  }
   var spreadsheetId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
   if (spreadsheetId) {
     return SpreadsheetApp.openById(spreadsheetId);
   }
   var active = SpreadsheetApp.getActiveSpreadsheet();
-  if (!active) {
-    throw new Error('SPREADSHEET_ID Script Property is not configured and no active spreadsheet is bound.');
+  if (active) {
+    return active;
   }
-  return active;
+  if (CT_DEFAULT_TARGET_SPREADSHEET_ID) {
+    try {
+      return SpreadsheetApp.openById(CT_DEFAULT_TARGET_SPREADSHEET_ID);
+    } catch (err) {
+      throw new Error(
+        'Unable to open default Google Spreadsheet (' +
+          CT_DEFAULT_TARGET_SPREADSHEET_ID +
+          ') and SPREADSHEET_ID is not configured: ' +
+          (err && err.message ? err.message : err)
+      );
+    }
+  }
+  throw new Error('SPREADSHEET_ID Script Property is not configured and no active spreadsheet is bound.');
 }
 
 function ctGetSheet_(name) {

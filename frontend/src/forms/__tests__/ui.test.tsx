@@ -381,9 +381,12 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     await waitFor(() => {
       expect(screen.getByText('GHSS Nagapattinam Model')).toBeInTheDocument();
     });
-    // Facilitators NEVER see export buttons or total submission count summaries
+    // Facilitators NEVER see export buttons, total submission count summaries, or Google Sheets banners
     expect(screen.queryByRole('button', { name: /Export My Sessions/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/\(1 session\)/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /Connect Your Google Sheet|Google Sheets Connected/i }),
+    ).not.toBeInTheDocument();
     unmount();
 
     // Super Admin Dashboard across all 12 sections
@@ -409,6 +412,91 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       expect(screen.getByText(/12 independent reconciliation checks passed/i)).toBeInTheDocument();
     });
 
+    // Old amber warning banner & Configure in Settings button must be completely replaced by the clean Google Sheets prompt
+    expect(
+      screen.queryByText(/Programme setup items pending administrator input:/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Configure in Settings/i })).not.toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: 'Connect Your Google Sheet' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Connect your Google Sheet to securely store, manage and access all programme data in one place.',
+      ),
+    ).toBeInTheDocument();
+
+    // Open Connect Modal, verify prefilled target sheet ID, connect existing sheet -> Connected Banner -> Sync -> Non-destructive Disconnect
+    await user.click(screen.getByRole('button', { name: 'Connect Google Sheets' }));
+    const sheetsDialog = await screen.findByRole('dialog', {
+      name: 'Connect Your Google Sheet',
+    });
+    const urlInput = within(sheetsDialog).getByLabelText(
+      /Google Spreadsheet URL or ID/i,
+    ) as HTMLInputElement;
+    expect(urlInput.value).toContain('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+
+    await user.click(
+      within(sheetsDialog).getByRole('button', { name: 'Connect Google Sheets' }),
+    );
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    const connectedBanner = await screen.findByRole('region', {
+      name: 'Google Sheets Connected',
+    });
+    expect(within(connectedBanner).getByText(SANDBOX_USERS.super_admin_1.email)).toBeInTheDocument();
+    const manageBtn = within(connectedBanner).getByRole('button', { name: 'Manage Connection' });
+    expect(manageBtn).toBeInTheDocument();
+
+    // Open Manage Connection modal & run sync -> deduplicates safely
+    await user.click(manageBtn);
+    const manageDialog = await screen.findByRole('dialog', {
+      name: 'Manage Google Sheets Connection',
+    });
+    await user.click(
+      within(manageDialog).getByRole('button', { name: /Sync Programme Data Now/i }),
+    );
+    await waitFor(() => {
+      expect(within(manageDialog).getByRole('status').textContent).toMatch(/1 session\(s\)/i);
+    });
+
+    // Disconnect via two-step safe confirmation -> returns cleanly to prompt
+    await user.click(within(manageDialog).getByRole('button', { name: /^Disconnect$/i }));
+    await user.click(within(manageDialog).getByRole('button', { name: /Confirm disconnect/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Connect Your Google Sheet' })).toBeInTheDocument();
+    });
+
+    // Test blur/submit validation & Create New Spreadsheet option in modal
+    await user.click(screen.getByRole('button', { name: 'Connect Google Sheets' }));
+    const sheetsDialog2 = await screen.findByRole('dialog', {
+      name: 'Connect Your Google Sheet',
+    });
+    const urlInput2 = within(sheetsDialog2).getByLabelText(/Google Spreadsheet URL or ID/i);
+    await user.clear(urlInput2);
+    await user.type(urlInput2, 'bad');
+    expect(urlInput2).toHaveAttribute('aria-invalid', 'false');
+    await user.tab();
+    expect(urlInput2).toHaveAttribute('aria-invalid', 'true');
+    expect(
+      within(sheetsDialog2).getByText(/Error: Enter a valid Google Sheets URL/i),
+    ).toBeInTheDocument();
+
+    await user.click(within(sheetsDialog2).getByLabelText('Create a new spreadsheet'));
+    const titleInput = within(sheetsDialog2).getByLabelText(/New Google Spreadsheet Name/i);
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Vidhya Vidhai · New Live Sheet');
+    await user.click(
+      within(sheetsDialog2).getByRole('button', { name: /Create & Connect Spreadsheet/i }),
+    );
+    const connectedBanner2 = await screen.findByRole('region', {
+      name: 'Google Sheets Connected',
+    });
+    expect(
+      within(connectedBanner2).getByRole('link', { name: /Vidhya Vidhai · New Live Sheet/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
     // Navigate to Schools -> test sortable th + DetailedAnalyticsModal
     await user.click(within(adminNav).getByRole('button', { name: 'Schools' }));
     const schoolSortBtn = await screen.findByRole('button', { name: 'School / UDISE' });
@@ -423,7 +511,8 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
 
     // Navigate through User Management -> verify Protected Super Admins & zero Admin promotion dropdown
     await user.click(within(adminNav).getByRole('button', { name: 'User Management' }));
-    expect(await screen.findByText('brinthajayaprakash888@gmail.com')).toBeInTheDocument();
+    const adminMatches = await screen.findAllByText('brinthajayaprakash888@gmail.com');
+    expect(adminMatches.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('karunya@vidhyavidhai.org')).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Super Administrator/i })).not.toBeInTheDocument();
 
@@ -572,6 +661,7 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     );
     expect(screen.queryByRole('button', { name: /Local sandbox mode/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Preview account switcher')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Connect Google Sheets/i })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'About you' })).toBeInTheDocument();
 
     // 7. Facilitator manually visits restricted /admin/overview URL -> Access Denied screen + auto-redirect to /classroom-entry

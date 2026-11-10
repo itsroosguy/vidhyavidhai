@@ -2,9 +2,12 @@ import type {
   AppConfiguration,
   ExportColumnSpec,
   ExportTemplateSchema,
+  ManagedUser,
+  SchoolRecord,
   SessionDetailRecord,
   SessionRecord,
 } from '../types/domain';
+import { INITIAL_SUPER_ADMINS } from '../config/accessControl';
 import { formatISODateToDDMMYYYY } from '../utils/temporal';
 
 async function loadExcelJS() {
@@ -437,6 +440,341 @@ export async function generateExportWorkbookBuffer(
     rowCount: flatRows.length,
     columnCount: standardCols.length,
     usedOfficial63Schema: false,
+  };
+}
+
+export async function generateInitializedDatabaseWorkbookBuffer(params: {
+  sessions: SessionRecord[];
+  config: AppConfiguration;
+  users?: ManagedUser[];
+  schools?: SchoolRecord[];
+}): Promise<{ buffer: ArrayBuffer; tabsCount: number; rowCount: number }> {
+  const { sessions, config, users = [], schools = [] } = params;
+  const ExcelJS = await loadExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Vidhya Vidhai · Career Tours Classroom System';
+  workbook.created = new Date();
+
+  const styleHeaderRow = (ws: { getRow: (r: number) => { font: unknown; eachCell: (cb: (cell: { fill: unknown; font: unknown }) => void) => void } }) => {
+    const headerRow = ws.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF171C24' },
+      };
+      cell.font = { bold: true, color: { argb: 'FFF5F6F7' } };
+    });
+  };
+
+  // 1. Sessions (42 columns matching SetupDatabase.gs)
+  const sessionsWs = workbook.addWorksheet('Sessions', { views: [{ state: 'frozen', ySplit: 1 }] });
+  const sessionsHeaders = [
+    'session_record_id',
+    'session_id',
+    'client_submission_key',
+    'facilitator_name',
+    'facilitator_email',
+    'facilitator_user_id',
+    'tour_id',
+    'tour_name',
+    'video_id',
+    'language',
+    'start_date',
+    'end_date',
+    'start_time',
+    'end_time',
+    'duration_minutes',
+    'duration_formatted',
+    'reporting_month',
+    'submission_timestamp',
+    'submission_date_formatted',
+    'school_name',
+    'udise_code',
+    'school_type',
+    'state',
+    'district',
+    'block',
+    'pin_code',
+    'session_type',
+    'total_classes',
+    'total_students_present',
+    'total_qa_responses',
+    'total_qb_responses',
+    'overall_csat',
+    'overall_itp',
+    'teacher_score',
+    'teacher_classification',
+    'teacher_nps',
+    'submission_status',
+    'created_at',
+    'updated_at',
+    'created_by',
+    'updated_by',
+    'archived',
+  ];
+  sessionsWs.addRow(sessionsHeaders);
+  styleHeaderRow(sessionsWs);
+  const sessionTextCols = new Set([1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42]);
+  for (const s of sessions) {
+    const row = sessionsWs.addRow([
+      s.sessionRecordId,
+      s.sessionId,
+      s.clientSubmissionKey,
+      s.facilitatorName,
+      s.facilitatorEmail,
+      s.facilitatorUserId,
+      s.tourId,
+      s.tourName,
+      s.videoId,
+      s.language,
+      s.startDate,
+      s.endDate,
+      s.startTime,
+      s.endTime,
+      s.durationMinutes,
+      s.durationFormatted,
+      s.reportingMonth,
+      s.submissionTimestamp,
+      s.submissionDateFormatted,
+      s.schoolName,
+      String(s.udiseCode),
+      s.schoolType,
+      s.state,
+      s.district,
+      s.block,
+      String(s.pinCode),
+      s.sessionType,
+      s.totalClasses,
+      s.totalStudentsPresent,
+      s.totalQuestionAResponses,
+      s.totalQuestionBResponses,
+      s.overallCsat ?? '',
+      s.overallItp ?? '',
+      s.teacherScore ?? '',
+      s.teacherClassification,
+      s.teacherNps,
+      s.submissionStatus,
+      s.createdAt,
+      s.updatedAt,
+      s.createdBy,
+      s.updatedBy,
+      s.archived ? 'true' : 'false',
+    ]);
+    sessionTextCols.forEach((colIdx) => {
+      row.getCell(colIdx).numFmt = '@';
+    });
+  }
+
+  // 2. Session Details (24 columns)
+  const detailsWs = workbook.addWorksheet('Session Details', { views: [{ state: 'frozen', ySplit: 1 }] });
+  detailsWs.addRow([
+    'detail_record_id',
+    'session_record_id',
+    'session_id',
+    'grade',
+    'section',
+    'students_present',
+    'qa_score_5',
+    'qa_score_4',
+    'qa_score_3',
+    'qa_score_2',
+    'qa_score_1',
+    'qa_total',
+    'qa_weighted_score',
+    'csat',
+    'qb_score_5',
+    'qb_score_4',
+    'qb_score_3',
+    'qb_score_2',
+    'qb_score_1',
+    'qb_total',
+    'qb_weighted_score',
+    'itp',
+    'created_at',
+    'updated_at',
+  ]);
+  styleHeaderRow(detailsWs);
+  for (const s of sessions) {
+    for (const d of s.details || []) {
+      const row = detailsWs.addRow([
+        d.detailRecordId,
+        d.sessionRecordId,
+        d.sessionId,
+        String(d.grade),
+        String(d.section),
+        d.studentsPresent,
+        d.questionAScore5,
+        d.questionAScore4,
+        d.questionAScore3,
+        d.questionAScore2,
+        d.questionAScore1,
+        d.questionATotal,
+        d.questionAWeightedScore,
+        d.csat ?? '',
+        d.questionBScore5,
+        d.questionBScore4,
+        d.questionBScore3,
+        d.questionBScore2,
+        d.questionBScore1,
+        d.questionBTotal,
+        d.questionBWeightedScore,
+        d.itp ?? '',
+        d.createdAt,
+        d.updatedAt,
+      ]);
+      [1, 2, 3, 4, 5].forEach((cIdx) => {
+        row.getCell(cIdx).numFmt = '@';
+      });
+    }
+  }
+
+  // 3. Facilitators
+  const facWs = workbook.addWorksheet('Facilitators', { views: [{ state: 'frozen', ySplit: 1 }] });
+  facWs.addRow(['user_id', 'name', 'email', 'role', 'active', 'created_at', 'updated_at', 'status']);
+  styleHeaderRow(facWs);
+  for (const u of users.filter((usr) => usr.role === 'facilitator')) {
+    const r = facWs.addRow([
+      u.userId,
+      u.name,
+      u.email,
+      'facilitator',
+      u.active ? 'true' : 'false',
+      u.createdAt,
+      u.updatedAt,
+      u.status ?? (u.active ? 'APPROVED' : 'DENIED'),
+    ]);
+    [1, 3, 4, 5, 8].forEach((cIdx) => {
+      r.getCell(cIdx).numFmt = '@';
+    });
+  }
+
+  // 4. Schools
+  const schoolsWs = workbook.addWorksheet('Schools', { views: [{ state: 'frozen', ySplit: 1 }] });
+  schoolsWs.addRow([
+    'school_record_id',
+    'school_name',
+    'udise_code',
+    'school_type',
+    'state',
+    'district',
+    'block',
+    'pin_code',
+    'active',
+    'created_at',
+    'updated_at',
+  ]);
+  styleHeaderRow(schoolsWs);
+  for (const sc of schools) {
+    const r = schoolsWs.addRow([
+      sc.schoolRecordId,
+      sc.schoolName,
+      String(sc.udiseCode),
+      sc.schoolType,
+      sc.state,
+      sc.district,
+      sc.block,
+      String(sc.pinCode),
+      sc.active ? 'true' : 'false',
+      sc.createdAt,
+      sc.updatedAt,
+    ]);
+    [1, 3, 8, 9].forEach((cIdx) => {
+      r.getCell(cIdx).numFmt = '@';
+    });
+  }
+
+  // 5. Configuration
+  const cfgWs = workbook.addWorksheet('Configuration', { views: [{ state: 'frozen', ySplit: 1 }] });
+  cfgWs.addRow(['config_key', 'config_value_json', 'updated_at', 'updated_by']);
+  styleHeaderRow(cfgWs);
+  const nowIso = new Date().toISOString();
+  const cfgPairs: Array<[string, unknown]> = [
+    ['programme_timezone', config.programmeTimezone],
+    ['state_name', config.stateName],
+    ['allowed_districts', config.allowedDistricts],
+    ['district_blocks', config.districtBlocks],
+    ['grade_options', config.gradeOptions],
+    ['section_options', config.sectionOptions],
+    ['school_types', config.schoolTypes],
+    ['tours', config.tours],
+    ['language_options', config.languageOptions],
+    ['language_codes', config.languageCodes],
+    ['school_year', config.schoolYear],
+    ['partner_name', config.partnerName],
+    ['reporting_defaults', config.reportingDefaults],
+    ['policy', config.policy],
+  ];
+  for (const [k, v] of cfgPairs) {
+    const r = cfgWs.addRow([k, JSON.stringify(v), nowIso, 'SYSTEM_EXPORT']);
+    [1, 2, 3, 4].forEach((cIdx) => {
+      r.getCell(cIdx).numFmt = '@';
+    });
+  }
+
+  // 6. Admin Users
+  const adminWs = workbook.addWorksheet('Admin Users', { views: [{ state: 'frozen', ySplit: 1 }] });
+  adminWs.addRow(['user_id', 'name', 'email', 'role', 'active', 'created_at', 'updated_at', 'status']);
+  styleHeaderRow(adminWs);
+  for (const sa of INITIAL_SUPER_ADMINS) {
+    const r = adminWs.addRow([
+      sa.userId,
+      sa.name,
+      sa.email,
+      'super_admin',
+      'true',
+      nowIso,
+      nowIso,
+      'APPROVED',
+    ]);
+    [1, 3, 4, 5, 8].forEach((cIdx) => {
+      r.getCell(cIdx).numFmt = '@';
+    });
+  }
+
+  // 7. Audit Log
+  const auditWs = workbook.addWorksheet('Audit Log', { views: [{ state: 'frozen', ySplit: 1 }] });
+  auditWs.addRow([
+    'audit_id',
+    'timestamp',
+    'user_id',
+    'user_email',
+    'action',
+    'entity_type',
+    'entity_id',
+    'previous_summary',
+    'new_summary',
+    'result',
+  ]);
+  styleHeaderRow(auditWs);
+
+  // 8. Sync Log
+  const syncWs = workbook.addWorksheet('Sync Log', { views: [{ state: 'frozen', ySplit: 1 }] });
+  syncWs.addRow([
+    'sync_id',
+    'timestamp',
+    'client_submission_key',
+    'session_record_id',
+    'session_id',
+    'actor_email',
+    'operation',
+    'attempt',
+    'status',
+    'error_message',
+  ]);
+  styleHeaderRow(syncWs);
+
+  workbook.worksheets.forEach((ws) => {
+    ws.columns.forEach((col) => {
+      col.width = Math.max(16, col.width || 16);
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return {
+    buffer: buffer as ArrayBuffer,
+    tabsCount: 8,
+    rowCount: sessions.length,
   };
 }
 

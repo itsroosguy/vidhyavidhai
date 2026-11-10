@@ -5,6 +5,7 @@ import { LocalSandboxApiClient } from '../apiClient';
 import { SANDBOX_USERS } from '../authService';
 import {
   generateExportWorkbookBuffer,
+  generateInitializedDatabaseWorkbookBuffer,
   parseOfficial63TemplateXlsx,
 } from '../exportService';
 
@@ -154,5 +155,42 @@ describe('Excel (.xlsx) Export & 63-Column Template Ingestion', () => {
     expect(sheet.getRow(4).getCell(21).value).toBe('9');
     expect(sheet.getRow(4).getCell(22).value).toBe('No section');
     expect(sheet.getRow(4).getCell(24).value).toBe(4.5); // class CSAT 4.50
+  });
+
+  it('generates initialized 8-tab Google Sheets database workbook preserving UDISE/PIN leading zeroes', async () => {
+    const cfg = createTestConfig();
+    const api = new LocalSandboxApiClient(() => SANDBOX_USERS.facilitator.userId, cfg);
+    const saved = await api.createSession(
+      createValidFormValues({
+        udiseCode: '01234567890',
+        pinCode: '006001',
+      }),
+    );
+    expect(saved.ok).toBe(true);
+    const session = saved.data!.session;
+
+    const { buffer, tabsCount, rowCount } = await generateInitializedDatabaseWorkbookBuffer({
+      sessions: [session],
+      config: cfg,
+    });
+    expect(tabsCount).toBe(8);
+    expect(rowCount).toBe(1);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+    const tabNames = wb.worksheets.map((ws) => ws.name);
+    expect(tabNames).toEqual([
+      'Sessions',
+      'Session Details',
+      'Facilitators',
+      'Schools',
+      'Configuration',
+      'Admin Users',
+      'Audit Log',
+      'Sync Log',
+    ]);
+    const sessSheet = wb.getWorksheet('Sessions')!;
+    expect(sessSheet.getRow(2).getCell(21).value).toBe('01234567890');
+    expect(sessSheet.getRow(2).getCell(26).value).toBe('006001');
   });
 });

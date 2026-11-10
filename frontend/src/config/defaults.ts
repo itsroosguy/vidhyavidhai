@@ -3,6 +3,19 @@ import { getTodayKolkataISO } from '../utils/temporal';
 
 export const PROGRAMME_TIMEZONE = 'Asia/Kolkata';
 
+export const DEFAULT_TARGET_SPREADSHEET_ID = '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE';
+export const DEFAULT_TARGET_SPREADSHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+
+export function parseGoogleSpreadsheetId(urlOrId: string): string {
+  const raw = urlOrId.trim();
+  if (!raw) return '';
+  const match = /\/spreadsheets\/d\/([a-zA-Z0-9-_]{10,})/.exec(raw);
+  if (match?.[1]) return match[1];
+  if (/^[a-zA-Z0-9-_]{10,120}$/.test(raw)) return raw;
+  return '';
+}
+
 export const APPROVED_DISTRICTS = ['Cuddalore', 'Nagapattinam', 'Sivaganga'] as const;
 
 export const QUESTION_A_PROMPT = 'How much did you enjoy this Career Tour?';

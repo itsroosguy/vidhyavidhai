@@ -5,6 +5,7 @@ import { withBasePath } from '../utils/routes';
 export interface AuthEnvironmentConfig {
   appsScriptUrl: string;
   googleClientId: string;
+  sheetsBackendUrl: string;
   isLiveBackendConfigured: boolean;
 }
 
@@ -199,9 +200,11 @@ export function clearActiveSandboxEmail(): void {
 export function getAuthEnvironment(): AuthEnvironmentConfig {
   const appsScriptUrl = (import.meta.env.VITE_APPS_SCRIPT_URL ?? '').trim();
   const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '').trim();
+  const sheetsBackendUrl = (import.meta.env.VITE_SHEETS_BACKEND_URL ?? '').trim();
   return {
     appsScriptUrl,
     googleClientId,
+    sheetsBackendUrl,
     isLiveBackendConfigured: Boolean(appsScriptUrl && googleClientId),
   };
 }

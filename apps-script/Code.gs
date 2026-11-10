@@ -97,6 +97,21 @@ function doPost(e) {
       case 'logExportEvent':
         data = ctHandleLogExportEvent_(actor, payload);
         break;
+      case 'getSheetsConnection':
+        data = ctHandleGetSheetsConnection_(actor);
+        break;
+      case 'connectGoogleSheet':
+        data = ctHandleConnectGoogleSheet_(actor, payload);
+        break;
+      case 'createGoogleSheet':
+        data = ctHandleCreateGoogleSheet_(actor, payload);
+        break;
+      case 'disconnectGoogleSheet':
+        data = ctHandleDisconnectGoogleSheet_(actor);
+        break;
+      case 'syncAllToGoogleSheet':
+        data = ctHandleSyncAllToGoogleSheet_(actor, payload);
+        break;
       default:
         return ctJsonResponse_({
           ok: false,

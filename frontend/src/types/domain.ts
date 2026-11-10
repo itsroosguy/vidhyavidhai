@@ -519,3 +519,38 @@ export interface ApiResponse<T> {
   code?: string;
   warnings?: string[];
 }
+
+export type SheetsAuthMethod = 'google_oauth' | 'apps_script' | 'local_sandbox';
+
+export interface GoogleSheetsConnectionState {
+  connected: boolean;
+  authMethod: SheetsAuthMethod;
+  oauthConfigured: boolean;
+  connectedAccount: string;
+  spreadsheetId: string;
+  spreadsheetName: string;
+  spreadsheetUrl: string;
+  connectedAt: string;
+  connectedBy: string;
+  lastSyncedAt: string;
+  lastSyncStatus: 'IDLE' | 'SYNCED' | 'FAILED';
+  lastSyncMessage: string;
+  initializedTabs: string[];
+  defaultSpreadsheetId: string;
+  defaultSpreadsheetUrl: string;
+}
+
+export interface GoogleSpreadsheetSummary {
+  spreadsheetId: string;
+  name: string;
+  url: string;
+  modifiedTime?: string;
+}
+
+export interface SheetsSyncSummary {
+  syncedCount: number;
+  skippedDuplicates: number;
+  totalSheetSessions: number;
+  syncedAt: string;
+  message: string;
+}

@@ -771,3 +771,367 @@ function ctHandleManageUser_(actor, payload) {
     lock.releaseLock();
   }
 }
+
+function ctSafeJsonParseArray_(str, fallback) {
+  if (!str) return fallback;
+  try {
+    var parsed = JSON.parse(str);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function ctBuildSheetsConnectionState_() {
+  var props = PropertiesService.getScriptProperties();
+  var disconnected = String(props.getProperty('CONNECTED_DISCONNECTED') || '') === 'true';
+  var connectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+  var fallbackId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
+  var effectiveId = !disconnected ? (connectedId || fallbackId) : connectedId;
+
+  if (!effectiveId) {
+    return {
+      connected: false,
+      authMethod: 'apps_script',
+      oauthConfigured: false,
+      connectedAccount: '',
+      spreadsheetId: '',
+      spreadsheetName: '',
+      spreadsheetUrl: '',
+      connectedAt: '',
+      connectedBy: '',
+      lastSyncedAt: String(props.getProperty('CONNECTED_LAST_SYNC_AT') || ''),
+      lastSyncStatus: String(props.getProperty('CONNECTED_LAST_SYNC_STATUS') || 'IDLE'),
+      lastSyncMessage: String(props.getProperty('CONNECTED_LAST_SYNC_MESSAGE') || ''),
+      initializedTabs: [],
+      defaultSpreadsheetId: CT_DEFAULT_TARGET_SPREADSHEET_ID,
+      defaultSpreadsheetUrl: CT_DEFAULT_TARGET_SPREADSHEET_URL
+    };
+  }
+
+  var ssName = String(props.getProperty('CONNECTED_SPREADSHEET_NAME') || '').trim();
+  var ssUrl = String(props.getProperty('CONNECTED_SPREADSHEET_URL') || '').trim();
+  var initializedTabs = ctSafeJsonParseArray_(props.getProperty('CONNECTED_TABS_JSON'), []);
+
+  if (!ssName || !ssUrl || initializedTabs.length === 0) {
+    try {
+      var ss = SpreadsheetApp.openById(effectiveId);
+      if (ss) {
+        if (!ssName && typeof ss.getName === 'function') ssName = ss.getName() || 'Career Tours Database';
+        if (!ssUrl && typeof ss.getUrl === 'function') {
+          ssUrl = ss.getUrl() || ('https://docs.google.com/spreadsheets/d/' + effectiveId + '/edit');
+        }
+        if (initializedTabs.length === 0) {
+          for (var t = 0; t < CT_SCHEMA_DEFINITIONS.length; t++) {
+            if (ss.getSheetByName(CT_SCHEMA_DEFINITIONS[t].name)) {
+              initializedTabs.push(CT_SCHEMA_DEFINITIONS[t].name);
+            }
+          }
+        }
+      }
+    } catch (ignore) {
+      // Ignore metadata probe failures when building state summary
+    }
+  }
+
+  return {
+    connected: true,
+    authMethod: 'apps_script',
+    oauthConfigured: true,
+    connectedAccount: String(props.getProperty('CONNECTED_GOOGLE_ACCOUNT') || ''),
+    spreadsheetId: effectiveId,
+    spreadsheetName: ssName || 'Career Tours Spreadsheet',
+    spreadsheetUrl: ssUrl || ('https://docs.google.com/spreadsheets/d/' + effectiveId + '/edit'),
+    connectedAt: String(props.getProperty('CONNECTED_AT') || ''),
+    connectedBy: String(props.getProperty('CONNECTED_BY') || ''),
+    lastSyncedAt: String(props.getProperty('CONNECTED_LAST_SYNC_AT') || ''),
+    lastSyncStatus: String(props.getProperty('CONNECTED_LAST_SYNC_STATUS') || 'IDLE'),
+    lastSyncMessage: String(props.getProperty('CONNECTED_LAST_SYNC_MESSAGE') || ''),
+    initializedTabs: initializedTabs,
+    defaultSpreadsheetId: CT_DEFAULT_TARGET_SPREADSHEET_ID,
+    defaultSpreadsheetUrl: CT_DEFAULT_TARGET_SPREADSHEET_URL
+  };
+}
+
+function ctHandleGetSheetsConnection_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  return ctBuildSheetsConnectionState_();
+}
+
+function ctHandleConnectGoogleSheet_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var rawTarget = String((payload && payload.spreadsheetUrlOrId) || CT_DEFAULT_TARGET_SPREADSHEET_ID).trim();
+  var spreadsheetId = ctParseSpreadsheetId_(rawTarget);
+  if (!spreadsheetId) {
+    throw ctApiError_(
+      'INVALID_SPREADSHEET_ID',
+      'Please enter a valid Google Spreadsheet URL or Spreadsheet ID.'
+    );
+  }
+  var shouldInit = !payload || payload.initializeSchema !== false;
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss;
+    try {
+      ss = SpreadsheetApp.openById(spreadsheetId);
+    } catch (openErr) {
+      throw ctApiError_(
+        'SHEET_ACCESS_DENIED',
+        'Unable to access spreadsheet "' +
+          spreadsheetId +
+          '". Confirm the Spreadsheet ID is valid and shared with the authorized Google account.'
+      );
+    }
+    if (!ss) {
+      throw ctApiError_('SHEET_NOT_FOUND', 'Target Google Spreadsheet was not found.');
+    }
+
+    var tabs = [];
+    if (shouldInit) {
+      tabs = ctInitializeSpreadsheetObject_(ss, actor.email);
+    } else {
+      for (var i = 0; i < CT_SCHEMA_DEFINITIONS.length; i++) {
+        if (ss.getSheetByName(CT_SCHEMA_DEFINITIONS[i].name)) {
+          tabs.push(CT_SCHEMA_DEFINITIONS[i].name);
+        }
+      }
+    }
+
+    var nowIso = ctNowIso_();
+    var resolvedId = typeof ss.getId === 'function' && ss.getId() ? ss.getId() : spreadsheetId;
+    var ssName =
+      typeof ss.getName === 'function' && ss.getName()
+        ? ss.getName()
+        : 'Vidhya Vidhai · Career Tours';
+    var ssUrl =
+      typeof ss.getUrl === 'function' && ss.getUrl()
+        ? ss.getUrl()
+        : 'https://docs.google.com/spreadsheets/d/' + resolvedId + '/edit';
+
+    var props = PropertiesService.getScriptProperties();
+    if (typeof props.setProperty === 'function') {
+      props.setProperty('CONNECTED_SPREADSHEET_ID', resolvedId);
+      props.setProperty('CONNECTED_SPREADSHEET_NAME', ssName);
+      props.setProperty('CONNECTED_SPREADSHEET_URL', ssUrl);
+      props.setProperty('CONNECTED_GOOGLE_ACCOUNT', actor.email);
+      props.setProperty('CONNECTED_AT', nowIso);
+      props.setProperty('CONNECTED_BY', actor.email);
+      props.setProperty('CONNECTED_DISCONNECTED', 'false');
+      props.setProperty('CONNECTED_TABS_JSON', JSON.stringify(tabs));
+    }
+
+    ctAppendAuditLog_(
+      actor,
+      'CONNECT_GOOGLE_SHEET',
+      'Configuration',
+      resolvedId,
+      '',
+      'Connected "' + ssName + '" (' + tabs.length + ' tabs initialized=' + shouldInit + ')',
+      'SUCCESS'
+    );
+
+    return ctBuildSheetsConnectionState_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleCreateGoogleSheet_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var title = String((payload && payload.title) || 'Vidhya Vidhai · Career Tours Database').trim();
+  if (!title) {
+    throw ctApiError_('INVALID_TITLE', 'Spreadsheet name is required.');
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.create(title);
+    var tabs = ctInitializeSpreadsheetObject_(ss, actor.email);
+    var nowIso = ctNowIso_();
+    var resolvedId =
+      typeof ss.getId === 'function' && ss.getId() ? ss.getId() : CT_DEFAULT_TARGET_SPREADSHEET_ID;
+    var ssUrl =
+      typeof ss.getUrl === 'function' && ss.getUrl()
+        ? ss.getUrl()
+        : 'https://docs.google.com/spreadsheets/d/' + resolvedId + '/edit';
+
+    var props = PropertiesService.getScriptProperties();
+    if (typeof props.setProperty === 'function') {
+      props.setProperty('CONNECTED_SPREADSHEET_ID', resolvedId);
+      props.setProperty('CONNECTED_SPREADSHEET_NAME', title);
+      props.setProperty('CONNECTED_SPREADSHEET_URL', ssUrl);
+      props.setProperty('CONNECTED_GOOGLE_ACCOUNT', actor.email);
+      props.setProperty('CONNECTED_AT', nowIso);
+      props.setProperty('CONNECTED_BY', actor.email);
+      props.setProperty('CONNECTED_DISCONNECTED', 'false');
+      props.setProperty('CONNECTED_TABS_JSON', JSON.stringify(tabs));
+    }
+
+    ctAppendAuditLog_(
+      actor,
+      'CREATE_GOOGLE_SHEET',
+      'Configuration',
+      resolvedId,
+      '',
+      'Created and initialized "' + title + '"',
+      'SUCCESS'
+    );
+
+    return ctBuildSheetsConnectionState_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleDisconnectGoogleSheet_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var prev = ctBuildSheetsConnectionState_();
+    ctAppendAuditLog_(
+      actor,
+      'DISCONNECT_GOOGLE_SHEET',
+      'Configuration',
+      prev.spreadsheetId || 'NONE',
+      prev.spreadsheetName || '',
+      'Disconnected sheet link cleanly without modifying spreadsheet data',
+      'SUCCESS'
+    );
+
+    var props = PropertiesService.getScriptProperties();
+    if (typeof props.deleteProperty === 'function') {
+      props.deleteProperty('CONNECTED_SPREADSHEET_ID');
+      props.deleteProperty('CONNECTED_SPREADSHEET_NAME');
+      props.deleteProperty('CONNECTED_SPREADSHEET_URL');
+      props.deleteProperty('CONNECTED_GOOGLE_ACCOUNT');
+      props.deleteProperty('CONNECTED_AT');
+      props.deleteProperty('CONNECTED_BY');
+      props.deleteProperty('CONNECTED_TABS_JSON');
+    }
+    if (typeof props.setProperty === 'function') {
+      props.setProperty('CONNECTED_DISCONNECTED', 'true');
+    }
+
+    return ctBuildSheetsConnectionState_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleSyncAllToGoogleSheet_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var state = ctBuildSheetsConnectionState_();
+    if (!state.connected || !state.spreadsheetId) {
+      throw ctApiError_(
+        'NOT_CONNECTED',
+        'Connect a Google Spreadsheet before running a full data sync.'
+      );
+    }
+
+    var incomingSessions = (payload && Array.isArray(payload.sessions) && payload.sessions) || [];
+    var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var lastRow = sessionSheet.getLastRow();
+
+    var existingRecordIds = {};
+    var existingClientKeys = {};
+    var existingSessionIds = {};
+
+    if (lastRow >= 2) {
+      var cols = sessionSheet.getRange(2, 1, lastRow - 1, 3).getValues();
+      for (var i = 0; i < cols.length; i++) {
+        var rId = ctCellToString_(cols[i][0]);
+        var sId = ctCellToString_(cols[i][1]);
+        var cKey = ctCellToString_(cols[i][2]);
+        if (rId) existingRecordIds[rId] = true;
+        if (sId) existingSessionIds[sId] = true;
+        if (cKey) existingClientKeys[cKey] = true;
+      }
+    }
+
+    var syncedCount = 0;
+    var skippedDuplicates = 0;
+    var nowIso = ctNowIso_();
+
+    for (var sIdx = 0; sIdx < incomingSessions.length; sIdx++) {
+      var rec = incomingSessions[sIdx];
+      if (!rec) continue;
+      var recId = ctCellToString_(rec.sessionRecordId);
+      var sessId = ctCellToString_(rec.sessionId);
+      var clientKey = ctCellToString_(rec.clientSubmissionKey);
+
+      if (
+        (recId && existingRecordIds[recId]) ||
+        (clientKey && existingClientKeys[clientKey]) ||
+        (sessId && existingSessionIds[sessId])
+      ) {
+        skippedDuplicates++;
+        continue;
+      }
+
+      if (!recId) rec.sessionRecordId = 'REC_' + Utilities.getUuid().toUpperCase();
+      if (!sessId) continue;
+
+      var rowArr = ctSessionRecordToSheetRow_(rec);
+      var targetRow = Math.max(2, sessionSheet.getLastRow() + 1);
+      var sessionRange = sessionSheet.getRange(targetRow, 1, 1, SESSION_COL_COUNT);
+      sessionRange.setNumberFormats([
+        ctBuildTextFormatRow_(rowArr, [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42])
+      ]);
+      sessionRange.setValues([rowArr]);
+
+      var dets = Array.isArray(rec.details) ? rec.details : [];
+      if (dets.length > 0) {
+        var detailRows = [];
+        var detailFormats = [];
+        for (var dIdx = 0; dIdx < dets.length; dIdx++) {
+          var dRow = ctDetailRecordToSheetRow_(dets[dIdx]);
+          detailRows.push(dRow);
+          detailFormats.push(ctBuildTextFormatRow_(dRow, [1, 2, 3, 4, 5]));
+        }
+        var detailStart = Math.max(2, detailSheet.getLastRow() + 1);
+        var detRange = detailSheet.getRange(detailStart, 1, detailRows.length, DETAIL_COL_COUNT);
+        detRange.setNumberFormats(detailFormats);
+        detRange.setValues(detailRows);
+      }
+
+      existingRecordIds[rec.sessionRecordId] = true;
+      existingSessionIds[rec.sessionId] = true;
+      if (clientKey) existingClientKeys[clientKey] = true;
+      syncedCount++;
+    }
+
+    var totalSheetSessions = Math.max(0, sessionSheet.getLastRow() - 1);
+    var props = PropertiesService.getScriptProperties();
+    var msg =
+      syncedCount > 0
+        ? 'Synced ' + syncedCount + ' session(s); skipped ' + skippedDuplicates + ' existing duplicate(s).'
+        : 'Verified ' + totalSheetSessions + ' session(s) up to date (0 duplicates overwritten).';
+
+    if (typeof props.setProperty === 'function') {
+      props.setProperty('CONNECTED_LAST_SYNC_AT', nowIso);
+      props.setProperty('CONNECTED_LAST_SYNC_STATUS', 'SYNCED');
+      props.setProperty('CONNECTED_LAST_SYNC_MESSAGE', msg);
+    }
+
+    ctAppendAuditLog_(actor, 'SYNC_GOOGLE_SHEET', 'Configuration', state.spreadsheetId, '', msg, 'SUCCESS');
+    ctAppendSyncLog_(actor, 'BULK_SYNC', state.spreadsheetId, 'ALL', 'syncAllToGoogleSheet', 1, 'SYNCED', '');
+
+    return {
+      syncedCount: syncedCount,
+      skippedDuplicates: skippedDuplicates,
+      totalSheetSessions: totalSheetSessions,
+      syncedAt: nowIso,
+      message: msg
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}

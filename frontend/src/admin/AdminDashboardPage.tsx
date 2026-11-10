@@ -32,13 +32,19 @@ import {
   type DetailedAnalyticsTarget,
 } from '../components/modals/DetailedAnalyticsModal';
 import { ExportReportModal } from '../components/modals/ExportReportModal';
+import { GoogleSheetsConnectModal } from '../components/modals/GoogleSheetsConnectModal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { INITIAL_SUPER_ADMINS, isAllowlistedSuperAdmin } from '../config/accessControl';
 import { SessionDetailModal } from '../dashboard/SessionDetailModal';
 import type { BackendApiClient } from '../services/apiClient';
+import {
+  generateInitializedDatabaseWorkbookBuffer,
+  triggerXlsxDownload,
+} from '../services/exportService';
 import type {
   AppConfiguration,
   DashboardAnalytics,
+  GoogleSheetsConnectionState,
   PaginatedResult,
   SchoolRecord,
   SessionQueryFilters,
@@ -52,6 +58,7 @@ import { formatISODateToDDMMYYYY } from '../utils/temporal';
 import { getBlocksForDistrict } from '../validations/sessionValidation';
 import { AdminNav } from './AdminNav';
 import { AuditLogViewer } from './AuditLogViewer';
+import { GoogleSheetsBanner } from './GoogleSheetsBanner';
 import { GoogleSheetsSyncPanel } from './GoogleSheetsSyncPanel';
 import { MasterDataSettings } from './MasterDataSettings';
 import { UserAccessManager } from './UserAccessManager';
@@ -175,6 +182,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [expandedFacilitator, setExpandedFacilitator] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<SessionRecord | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<SessionRecord | null>(null);
+  const [sheetsConnection, setSheetsConnection] = useState<GoogleSheetsConnectionState | null>(null);
+  const [sheetsConnLoading, setSheetsConnLoading] = useState(false);
+  const [sheetsModalOpen, setSheetsModalOpen] = useState(false);
+  const [sheetsOauthFeedback, setSheetsOauthFeedback] = useState<{
+    type: 'authorized' | 'error';
+    message: string;
+  } | null>(null);
 
   const [schoolSort, setSchoolSort] = useState<{
     col: SchoolSortColumn;
@@ -221,10 +235,100 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     }
   }, [api, filters, isSuperAdmin, onNotify]);
 
+  const loadSheetsConnection = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    setSheetsConnLoading(true);
+    try {
+      const res = await api.getSheetsConnection();
+      if (res.ok && res.data) {
+        setSheetsConnection(res.data);
+      }
+    } finally {
+      setSheetsConnLoading(false);
+    }
+  }, [api, isSuperAdmin]);
+
   useEffect(() => {
     if (!isSuperAdmin) return;
     void loadAdminData();
-  }, [isSuperAdmin, loadAdminData, dataVersion]);
+    void loadSheetsConnection();
+  }, [isSuperAdmin, loadAdminData, loadSheetsConnection, dataVersion]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const oauthStatus = url.searchParams.get('sheets_oauth');
+    if (!oauthStatus) return;
+
+    const reason = url.searchParams.get('reason') || '';
+    url.searchParams.delete('sheets_oauth');
+    url.searchParams.delete('reason');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+
+    if (oauthStatus === 'authorized') {
+      setSheetsOauthFeedback({
+        type: 'authorized',
+        message: 'Google account authorized via OAuth 2.0. Choose or create your Google Sheet below.',
+      });
+      setSheetsModalOpen(true);
+    } else if (oauthStatus === 'error') {
+      const msg =
+        reason === 'unauthorized_admin'
+          ? 'Only approved Vidhya Vidhai Super Administrators may authorize Google Sheets access.'
+          : `Google OAuth authorization could not be completed (${reason || 'cancelled'}).`;
+      setSheetsOauthFeedback({ type: 'error', message: msg });
+      setSheetsModalOpen(true);
+      onNotify('error', 'Google Sheets OAuth failed', msg);
+    }
+  }, [isSuperAdmin, onNotify]);
+
+  const handleBannerConnectClick = () => {
+    const startUrl = api.getSheetsOAuthStartUrl?.(user.email) ?? null;
+    if (
+      startUrl &&
+      sheetsConnection?.oauthConfigured &&
+      !sheetsConnection?.connectedAccount
+    ) {
+      window.location.assign(startUrl);
+      return;
+    }
+    setSheetsModalOpen(true);
+  };
+
+  const handleDownloadInitializedWorkbook = useCallback(async () => {
+    const collectedSessions: SessionRecord[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const res = await api.getAdminSessions({ includeArchived: true, page, pageSize: 100 });
+      if (!res.ok || !res.data) {
+        onNotify('error', 'Failed to collect sessions for workbook export', res.error);
+        return;
+      }
+      collectedSessions.push(...res.data.items);
+      totalPages = res.data.totalPages || 1;
+      page++;
+    } while (page <= totalPages);
+
+    const [usersRes, schoolsRes] = await Promise.all([
+      api.listManagedUsers(),
+      api.searchSchools(''),
+    ]);
+
+    const { buffer, tabsCount, rowCount } = await generateInitializedDatabaseWorkbookBuffer({
+      sessions: collectedSessions,
+      config,
+      users: usersRes.ok && usersRes.data ? usersRes.data : [],
+      schools: schoolsRes.ok && schoolsRes.data ? schoolsRes.data : [],
+    });
+
+    triggerXlsxDownload(buffer, 'Vidhya_Vidhai_Career_Tours_Google_Sheet.xlsx');
+    onNotify(
+      'success',
+      'Initialized Google Sheet workbook downloaded',
+      `${tabsCount} official database tabs ready (${rowCount} session record${rowCount === 1 ? '' : 's'}). Use File → Import in Google Sheets.`,
+    );
+  }, [api, config, onNotify]);
 
   useEffect(() => {
     if (!isSuperAdmin || currentSection !== 'schools') return;
@@ -362,17 +466,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   }, [analytics?.schoolBreakdown, schoolSort]);
 
   const visibleSchools = showAllSchools ? sortedSchools : sortedSchools.slice(0, 15);
-
-  const missingItems: string[] = [];
-  if (config.districtBlocks.length === 0) {
-    missingItems.push('District–Block master mapping has not been imported yet');
-  }
-  if (!config.partnerName.trim()) {
-    missingItems.push('Partner name has not been configured');
-  }
-  if (!config.exportTemplate63 || config.exportTemplate63.columns.length !== 63) {
-    missingItems.push('Official 63-column Excel template headers have not been uploaded yet');
-  }
 
   const renderSortIcon = (col: SchoolSortColumn) => {
     if (schoolSort.col !== col) {
@@ -1723,34 +1816,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
   return (
     <main className="w-full max-w-[1220px] mx-auto px-4 sm:px-6 pb-16">
-      {/* Dual Super Admin Trust Banner */}
-      {missingItems.length > 0 && currentSection !== 'settings' && (
-        <div
-          role="region"
-          aria-label="Administrator setup checklist"
-          className="mb-5 p-4 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 text-[#0A1B2C] flex flex-wrap items-center justify-between gap-3"
-        >
-          <div className="flex items-start gap-2.5 text-xs sm:text-sm">
-            <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
-            <div>
-              <p className="font-medium text-[#0A1B2C]">
-                Programme setup items pending administrator input:
-              </p>
-              <ul className="list-disc pl-5 mt-1 space-y-0.5 text-[#92400E]">
-                {missingItems.map((m) => (
-                  <li key={m}>{m}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleSelectSection('settings')}
-            className="ct-btn-primary text-xs min-h-[38px] px-3.5 py-1.5"
-          >
-            Configure in Settings
-          </button>
-        </div>
+      {currentSection !== 'settings' && (
+        <GoogleSheetsBanner
+          connection={sheetsConnection}
+          loading={sheetsConnLoading}
+          userEmail={user.email}
+          onConnectClick={handleBannerConnectClick}
+          onManageClick={() => setSheetsModalOpen(true)}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[248px_minmax(0,1fr)] gap-5 items-start">
@@ -2119,6 +2192,24 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         destructive
         onConfirm={() => void handleArchiveConfirm()}
         onCancel={() => setArchiveTarget(null)}
+      />
+
+      <GoogleSheetsConnectModal
+        open={sheetsModalOpen}
+        onClose={() => setSheetsModalOpen(false)}
+        api={api}
+        user={user}
+        connection={sheetsConnection}
+        oauthFeedback={sheetsOauthFeedback}
+        onConnectionChanged={(next) => {
+          setSheetsConnection(next);
+          if (next.connected) {
+            setSheetsOauthFeedback(null);
+          }
+        }}
+        onSynced={() => loadAdminData()}
+        onDownloadInitializedWorkbook={handleDownloadInitializedWorkbook}
+        onNotify={onNotify}
       />
     </main>
   );
