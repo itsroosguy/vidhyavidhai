@@ -531,6 +531,8 @@ export interface GoogleSheetsConnectionState {
   spreadsheetId: string;
   spreadsheetName: string;
   spreadsheetUrl: string;
+  appsScriptUrl?: string;
+  appsScriptSyncKey?: string;
   connectedAt: string;
   connectedBy: string;
   lastSyncedAt: string;

@@ -359,6 +359,14 @@ function normalizeSheetsConnection(raw: unknown): GoogleSheetsConnectionState {
     spreadsheetId: String(src.spreadsheetId ?? DEFAULT_TARGET_SPREADSHEET_ID),
     spreadsheetName: String(src.spreadsheetName ?? 'Career Tours Live Sheet'),
     spreadsheetUrl: String(src.spreadsheetUrl ?? DEFAULT_TARGET_SPREADSHEET_URL),
+    appsScriptUrl:
+      typeof src.appsScriptUrl === 'string' && src.appsScriptUrl.trim()
+        ? src.appsScriptUrl.trim()
+        : undefined,
+    appsScriptSyncKey:
+      typeof src.appsScriptSyncKey === 'string' && src.appsScriptSyncKey.trim()
+        ? src.appsScriptSyncKey.trim()
+        : undefined,
     connectedAt: String(src.connectedAt ?? ''),
     connectedBy: String(src.connectedBy ?? ''),
     lastSyncedAt: String(src.lastSyncedAt ?? ''),

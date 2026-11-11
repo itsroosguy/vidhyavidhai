@@ -699,7 +699,10 @@ function ctAuthenticateRequest_(idToken, req) {
     actionName === 'createGoogleSheet' ||
     actionName === 'connectGoogleSheet' ||
     actionName === 'getSheetsConnection' ||
-    actionName === 'getCurrentUser';
+    actionName === 'getCurrentUser' ||
+    actionName === 'ping' ||
+    actionName === 'upsertSession' ||
+    actionName === 'syncAll';
   var ss = null;
   try {
     ss = ctGetSpreadsheet_();

@@ -183,8 +183,12 @@ export const LiveBackendSetupCard: React.FC<LiveBackendSetupCardProps> = ({
     if (oauthSheetsConnection.spreadsheetName) {
       setSbSheetName(oauthSheetsConnection.spreadsheetName);
     }
+    if (oauthSheetsConnection.appsScriptUrl) {
+      setSbWebhookUrl((prev) => prev || oauthSheetsConnection.appsScriptUrl || '');
+    }
   }, [
     isSupabaseMode,
+    oauthSheetsConnection?.appsScriptUrl,
     oauthSheetsConnection?.spreadsheetName,
     oauthSheetsConnection?.spreadsheetUrl,
   ]);
@@ -220,9 +224,12 @@ export const LiveBackendSetupCard: React.FC<LiveBackendSetupCardProps> = ({
   };
 
   const normalizedValidSyncKey = useMemo(() => {
-    const check = validateAppsScriptSyncKey(bridgeSyncKey);
+    const rawKey = isSupabaseMode
+      ? oauthSheetsConnection?.appsScriptSyncKey || bridgeSyncKey
+      : bridgeSyncKey;
+    const check = validateAppsScriptSyncKey(rawKey);
     return check.valid ? check.normalized : '';
-  }, [bridgeSyncKey]);
+  }, [bridgeSyncKey, isSupabaseMode, oauthSheetsConnection?.appsScriptSyncKey]);
 
   const personalizedScript = useMemo(() => {
     if (!scriptTemplate) return '';

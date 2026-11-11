@@ -169,6 +169,15 @@ function doPost(e) {
       case 'importSessions':
         data = ctHandleImportSessions_(actor, payload);
         break;
+      case 'ping':
+        data = ctHandlePingWebhook_(actor, payload, req);
+        break;
+      case 'upsertSession':
+        data = ctHandleUpsertSessionWebhook_(actor, payload, req);
+        break;
+      case 'syncAll':
+        data = ctHandleSyncAllWebhook_(actor, payload, req);
+        break;
       default:
         return ctJsonResponse_({
           ok: false,

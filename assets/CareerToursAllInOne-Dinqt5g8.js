@@ -1319,7 +1319,10 @@ function ctAuthenticateRequest_(idToken, req) {
     actionName === 'createGoogleSheet' ||
     actionName === 'connectGoogleSheet' ||
     actionName === 'getSheetsConnection' ||
-    actionName === 'getCurrentUser';
+    actionName === 'getCurrentUser' ||
+    actionName === 'ping' ||
+    actionName === 'upsertSession' ||
+    actionName === 'syncAll';
   var ss = null;
   try {
     ss = ctGetSpreadsheet_();
@@ -6473,6 +6476,206 @@ function ctHandleImportSessions_(actor, payload) {
   }
 }
 
+/**
+ * Ensures the target spreadsheet for a Supabase Edge Function webhook call is open
+ * and initialized with all required career tour tabs before mirroring rows.
+ */
+function ctEnsureWebhookSpreadsheetReady_(actor, payload, req) {
+  var requestedId = ctParseSpreadsheetId_(
+    (payload && (payload.spreadsheetId || payload.spreadsheetUrlOrId)) ||
+      (req && req.spreadsheetId) ||
+      ''
+  );
+  var props = PropertiesService.getScriptProperties();
+  var currentConnectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+  var needsAttach = Boolean(requestedId && requestedId !== currentConnectedId);
+
+  if (!needsAttach) {
+    try {
+      var currentSs = ctGetSpreadsheet_();
+      var hasSessionsTab = Boolean(currentSs && currentSs.getSheetByName(SHEET_NAMES.SESSIONS));
+      var hasDetailsTab = Boolean(currentSs && currentSs.getSheetByName(SHEET_NAMES.SESSION_DETAILS));
+      if (hasSessionsTab && hasDetailsTab) {
+        return ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : '');
+      }
+      needsAttach = true;
+      if (!requestedId && typeof currentSs.getId === 'function') {
+        requestedId = String(currentSs.getId() || '').trim();
+      }
+    } catch (missingErr) {
+      needsAttach = true;
+    }
+  }
+
+  return ctHandleConnectGoogleSheet_(actor, {
+    spreadsheetUrlOrId: requestedId || CT_DEFAULT_TARGET_SPREADSHEET_ID,
+    initializeSchema: true
+  });
+}
+
+function ctHandlePingWebhook_(actor, payload, req) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var state = ctEnsureWebhookSpreadsheetReady_(actor, payload, req);
+    return {
+      reachable: true,
+      spreadsheetId: state.spreadsheetId,
+      spreadsheetName: state.spreadsheetName,
+      spreadsheetUrl: state.spreadsheetUrl,
+      initializedTabs: state.initializedTabs || [],
+      message: 'Apps Script webhook connected and sheet schema verified.'
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctWriteWebhookSessionDetails_(detailSheet, sessionRecordId, details) {
+  var existingRows = ctFindDetailRowsBySessionRecordId_(sessionRecordId);
+  var list = Array.isArray(details) ? details : [];
+  var minLen = Math.min(existingRows.length, list.length);
+
+  for (var i = 0; i < minLen; i++) {
+    var uArr = ctDetailRecordToSheetRow_(list[i]);
+    var uRange = detailSheet.getRange(existingRows[i]._rowNumber, 1, 1, DETAIL_COL_COUNT);
+    uRange.setNumberFormats([ctBuildTextFormatRow_(uArr, [1, 2, 3, 4, 5])]);
+    uRange.setValues([uArr]);
+  }
+  if (list.length > existingRows.length) {
+    var toAppend = [];
+    var toAppendFmt = [];
+    for (var a = existingRows.length; a < list.length; a++) {
+      var aArr = ctDetailRecordToSheetRow_(list[a]);
+      toAppend.push(aArr);
+      toAppendFmt.push(ctBuildTextFormatRow_(aArr, [1, 2, 3, 4, 5]));
+    }
+    var appendStart = Math.max(2, ctFindLastPopulatedRow_(detailSheet, 1) + 1);
+    var appRange = detailSheet.getRange(appendStart, 1, toAppend.length, DETAIL_COL_COUNT);
+    appRange.setNumberFormats(toAppendFmt);
+    appRange.setValues(toAppend);
+  } else if (existingRows.length > list.length) {
+    for (var d = existingRows.length - 1; d >= list.length; d--) {
+      detailSheet.deleteRow(existingRows[d]._rowNumber);
+    }
+  }
+}
+
+function ctHandleUpsertSessionWebhook_(actor, payload, req) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var state = ctEnsureWebhookSpreadsheetReady_(actor, payload, req);
+    var rec = (payload && payload.session) || (req && req.session) || null;
+    if (!rec || !ctCellToString_(rec.sessionRecordId) || !ctCellToString_(rec.sessionId)) {
+      throw ctApiError_('BAD_REQUEST', 'session payload with sessionRecordId and sessionId is required.');
+    }
+
+    var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var sessionLayout = ctResolveSessionSheetLayout_(sessionSheet);
+    var lastRow = sessionSheet.getLastRow();
+
+    var targetRecId = ctCellToString_(rec.sessionRecordId);
+    var targetSessId = ctCellToString_(rec.sessionId);
+    var targetClientKey = ctCellToString_(rec.clientSubmissionKey);
+    var matchedRowNumber = -1;
+
+    if (lastRow >= 2) {
+      var cols = sessionSheet.getRange(2, 1, lastRow - 1, 3).getValues();
+      for (var i = 0; i < cols.length; i++) {
+        var rId = ctCellToString_(cols[i][0]);
+        var sId = ctCellToString_(cols[i][1]);
+        var cKey = ctCellToString_(cols[i][2]);
+        if (
+          (targetRecId && rId === targetRecId) ||
+          (targetClientKey && cKey === targetClientKey) ||
+          (targetSessId && sId === targetSessId)
+        ) {
+          matchedRowNumber = i + 2;
+          break;
+        }
+      }
+    }
+
+    var rowArr = ctSessionRecordToSheetRow_(rec, sessionLayout.hasBlock);
+    var destRow = matchedRowNumber > 0
+      ? matchedRowNumber
+      : Math.max(2, ctFindLastPopulatedRow_(sessionSheet, 1) + 1);
+    var sessionRange = sessionSheet.getRange(destRow, 1, 1, sessionLayout.colCount);
+    sessionRange.setNumberFormats([
+      ctBuildTextFormatRow_(rowArr, sessionLayout.textColumns)
+    ]);
+    sessionRange.setValues([rowArr]);
+
+    ctWriteWebhookSessionDetails_(detailSheet, targetRecId, rec.details);
+
+    var nowIso = ctNowIso_();
+    if (ctCellToString_(rec.udiseCode) && ctCellToString_(rec.schoolName)) {
+      ctUpsertSchoolWithoutOverwrite_(rec, nowIso);
+    }
+
+    try {
+      var ssUp = ctGetSpreadsheet_();
+      var cfgUp = ctLoadConfiguration_();
+      if (typeof ctRefreshSummaryAndKpisSheet_ === 'function') ctRefreshSummaryAndKpisSheet_(ssUp, cfgUp);
+      if (typeof ctRefreshDeclarationsSheet_ === 'function') ctRefreshDeclarationsSheet_(ssUp, cfgUp);
+    } catch (ignoreRefresh) {}
+
+    var props = PropertiesService.getScriptProperties();
+    var msg = (matchedRowNumber > 0 ? 'Updated ' : 'Synced ') + targetSessId + ' via webhook.';
+    if (typeof props.setProperty === 'function') {
+      props.setProperty('CONNECTED_LAST_SYNC_AT', nowIso);
+      props.setProperty('CONNECTED_LAST_SYNC_STATUS', 'SYNCED');
+      props.setProperty('CONNECTED_LAST_SYNC_MESSAGE', msg);
+    }
+
+    ctAppendSyncLog_(
+      actor,
+      targetClientKey || 'WEBHOOK',
+      targetRecId,
+      targetSessId,
+      'upsertSession',
+      1,
+      'SYNCED',
+      ''
+    );
+
+    return {
+      syncedCount: 1,
+      updatedExisting: matchedRowNumber > 0,
+      spreadsheetId: state.spreadsheetId,
+      sessionRecordId: targetRecId,
+      sessionId: targetSessId,
+      syncedAt: nowIso,
+      message: msg
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleSyncAllWebhook_(actor, payload, req) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    ctEnsureWebhookSpreadsheetReady_(actor, payload, req);
+    var mergedPayload = payload ? JSON.parse(JSON.stringify(payload)) : {};
+    if (!Array.isArray(mergedPayload.sessions) && req && Array.isArray(req.sessions)) {
+      mergedPayload.sessions = req.sessions;
+    }
+    if (!Array.isArray(mergedPayload.schools) && req && Array.isArray(req.schools)) {
+      mergedPayload.schools = req.schools;
+    }
+    if (!Array.isArray(mergedPayload.facilitators) && req && Array.isArray(req.facilitators)) {
+      mergedPayload.facilitators = req.facilitators;
+    }
+    return ctHandleSyncAllToGoogleSheet_(actor, mergedPayload);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ============================================================================
 // Module: Export.gs
 // ============================================================================
@@ -6803,6 +7006,15 @@ function doPost(e) {
         break;
       case 'importSessions':
         data = ctHandleImportSessions_(actor, payload);
+        break;
+      case 'ping':
+        data = ctHandlePingWebhook_(actor, payload, req);
+        break;
+      case 'upsertSession':
+        data = ctHandleUpsertSessionWebhook_(actor, payload, req);
+        break;
+      case 'syncAll':
+        data = ctHandleSyncAllWebhook_(actor, payload, req);
         break;
       default:
         return ctJsonResponse_({

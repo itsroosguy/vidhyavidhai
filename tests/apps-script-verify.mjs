@@ -1886,6 +1886,212 @@ function runVerification() {
   assert.equal(recHealth.data.promotedPendingCount, 1);
   assert.equal(recHealth.data.pendingCount, 0);
 
+  // 17. Supabase Edge Function webhook contract: ping, upsertSession (insert + idempotent update), syncAll
+  assert.equal(
+    standalone.callBridge('ping', 'WRONG-SYNC-KEY-0000', 'brinthajayaprakash888@gmail.com', {}).code,
+    'INVALID_SYNC_KEY',
+  );
+  assert.equal(
+    standalone.callBridge('ping', presetSyncKey, 'remote.fac@example.org', {}).code,
+    'FORBIDDEN',
+  );
+
+  const pingOk = standalone.callBridge(
+    'ping',
+    presetSyncKey,
+    'brinthajayaprakash888@gmail.com',
+    { spreadsheetId: createdSsObj.getId() },
+  );
+  assert.equal(pingOk.ok, true);
+  assert.equal(pingOk.data.reachable, true);
+  assert.equal(pingOk.data.spreadsheetId, createdSsObj.getId());
+
+  const webhookSessionBase = {
+    sessionRecordId: 'REC_WEBHOOK_1',
+    sessionId: 'VV_WH_001',
+    clientSubmissionKey: 'wh-client-1',
+    facilitatorName: 'Edge Sync Facilitator',
+    facilitatorEmail: 'edge.fac@vidhyavidhai.org',
+    facilitatorUserId: 'FAC_EDGE_1',
+    tourId: 'TOUR_AM',
+    tourName: 'Automobile',
+    videoId: 'VID_AM_TA',
+    language: 'Tamil',
+    startDate: '2026-11-11',
+    endDate: '2026-11-11',
+    startTime: '10:00',
+    endTime: '10:45',
+    durationMinutes: 45,
+    durationFormatted: '0h 45m',
+    reportingMonth: 'November 2026',
+    submissionTimestamp: '2026-11-11T10:50:00Z',
+    submissionDateFormatted: '11-11-2026',
+    schoolName: 'GHS Webhook Mirrored',
+    udiseCode: '33180100777',
+    schoolType: 'Government school',
+    state: 'Tamil Nadu',
+    district: 'Cuddalore',
+    pinCode: '607106',
+    sessionType: 'combined',
+    totalClasses: 2,
+    totalStudentsPresent: 40,
+    totalQuestionAResponses: 40,
+    totalQuestionBResponses: 40,
+    overallCsat: 4.5,
+    overallItp: 4.25,
+    teacherScore: 9,
+    teacherClassification: 'Promoter',
+    teacherNps: 100,
+    submissionStatus: 'COMMITTED',
+    createdAt: '2026-11-11T10:50:00Z',
+    updatedAt: '2026-11-11T10:50:00Z',
+    createdBy: 'edge.fac@vidhyavidhai.org',
+    updatedBy: 'edge.fac@vidhyavidhai.org',
+    archived: false,
+    details: [
+      {
+        detailRecordId: 'DET_WH_1A',
+        sessionRecordId: 'REC_WEBHOOK_1',
+        sessionId: 'VV_WH_001',
+        grade: '9',
+        section: 'A',
+        studentsPresent: 20,
+        questionAScore5: 10,
+        questionAScore4: 10,
+        questionAScore3: 0,
+        questionAScore2: 0,
+        questionAScore1: 0,
+        questionATotal: 20,
+        questionAWeightedScore: 90,
+        csat: 4.5,
+        questionBScore5: 5,
+        questionBScore4: 15,
+        questionBScore3: 0,
+        questionBScore2: 0,
+        questionBScore1: 0,
+        questionBTotal: 20,
+        questionBWeightedScore: 85,
+        itp: 4.25,
+        createdAt: '2026-11-11T10:50:00Z',
+        updatedAt: '2026-11-11T10:50:00Z',
+      },
+      {
+        detailRecordId: 'DET_WH_1B',
+        sessionRecordId: 'REC_WEBHOOK_1',
+        sessionId: 'VV_WH_001',
+        grade: '10',
+        section: 'B',
+        studentsPresent: 20,
+        questionAScore5: 10,
+        questionAScore4: 10,
+        questionAScore3: 0,
+        questionAScore2: 0,
+        questionAScore1: 0,
+        questionATotal: 20,
+        questionAWeightedScore: 90,
+        csat: 4.5,
+        questionBScore5: 5,
+        questionBScore4: 15,
+        questionBScore3: 0,
+        questionBScore2: 0,
+        questionBScore1: 0,
+        questionBTotal: 20,
+        questionBWeightedScore: 85,
+        itp: 4.25,
+        createdAt: '2026-11-11T10:50:00Z',
+        updatedAt: '2026-11-11T10:50:00Z',
+      },
+    ],
+  };
+
+  const upsertInsert = standalone.callBridge(
+    'upsertSession',
+    presetSyncKey,
+    'brinthajayaprakash888@gmail.com',
+    { spreadsheetId: createdSsObj.getId(), session: webhookSessionBase },
+  );
+  assert.equal(upsertInsert.ok, true);
+  assert.equal(upsertInsert.data.syncedCount, 1);
+  assert.equal(upsertInsert.data.updatedExisting, false);
+
+  const countAfterWebhookInsert = standalone.bSandbox.ctFindLastPopulatedRow_(sessTab, 1);
+  const detTab = createdSsObj.getSheetByName('Session Details');
+  const webhookDetailsBefore = detTab.data.filter((r) => r && r[1] === 'REC_WEBHOOK_1');
+  assert.equal(webhookDetailsBefore.length, 2);
+
+  // Idempotent update shrinks details from 2 -> 1 without duplicating session row
+  const upsertUpdate = standalone.callBridge(
+    'upsertSession',
+    presetSyncKey,
+    'brinthajayaprakash888@gmail.com',
+    {
+      spreadsheetId: createdSsObj.getId(),
+      session: {
+        ...webhookSessionBase,
+        totalClasses: 1,
+        totalStudentsPresent: 22,
+        sessionType: 'single',
+        details: [webhookSessionBase.details[0]],
+      },
+    },
+  );
+  assert.equal(upsertUpdate.ok, true);
+  assert.equal(upsertUpdate.data.updatedExisting, true);
+  assert.equal(standalone.bSandbox.ctFindLastPopulatedRow_(sessTab, 1), countAfterWebhookInsert);
+  const webhookDetailsAfter = detTab.data.filter((r) => r && r[1] === 'REC_WEBHOOK_1');
+  assert.equal(webhookDetailsAfter.length, 1);
+
+  const syncAllWebhook = standalone.callBridge(
+    'syncAll',
+    presetSyncKey,
+    'brinthajayaprakash888@gmail.com',
+    {
+      spreadsheetId: createdSsObj.getId(),
+      sessions: [
+        webhookSessionBase,
+        {
+          ...webhookSessionBase,
+          sessionRecordId: 'REC_WEBHOOK_2',
+          sessionId: 'VV_WH_002',
+          clientSubmissionKey: 'wh-client-2',
+          details: [
+            {
+              ...webhookSessionBase.details[0],
+              detailRecordId: 'DET_WH_2A',
+              sessionRecordId: 'REC_WEBHOOK_2',
+              sessionId: 'VV_WH_002',
+            },
+          ],
+        },
+      ],
+      schools: [
+        {
+          schoolRecordId: 'SCH_WH_1',
+          schoolName: 'GHS Webhook Mirrored',
+          udiseCode: '33180100777',
+          schoolType: 'Government school',
+          state: 'Tamil Nadu',
+          district: 'Cuddalore',
+          pinCode: '607106',
+          active: true,
+        },
+      ],
+      facilitators: [
+        {
+          userId: 'FAC_EDGE_1',
+          name: 'Edge Sync Facilitator',
+          email: 'edge.fac@vidhyavidhai.org',
+          role: 'facilitator',
+          active: true,
+          status: 'APPROVED',
+        },
+      ],
+    },
+  );
+  assert.equal(syncAllWebhook.ok, true);
+  assert.equal(syncAllWebhook.data.syncedCount, 1);
+  assert.equal(syncAllWebhook.data.skippedDuplicates, 1);
+
   const bundleLockFinal = standalone.getLocks();
   assert.equal(bundleLockFinal.bLocksAcq, bundleLockFinal.bLocksRel);
 

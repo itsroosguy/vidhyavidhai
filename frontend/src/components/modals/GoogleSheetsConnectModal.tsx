@@ -172,6 +172,9 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       setSheetUrlOrId(connection.spreadsheetUrl);
       setCustomSheetName(connection.spreadsheetName || '');
       setSelectedDriveId(connection.spreadsheetId || '');
+      if (connection.appsScriptUrl) {
+        setWebhookUrl((prev) => prev || connection.appsScriptUrl || '');
+      }
     } else if (!sheetUrlOrId.trim()) {
       setSheetUrlOrId(DEFAULT_TARGET_SPREADSHEET_URL);
       setSelectedDriveId('');

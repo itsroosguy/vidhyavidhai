@@ -549,6 +549,7 @@ export type Database = {
       }
       sheets_connections: {
         Row: {
+          apps_script_sync_key: string
           apps_script_webhook_url: string
           auth_method: string
           connected: boolean
@@ -569,6 +570,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          apps_script_sync_key?: string
           apps_script_webhook_url?: string
           auth_method?: string
           connected?: boolean
@@ -589,6 +591,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          apps_script_sync_key?: string
           apps_script_webhook_url?: string
           auth_method?: string
           connected?: boolean
