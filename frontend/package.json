@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../scripts/build-apps-script-bundle.mjs",
     "build": "tsc -b && vite build && node -e \"const fs=require('node:fs');if(fs.existsSync('dist/index.html')){fs.copyFileSync('dist/index.html','dist/404.html');fs.writeFileSync('dist/.nojekyll','');}\"",
     "preview": "vite preview",
+    "pretest": "node ../scripts/build-apps-script-bundle.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
