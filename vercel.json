@@ -3,6 +3,11 @@
   "installCommand": "cd frontend && npm ci",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
+  "git": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
