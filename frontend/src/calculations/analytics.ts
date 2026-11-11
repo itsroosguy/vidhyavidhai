@@ -74,7 +74,6 @@ export function filterSessionRecords(
     }
 
     if (filters.district && s.district !== filters.district) continue;
-    if (filters.block && s.block !== filters.block) continue;
     if (filters.school && !s.schoolName.toLowerCase().includes(filters.school.toLowerCase())) {
       continue;
     }
@@ -93,7 +92,7 @@ export function filterSessionRecords(
     if (filters.search) {
       const q = filters.search.trim().toLowerCase();
       const hay =
-        `${s.sessionId} ${s.schoolName} ${s.udiseCode} ${s.facilitatorName} ${s.block}`.toLowerCase();
+        `${s.sessionId} ${s.schoolName} ${s.udiseCode} ${s.facilitatorName}`.toLowerCase();
       if (!hay.includes(q)) continue;
     }
 
@@ -170,7 +169,7 @@ export function computeDashboardAnalytics(
 
   const schoolMap = new Map<
     string,
-    GroupAccum & { udiseCode: string; schoolName: string; district: string; block: string }
+    GroupAccum & { udiseCode: string; schoolName: string; district: string }
   >();
   const monthMap = new Map<
     string,
@@ -211,11 +210,9 @@ export function computeDashboardAnalytics(
       udiseCode: s.udiseCode,
       schoolName: s.schoolName,
       district: s.district,
-      block: s.block,
     };
     scAgg.sessions++;
     scAgg.schoolName = s.schoolName;
-    scAgg.block = s.block;
     scAgg.npsSum += s.teacherNps;
 
     const monthKey = /^\d{4}-\d{2}/.test(s.startDate) ? s.startDate.slice(0, 7) : 'Unknown';
@@ -418,7 +415,6 @@ export function computeDashboardAnalytics(
           udiseCode: v.udiseCode,
           schoolName: v.schoolName,
           district: v.district,
-          block: v.block,
           sessions: v.sessions,
           studentsReached: v.students,
           qaResponses: qa.total,

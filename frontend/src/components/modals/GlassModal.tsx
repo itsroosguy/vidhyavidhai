@@ -42,6 +42,8 @@ export const GlassModal: React.FC<GlassModalProps> = ({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const closingViaHandlerRef = useRef(false);
+  const isOpenRef = useRef(open);
+  isOpenRef.current = open;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -52,7 +54,9 @@ export const GlassModal: React.FC<GlassModalProps> = ({
       dialog.showModal();
     } else if (!open && dialog.open) {
       closingViaHandlerRef.current = true;
-      void closeTopLayer(dialog).finally(() => {
+      delete dialog.dataset.closing;
+      dialog.close();
+      queueMicrotask(() => {
         closingViaHandlerRef.current = false;
       });
     }
@@ -63,7 +67,7 @@ export const GlassModal: React.FC<GlassModalProps> = ({
     if (!dialog) return;
 
     const handleNativeClose = () => {
-      if (!closingViaHandlerRef.current) {
+      if (isOpenRef.current && !closingViaHandlerRef.current) {
         onClose();
       }
     };

@@ -35,7 +35,6 @@ import type {
   SessionQueryFilters,
   SubmissionStatus,
 } from '../types/domain';
-import { getBlocksForDistrict } from '../validations/sessionValidation';
 
 interface AnalyticsSectionViewProps {
   analytics: DashboardAnalytics | null;
@@ -59,7 +58,7 @@ export const AnalyticsSectionView: React.FC<AnalyticsSectionViewProps> = ({
   loading,
   config,
   filters,
-  sessionsTotal,
+  sessionsTotal: _sessionsTotal,
   preparingExport,
   onFiltersChange,
   onDistrictFilterChange,
@@ -70,12 +69,9 @@ export const AnalyticsSectionView: React.FC<AnalyticsSectionViewProps> = ({
   onOpenSyncStatus,
   onDrillDown,
 }) => {
-  const districtBlocks = getBlocksForDistrict(filters.district ?? '', config);
-
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.district) count++;
-    if (filters.block) count++;
     if (filters.search?.trim()) count++;
     if (filters.facilitatorEmail?.trim()) count++;
     if (filters.tourId) count++;
@@ -170,7 +166,7 @@ export const AnalyticsSectionView: React.FC<AnalyticsSectionViewProps> = ({
             </button>
             <button
               type="button"
-              disabled={preparingExport || sessionsTotal === 0}
+              disabled={preparingExport}
               onClick={onExportFiltered}
               className="ct-btn-primary text-xs min-h-[38px] px-3.5 py-1.5"
             >
@@ -186,7 +182,7 @@ export const AnalyticsSectionView: React.FC<AnalyticsSectionViewProps> = ({
           aria-label="Filter programme records"
           className="pt-3.5 border-t border-[#E5DFD2] space-y-3"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
             <div>
               <label htmlFor="adm-district" className="block text-[11px] font-medium text-[#33475B] mb-1">
                 District
@@ -206,29 +202,7 @@ export const AnalyticsSectionView: React.FC<AnalyticsSectionViewProps> = ({
               </select>
             </div>
 
-            <div>
-              <label htmlFor="adm-block" className="block text-[11px] font-medium text-[#33475B] mb-1">
-                Block
-              </label>
-              <select
-                id="adm-block"
-                disabled={!filters.district || districtBlocks.length === 0}
-                value={filters.block ?? ''}
-                onChange={(e) =>
-                  onFiltersChange((prev) => ({ ...prev, block: e.target.value, page: 1 }))
-                }
-                className="ct-input ct-select !min-h-[38px] !py-1.5 !px-2.5 !pr-8 text-[13px]"
-              >
-                <option value="">{!filters.district ? 'Select district' : 'All blocks'}</option>
-                {districtBlocks.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="adm-school" className="block text-[11px] font-medium text-[#33475B] mb-1">
                 School Name / Search
               </label>

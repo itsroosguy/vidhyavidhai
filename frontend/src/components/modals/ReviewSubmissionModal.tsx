@@ -170,7 +170,6 @@ export const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           <span className="text-[#243647]">District:</span>{' '}
           <span className="font-medium text-[#0A1B2C]">
             {values.district}
-            {values.block ? ` · ${values.block}` : ''}
           </span>
         </div>
         <div>

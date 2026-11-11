@@ -1,5 +1,21 @@
-import React, { useCallback, useEffect, useId, useState } from 'react';
-import { Check, Clock, Lock, ShieldCheck, UserPlus, XCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Clock,
+  Edit3,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  X,
+  XCircle,
+} from 'lucide-react';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { INITIAL_SUPER_ADMINS, isAllowlistedSuperAdmin } from '../config/accessControl';
 import type { BackendApiClient } from '../services/apiClient';
 import type {
@@ -31,9 +47,59 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ManagedUser | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const currentPwRef = useRef<HTMLInputElement>(null);
+  const newPwRef = useRef<HTMLInputElement>(null);
+  const pwAnnounceTimerRef = useRef<number | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [currentPwTouched, setCurrentPwTouched] = useState(false);
+  const [currentPwSubmitted, setCurrentPwSubmitted] = useState(false);
+  const [currentPwServerError, setCurrentPwServerError] = useState<string | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+
+  const [newPassword, setNewPassword] = useState('');
+  const [newPwTouched, setNewPwTouched] = useState(false);
+  const [newPwSubmitted, setNewPwSubmitted] = useState(false);
+  const [newPwServerError, setNewPwServerError] = useState<string | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordSavedMessage, setPasswordSavedMessage] = useState<string | null>(null);
+  const [pwLiveAnnouncement, setPwLiveAnnouncement] = useState('');
+
+  const schedulePwAnnouncement = useCallback((message: string, delayMs = 0) => {
+    if (typeof window === 'undefined') return;
+    if (pwAnnounceTimerRef.current !== null) {
+      window.clearTimeout(pwAnnounceTimerRef.current);
+      pwAnnounceTimerRef.current = null;
+    }
+    setPwLiveAnnouncement('');
+    if (!message) return;
+    if (delayMs <= 0) {
+      setPwLiveAnnouncement(message);
+      return;
+    }
+    pwAnnounceTimerRef.current = window.setTimeout(() => {
+      setPwLiveAnnouncement(message);
+    }, delayMs);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pwAnnounceTimerRef.current !== null && typeof window !== 'undefined') {
+        window.clearTimeout(pwAnnounceTimerRef.current);
+      }
+    };
+  }, []);
 
   const captionId = useId();
   const isSuperAdmin = currentUser.role === 'super_admin';
+  const isSupabaseMode = api.mode === 'supabase';
   const approvalMode: FacilitatorApprovalMode =
     config?.policy.facilitatorApprovalMode ?? 'manual_allowlist';
 
@@ -100,6 +166,49 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
     }
   };
 
+  const handleSaveUserName = async (u: ManagedUser) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      onNotify('warning', 'Facilitator name cannot be empty');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const currentStatus = u.status ?? (u.active ? 'APPROVED' : 'DENIED');
+      const res = await api.manageUser({
+        userId: u.userId,
+        name: trimmed,
+        email: u.email,
+        role: 'facilitator',
+        active: u.active,
+        status: currentStatus,
+      });
+      if (res.ok) {
+        onNotify('success', 'Facilitator name updated', `${trimmed} (${u.email})`);
+        setEditingUserId(null);
+        setEditingName('');
+        await loadUsers();
+      } else {
+        onNotify('error', 'Failed to update facilitator name', res.error);
+      }
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    const res = await api.deleteUser(target.userId || target.email);
+    if (res.ok) {
+      onNotify('success', 'User removed from directory', target.email);
+      await loadUsers();
+    } else {
+      onNotify('error', 'Failed to remove user', res.error);
+    }
+  };
+
   const handleApprovalModeChange = async (nextMode: FacilitatorApprovalMode) => {
     if (!isSuperAdmin || !config) return;
     setSavingPolicy(true);
@@ -128,6 +237,79 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
     }
   };
 
+  const currentPwError =
+    currentPwServerError ||
+    ((currentPwTouched || currentPwSubmitted) && !currentPassword
+      ? 'Enter your current Super Administrator password.'
+      : null);
+
+  const newPwError =
+    newPwServerError ||
+    ((newPwTouched || newPwSubmitted) && newPassword.trim().length < 8
+      ? 'Enter a new password with at least 8 characters.'
+      : null);
+
+  const handleChangeSuperAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof api.changeSuperAdminPassword !== 'function') return;
+    setCurrentPwSubmitted(true);
+    setNewPwSubmitted(true);
+    setCurrentPwServerError(null);
+    setNewPwServerError(null);
+    setPasswordSavedMessage(null);
+
+    if (!currentPassword) {
+      schedulePwAnnouncement('');
+      currentPwRef.current?.focus();
+      return;
+    }
+    if (newPassword.trim().length < 8) {
+      schedulePwAnnouncement('');
+      newPwRef.current?.focus();
+      return;
+    }
+    if (newPassword === currentPassword) {
+      const sameMsg = 'New password must be different from your current password.';
+      setNewPwServerError(sameMsg);
+      schedulePwAnnouncement('');
+      newPwRef.current?.focus();
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const res = await api.changeSuperAdminPassword(currentPassword, newPassword);
+      if (res.ok) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setCurrentPwTouched(false);
+        setCurrentPwSubmitted(false);
+        setNewPwTouched(false);
+        setNewPwSubmitted(false);
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        const successText = isSupabaseMode
+          ? 'Password updated securely in Supabase Auth. Use your new password next time you sign in.'
+          : 'Password updated securely. Use your new password next time you sign in on this browser.';
+        setPasswordSavedMessage(successText);
+        schedulePwAnnouncement(successText, 250);
+        onNotify('success', 'Super Administrator password updated', currentUser.email);
+      } else if (res.code === 'INVALID_CURRENT_PASSWORD' || res.code === 'INVALID_PASSWORD') {
+        const msg = res.error || 'Current password is incorrect.';
+        setCurrentPwServerError(msg);
+        schedulePwAnnouncement(`Current password: ${msg}`, 500);
+        window.setTimeout(() => currentPwRef.current?.focus(), 0);
+      } else {
+        const msg = res.error || 'Unable to update password.';
+        setNewPwServerError(msg);
+        schedulePwAnnouncement(`New password: ${msg}`, 500);
+        window.setTimeout(() => newPwRef.current?.focus(), 0);
+      }
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   const pendingUsers = users.filter(
     (u) => !isAllowlistedSuperAdmin(u.email) && u.status === 'PENDING',
   );
@@ -146,14 +328,14 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
               Protected Super Administrators ({INITIAL_SUPER_ADMINS.length})
             </h2>
             <p className="text-xs sm:text-sm text-[#243647] mt-0.5 leading-relaxed">
-              Enforced strictly via server-side allowlist and Google OAuth authentication. No
-              passwords exist in frontend, source code, database sheets, or exports, and no other
-              account can be elevated to Administrator.
+              {isSupabaseMode
+                ? 'Enforced strictly at the PostgreSQL database level via Supabase Auth, email allowlisting, and Row-Level Security policies. Plaintext passwords are never stored in browser storage, database tables, exports, or audit logs, and no other account can elevate itself to Administrator.'
+                : 'Enforced strictly via allowlist verification and salted PBKDF2-SHA256 password authentication on local sign-in (and Google OAuth when connected online). Plaintext passwords are never stored in browser storage, database sheets, exports, or audit logs, and no other account can be elevated to Administrator.'}
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8]">
             <Lock className="w-3.5 h-3.5" aria-hidden="true" />
-            Server-Locked Allowlist
+            Password-Protected Allowlist
           </span>
         </div>
 
@@ -171,12 +353,257 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#0A1B2C] text-[#FAF8F2]">
                   SUPER_ADMIN
                 </span>
-                <span className="text-[11px] text-[#047857]">Active · Protected</span>
+                <span className="text-[11px] text-[#047857]">Password protected</span>
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      {/* 1b. Change Signed-In Super Administrator Password */}
+      {isSuperAdmin &&
+        isAllowlistedSuperAdmin(currentUser.email) &&
+        typeof api.changeSuperAdminPassword === 'function' && (
+          <section className="ct-card p-5 sm:p-6">
+            <div aria-live="polite" className="visually-hidden">
+              {pwLiveAnnouncement}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3
+                  id="change-sa-password-heading"
+                  className="text-base sm:text-lg font-medium text-[#0A1B2C] flex items-center gap-2"
+                >
+                  <KeyRound className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
+                  <span>Change Super Administrator Password</span>
+                </h3>
+                <p className="text-xs text-[#243647] mt-0.5 leading-relaxed">
+                  {isSupabaseMode ? (
+                    <>
+                      Update the Supabase Auth sign-in password for{' '}
+                      <span className="font-mono text-[#0A1B2C]">{currentUser.email}</span>.
+                      Credentials are hashed server-side by Supabase Auth.
+                    </>
+                  ) : (
+                    <>
+                      Update the login password for{' '}
+                      <span className="font-mono text-[#0A1B2C]">{currentUser.email}</span> on this
+                      browser. Only a salted cryptographic hash is stored locally.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {passwordSavedMessage && (
+              <div
+                role="status"
+                className="mb-4 flex items-start gap-2 rounded-xl px-3.5 py-2.5 text-xs bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]"
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>{passwordSavedMessage}</span>
+              </div>
+            )}
+
+            <form
+              method="post"
+              aria-labelledby="change-sa-password-heading"
+              onSubmit={(e) => void handleChangeSuperAdminPassword(e)}
+              noValidate
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start"
+            >
+              <input
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={currentUser.email}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                className="visually-hidden"
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="sa-current-password"
+                  className="text-xs font-medium text-[#0A1B2C]"
+                >
+                  Current password <span aria-hidden="true">*</span>
+                </label>
+                <span id="sa-current-pw-hint" className="text-xs text-[#33475B]">
+                  Enter your active Super Administrator password.
+                </span>
+                <span id="sa-current-pw-warning" className="visually-hidden">
+                  Warning: this will display your current password on the screen.
+                </span>
+                <div className="flex items-stretch gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <Lock
+                      className="w-4 h-4 text-[#33475B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={currentPwRef}
+                      id="sa-current-password"
+                      name="currentPassword"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      enterKeyHint="next"
+                      placeholder="Current password"
+                      value={currentPassword}
+                      onChange={(e) => {
+                        setCurrentPassword(e.target.value);
+                        setCurrentPwTouched(false);
+                        setCurrentPwSubmitted(false);
+                        if (currentPwServerError) setCurrentPwServerError(null);
+                        setPasswordSavedMessage(null);
+                        schedulePwAnnouncement('');
+                      }}
+                      onBlur={() => {
+                        setCurrentPwTouched(true);
+                        if (!currentPassword) {
+                          schedulePwAnnouncement(
+                            'Current password: Enter your current Super Administrator password.',
+                            500,
+                          );
+                        }
+                      }}
+                      aria-invalid={Boolean(currentPwError)}
+                      aria-describedby={
+                        currentPwError
+                          ? 'sa-current-pw-hint sa-current-pw-error'
+                          : 'sa-current-pw-hint'
+                      }
+                      className="ct-input pl-10 text-sm rounded-xl bg-[#FFFFFF] border-[#5F7082]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={showCurrentPassword}
+                    aria-label={
+                      showCurrentPassword ? 'Hide current password' : 'Show current password'
+                    }
+                    aria-describedby="sa-current-pw-warning"
+                    onClick={() => setShowCurrentPassword((v) => !v)}
+                    className="min-w-[44px] min-h-[44px] px-2.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F5F2E9] border border-[#5F7082] hover:border-[#0284C7] text-[#0A1B2C] inline-flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
+                {currentPwError && (
+                  <div
+                    id="sa-current-pw-error"
+                    className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs bg-[#FFF1F2] border border-[#BE123C]/40 text-[#BE123C]"
+                  >
+                    <AlertCircle
+                      role="img"
+                      aria-label="Error"
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                    />
+                    <span>{currentPwError}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="sa-new-password" className="text-xs font-medium text-[#0A1B2C]">
+                  New password <span aria-hidden="true">*</span>
+                </label>
+                <span id="sa-new-pw-hint" className="text-xs text-[#33475B]">
+                  At least 8 characters and different from your current password.
+                </span>
+                <span id="sa-new-pw-warning" className="visually-hidden">
+                  Warning: this will display your new password on the screen.
+                </span>
+                <div className="flex items-stretch gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <KeyRound
+                      className="w-4 h-4 text-[#33475B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={newPwRef}
+                      id="sa-new-password"
+                      name="newPassword"
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      enterKeyHint="done"
+                      placeholder="New password (min 8 chars)"
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        setNewPwTouched(false);
+                        setNewPwSubmitted(false);
+                        if (newPwServerError) setNewPwServerError(null);
+                        setPasswordSavedMessage(null);
+                        schedulePwAnnouncement('');
+                      }}
+                      onBlur={() => {
+                        setNewPwTouched(true);
+                        if (newPassword.trim().length < 8) {
+                          schedulePwAnnouncement(
+                            'New password: Enter a new password with at least 8 characters.',
+                            500,
+                          );
+                        }
+                      }}
+                      aria-invalid={Boolean(newPwError)}
+                      aria-describedby={
+                        newPwError ? 'sa-new-pw-hint sa-new-pw-error' : 'sa-new-pw-hint'
+                      }
+                      className="ct-input pl-10 text-sm rounded-xl bg-[#FFFFFF] border-[#5F7082]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={showNewPassword}
+                    aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                    aria-describedby="sa-new-pw-warning"
+                    onClick={() => setShowNewPassword((v) => !v)}
+                    className="min-w-[44px] min-h-[44px] px-2.5 rounded-xl bg-[#FFFFFF] hover:bg-[#F5F2E9] border border-[#5F7082] hover:border-[#0284C7] text-[#0A1B2C] inline-flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-4 h-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
+                {newPwError && (
+                  <div
+                    id="sa-new-pw-error"
+                    className="flex items-start gap-2 rounded-xl px-3 py-2 text-xs bg-[#FFF1F2] border border-[#BE123C]/40 text-[#BE123C]"
+                  >
+                    <AlertCircle
+                      role="img"
+                      aria-label="Error"
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                    />
+                    <span>{newPwError}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="md:col-span-2 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="ct-btn-primary text-sm min-h-[44px]"
+                >
+                  <KeyRound className="w-4 h-4" aria-hidden="true" />
+                  <span>{savingPassword ? 'Updating password...' : 'Update password'}</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
 
       {/* 2. Facilitator Google Login Approval Policy */}
       {config && (
@@ -184,12 +611,24 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
               <h3 className="text-base sm:text-lg font-medium text-[#0A1B2C]">
-                Google Sign-In Approval Policy (Non-Admin Users)
+                {isSupabaseMode
+                  ? 'Sign-In Approval Policy (Non-Admin Users)'
+                  : 'Google Sign-In Approval Policy (Non-Admin Users)'}
               </h3>
               <p className="text-xs text-[#243647] mt-0.5">
-                Every non-allowlisted user authenticates through Google OAuth and always receives
-                the restricted <strong className="font-medium text-[#0A1B2C]">Facilitator</strong>{' '}
-                role.
+                {isSupabaseMode ? (
+                  <>
+                    Every non-allowlisted user authenticates through Supabase Auth (Google OAuth or
+                    Email) and always receives the restricted{' '}
+                    <strong className="font-medium text-[#0A1B2C]">Facilitator</strong> role.
+                  </>
+                ) : (
+                  <>
+                    Every non-allowlisted user authenticates through Google OAuth and always receives
+                    the restricted <strong className="font-medium text-[#0A1B2C]">Facilitator</strong>{' '}
+                    role.
+                  </>
+                )}
               </p>
             </div>
             {savingPolicy && (
@@ -277,7 +716,7 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                   <div className="font-medium text-[#0A1B2C]">{u.name}</div>
                   <div className="font-mono text-[#243647]">{u.email}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     disabled={!isSuperAdmin}
@@ -295,6 +734,16 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                   >
                     <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
                     Deny
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!isSuperAdmin}
+                    onClick={() => setDeleteTarget(u)}
+                    aria-label={`Remove ${u.email}`}
+                    className="ct-btn-secondary text-xs min-h-[36px] px-3 py-1 border-[#BE123C]/40 text-[#BE123C] hover:bg-[#FFF1F2]"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                    Remove
                   </button>
                 </div>
               </div>
@@ -379,7 +828,56 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
 
                 return (
                   <tr key={u.userId} className="bg-[#FFFFFF] hover:bg-[#F5F2E9] transition-colors">
-                    <td className="p-3 font-medium text-[#0A1B2C]">{u.name}</td>
+                    <td className="p-3 font-medium text-[#0A1B2C]">
+                      {editingUserId === u.userId ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            aria-label={`Edit name for ${u.email}`}
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="ct-input text-xs min-h-[34px] py-1 px-2 max-w-[190px]"
+                          />
+                          <button
+                            type="button"
+                            disabled={savingEdit}
+                            onClick={() => void handleSaveUserName(u)}
+                            aria-label={`Save name for ${u.email}`}
+                            className="p-1.5 rounded-lg bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingUserId(null);
+                              setEditingName('');
+                            }}
+                            aria-label={`Cancel editing ${u.email}`}
+                            className="p-1.5 rounded-lg bg-[#F5F2E9] border border-[#8E8674] text-[#243647] cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span>{u.name}</span>
+                          {isSuperAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingUserId(u.userId);
+                                setEditingName(u.name);
+                              }}
+                              aria-label={`Edit name for ${u.email}`}
+                              className="p-1 rounded hover:bg-[#EFE8D6] text-[#243647] hover:text-[#006BB8] cursor-pointer transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-mono text-[#243647]">{u.email}</td>
                     <td className="p-3 uppercase font-medium text-[#243647]">FACILITATOR</td>
                     <td className="p-3">
@@ -388,7 +886,7 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                       </span>
                     </td>
                     <td className="p-3">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {status !== 'APPROVED' || !u.active ? (
                           <button
                             type="button"
@@ -408,6 +906,16 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                             Deny / Deactivate
                           </button>
                         )}
+                        {isSuperAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(u)}
+                            aria-label={`Remove user ${u.email}`}
+                            className="p-2 rounded-lg bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#BE123C]/40 text-[#BE123C] cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -417,6 +925,30 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
           </table>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="Remove user from directory?"
+        description={
+          isSupabaseMode
+            ? 'This revokes and removes this Facilitator profile from Supabase PostgreSQL. Any existing sessions submitted by this user remain safely preserved in form_submissions.'
+            : 'This permanently removes this Facilitator account from Google Sheets (Facilitators tab). Any existing sessions submitted by this user remain in the Sessions tab.'
+        }
+        metadata={
+          deleteTarget
+            ? [
+                { label: 'Name', value: deleteTarget.name },
+                { label: isSupabaseMode ? 'Email' : 'Google Email', value: deleteTarget.email },
+                { label: 'Status', value: deleteTarget.status ?? (deleteTarget.active ? 'APPROVED' : 'DENIED') },
+              ]
+            : undefined
+        }
+        confirmLabel="Yes, remove user"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => void handleConfirmDeleteUser()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

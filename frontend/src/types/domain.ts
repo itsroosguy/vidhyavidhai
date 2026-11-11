@@ -11,8 +11,10 @@ export interface UserProfile {
   role: UserRole;
   active: boolean;
   status?: UserApprovalStatus;
-  authMode: 'google_oauth' | 'local_sandbox';
+  authMode: 'google_oauth' | 'local_sandbox' | 'supabase';
   idToken?: string;
+  organisationId?: string;
+  organisationName?: string;
 }
 
 export type SessionMode = 'single' | 'combined';
@@ -146,7 +148,6 @@ export interface SessionFormValues {
   schoolType: string;
   state: string;
   district: string;
-  block: string;
   pinCode: string; // 6-digit string
   sessionMode: SessionMode;
   classes: ClassGroupInput[];
@@ -208,7 +209,6 @@ export interface SessionRecord {
   schoolType: string;
   state: string;
   district: string;
-  block: string;
   pinCode: string;
   sessionType: SessionMode;
   totalClasses: number;
@@ -251,12 +251,6 @@ export interface TourOption {
   videoIdByLanguage?: Record<string, string>;
 }
 
-export interface DistrictBlockEntry {
-  district: string;
-  block: string;
-  active: boolean;
-}
-
 export interface ExportColumnSpec {
   index: number; // 1..63
   header: string;
@@ -277,7 +271,6 @@ export interface AppConfiguration {
   programmeTimezone: string;
   stateName: string;
   allowedDistricts: string[];
-  districtBlocks: DistrictBlockEntry[];
   gradeOptions: string[];
   sectionOptions: string[];
   schoolTypes: string[];
@@ -325,7 +318,6 @@ export interface SchoolRecord {
   schoolType: string;
   state: string;
   district: string;
-  block: string;
   pinCode: string;
   active: boolean;
   createdAt: string;
@@ -359,7 +351,6 @@ export interface AuditLogEntry {
 export interface SessionQueryFilters {
   search?: string;
   district?: string;
-  block?: string;
   school?: string;
   facilitatorEmail?: string;
   tourId?: string;
@@ -433,7 +424,6 @@ export interface DashboardAnalytics {
     udiseCode: string;
     schoolName: string;
     district: string;
-    block: string;
     sessions: number;
     studentsReached: number;
     qaResponses: number;
@@ -526,9 +516,16 @@ export interface ApiResponse<T> {
 
 export type SheetsAuthMethod = 'google_oauth' | 'apps_script' | 'local_sandbox';
 
+export type SheetsConnectionProvider =
+  | 'direct_browser'
+  | 'sheets_backend'
+  | 'apps_script'
+  | 'local_sandbox';
+
 export interface GoogleSheetsConnectionState {
   connected: boolean;
   authMethod: SheetsAuthMethod;
+  connectionProvider?: SheetsConnectionProvider;
   oauthConfigured: boolean;
   connectedAccount: string;
   spreadsheetId: string;
@@ -557,4 +554,72 @@ export interface SheetsSyncSummary {
   totalSheetSessions: number;
   syncedAt: string;
   message: string;
+}
+
+export interface TeamIntakeConfig {
+  appsScriptUrl?: string;
+  intakeKey?: string;
+  googleClientId?: string;
+  configuredAt: string;
+  configuredBy?: string;
+  label?: string;
+}
+
+export interface TeamIntakeSetupResponse {
+  configured: boolean;
+  intakeKey: string;
+  approvalMode: FacilitatorApprovalMode;
+  updatedAt: string;
+}
+
+export interface DatabaseHealthReport {
+  healthy: boolean;
+  totalSessions: number;
+  committedCount: number;
+  correctedCount: number;
+  pendingCount: number;
+  recoverablePendingCount: number;
+  archivedCount: number;
+  promotedPendingCount: number;
+  orphanPendingCount: number;
+  orphanDetailRowCount: number;
+  duplicateSessionIds: string[];
+  duplicateRecordIds: string[];
+  missingSchoolMasterUdise: string[];
+  repairedSchoolMasters: number;
+  checkedAt: string;
+}
+
+export interface SessionTransferPackage {
+  format: 'VV_FACILITATOR_TRANSFER_V1';
+  version: 1;
+  exportedAt: string;
+  exportedBy: { email: string; name: string };
+  recordCount: number;
+  integrityHash: string;
+  sessions: SessionRecord[];
+}
+
+export interface DatabaseBackupPackage {
+  format: 'VV_DATABASE_BACKUP_V1';
+  version: 1;
+  exportedAt: string;
+  exportedBy: { email: string; name: string };
+  recordCount: number;
+  schoolsCount: number;
+  usersCount: number;
+  integrityHash: string;
+  sessions: SessionRecord[];
+  schools: SchoolRecord[];
+  users: ManagedUser[];
+  configuration: AppConfiguration;
+}
+
+export interface ImportSessionsResult {
+  importedCount: number;
+  skippedDuplicates: number;
+  rejectedCount: number;
+  registeredFacilitators: number;
+  repairedSchools: number;
+  errors: string[];
 }

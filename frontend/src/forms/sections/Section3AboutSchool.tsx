@@ -39,15 +39,15 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
       data-complete={isComplete ? 'true' : 'false'}
       className="ct-form-section p-5 sm:p-6"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-        <div className="flex items-start gap-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <span
             className={`ct-section-icon ${isComplete ? 'ct-section-icon--complete' : ''}`}
             aria-hidden="true"
           >
             <Building2 className="w-4 h-4" />
           </span>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 id="sec3-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the school
@@ -65,22 +65,27 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C]">
-          <MapPin className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
+        <span className="self-start shrink-0 inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] whitespace-nowrap">
+          <MapPin className="w-3.5 h-3.5 text-[#006BB8] shrink-0" aria-hidden="true" />
           {values.district ? values.district : 'Tamil Nadu'}
         </span>
       </div>
 
       {/* Bento Well 1 — School Identity & 11-digit UDISE */}
-      <div className="ct-bento-well p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+      <div className="ct-bento-well p-4 ct-field-grid-3">
         {/* School name */}
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="schoolName" className="text-sm font-medium text-[#0A1B2C]">
-            School name
-            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-              *
-            </span>
-          </label>
+        <div className="ct-field-col">
+          <div className="ct-field-label">
+            <label htmlFor="schoolName" className="text-sm font-medium text-[#0A1B2C]">
+              School{' '}
+              <span className="whitespace-nowrap">
+                name
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                  *
+                </span>
+              </span>
+            </label>
+          </div>
           <input
             id="schoolName"
             name="schoolName"
@@ -94,24 +99,29 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
             data-error="schoolName-error"
             className="ct-input"
           />
-          {errorMap.schoolName && (
-            <p id="schoolName-error" className="text-xs text-[#BE123C] font-medium">
-              {errorMap.schoolName}
-            </p>
-          )}
+          <div className="ct-field-meta">
+            {errorMap.schoolName && (
+              <p id="schoolName-error" className="text-xs text-[#BE123C] font-medium">
+                {errorMap.schoolName}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* School code (UDISE) */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <label htmlFor="udiseCode" className="text-sm font-medium text-[#0A1B2C]">
-              School code (UDISE)
-              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                *
+        <div className="ct-field-col">
+          <div className="ct-field-label items-end flex-nowrap">
+            <label htmlFor="udiseCode" className="text-sm font-medium text-[#0A1B2C] min-w-0 flex-1">
+              School code{' '}
+              <span className="whitespace-nowrap">
+                (UDISE)
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                  *
+                </span>
               </span>
             </label>
             <span
-              className={`text-[11px] px-2 py-0.5 rounded-full ct-num font-medium ${
+              className={`shrink-0 text-[11px] px-2 py-0.5 rounded-full ct-num font-medium whitespace-nowrap ${
                 udiseDigits === 11
                   ? 'bg-[#ECFDF5] text-[#047857] border border-[#047857]/35'
                   : 'bg-[#FFFFFF] text-[#243647] border border-[#C7BEA7]'
@@ -144,39 +154,46 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
             data-error="udiseCode-error"
             className="ct-input font-mono tracking-wider ct-num"
           />
-          {/* 11-segment digit fill bar */}
-          <div aria-hidden="true" className="grid grid-cols-11 gap-1 pt-0.5">
-            {Array.from({ length: 11 }, (_, idx) => (
-              <span
-                key={idx}
-                className={`h-1 rounded-full transition-colors ${
-                  idx < udiseDigits
-                    ? udiseDigits === 11
-                      ? 'bg-[#047857]'
-                      : 'bg-[#006BB8]'
-                    : 'bg-[#DFD7C2]'
-                }`}
-              />
-            ))}
-          </div>
-          <p id="udise-hint" className="text-xs text-[#33475B]">
-            The 11-digit number on the school records. Ask the headmaster or the office.
-          </p>
-          {errorMap.udiseCode && (
-            <p id="udiseCode-error" className="text-xs text-[#BE123C] font-medium">
-              {errorMap.udiseCode}
+          <div className="ct-field-meta">
+            {/* 11-segment digit fill bar */}
+            <div aria-hidden="true" className="grid grid-cols-11 gap-1 pt-0.5">
+              {Array.from({ length: 11 }, (_, idx) => (
+                <span
+                  key={idx}
+                  className={`h-1 rounded-full transition-colors ${
+                    idx < udiseDigits
+                      ? udiseDigits === 11
+                        ? 'bg-[#047857]'
+                        : 'bg-[#006BB8]'
+                      : 'bg-[#DFD7C2]'
+                  }`}
+                />
+              ))}
+            </div>
+            <p id="udise-hint" className="text-xs text-[#33475B]">
+              The 11-digit number on the school records. Ask the headmaster or the office.
             </p>
-          )}
+            {errorMap.udiseCode && (
+              <p id="udiseCode-error" className="text-xs text-[#BE123C] font-medium">
+                {errorMap.udiseCode}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* What kind of school is it? */}
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="schoolType" className="text-sm font-medium text-[#0A1B2C]">
-            What kind of school is it?
-            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-              *
-            </span>
-          </label>
+        <div className="ct-field-col">
+          <div className="ct-field-label">
+            <label htmlFor="schoolType" className="text-sm font-medium text-[#0A1B2C]">
+              What kind of school is{' '}
+              <span className="whitespace-nowrap">
+                it?
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                  *
+                </span>
+              </span>
+            </label>
+          </div>
           <select
             id="schoolType"
             name="schoolType"
@@ -195,11 +212,13 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
               </option>
             ))}
           </select>
-          {errorMap.schoolType && (
-            <p id="schoolType-error" className="text-xs text-[#BE123C] font-medium">
-              {errorMap.schoolType}
-            </p>
-          )}
+          <div className="ct-field-meta">
+            {errorMap.schoolType && (
+              <p id="schoolType-error" className="text-xs text-[#BE123C] font-medium">
+                {errorMap.schoolType}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -220,8 +239,7 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
             )}
             <div>
               <span className="font-medium">Existing UDISE record found:</span>{' '}
-              {matchedSchool.schoolName} ({matchedSchool.district}
-              {matchedSchool.block ? ` · ${matchedSchool.block}` : ''}, PIN {matchedSchool.pinCode})
+              {matchedSchool.schoolName} ({matchedSchool.district}, PIN {matchedSchool.pinCode})
               {schoolNameConflict && (
                 <p className="mt-0.5 text-[#92400E]">
                   Entered school name differs from the registered UDISE record. Existing school master
@@ -242,96 +260,108 @@ export const Section3AboutSchool: React.FC<Section3Props> = ({
       )}
 
       {/* Bento Well 2 — State | District | PIN code */}
-      <div className="ct-bento-well mt-4 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-          <div className="flex flex-col gap-1.5">
+      <div className="ct-bento-well mt-4 p-4 ct-field-grid-3">
+        <div className="ct-field-col">
+          <div className="ct-field-label">
             <label htmlFor="state" className="text-sm font-medium text-[#0A1B2C]">
               State
             </label>
-            <input
-              id="state"
-              name="state"
-              type="text"
-              readOnly
-              value={values.state}
-              className="ct-input"
-            />
           </div>
+          <input
+            id="state"
+            name="state"
+            type="text"
+            readOnly
+            value={values.state}
+            className="ct-input"
+          />
+          <div className="ct-field-meta" />
+        </div>
 
-          {/* District (ONLY approved 3 districts) */}
-          <div className="flex flex-col gap-1.5">
+        {/* District (ONLY approved 3 districts) */}
+        <div className="ct-field-col">
+          <div className="ct-field-label">
             <label htmlFor="district" className="text-sm font-medium text-[#0A1B2C]">
-              District
-              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                *
+              <span className="whitespace-nowrap">
+                District
+                <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                  *
+                </span>
               </span>
             </label>
-            <select
-              id="district"
-              name="district"
-              required
-              value={values.district}
-              onChange={(e) => onDistrictChange(e.target.value)}
-              aria-invalid={Boolean(errorMap.district)}
-              aria-describedby={errorMap.district ? 'district-error' : undefined}
-              data-error="district-error"
-              className="ct-input ct-select"
-            >
-              <option value="">Choose...</option>
-              {config.allowedDistricts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+          </div>
+          <select
+            id="district"
+            name="district"
+            required
+            value={values.district}
+            onChange={(e) => onDistrictChange(e.target.value)}
+            aria-invalid={Boolean(errorMap.district)}
+            aria-describedby={errorMap.district ? 'district-error' : undefined}
+            data-error="district-error"
+            className="ct-input ct-select"
+          >
+            <option value="">Choose...</option>
+            {config.allowedDistricts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <div className="ct-field-meta">
             {errorMap.district && (
               <p id="district-error" className="text-xs text-[#BE123C] font-medium">
                 {errorMap.district}
               </p>
             )}
           </div>
+        </div>
 
-          {/* PIN code */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="pinCode" className="text-sm font-medium text-[#0A1B2C]">
-                PIN code
+        {/* PIN code */}
+        <div className="ct-field-col">
+          <div className="ct-field-label items-end flex-nowrap">
+            <label htmlFor="pinCode" className="text-sm font-medium text-[#0A1B2C] min-w-0 flex-1">
+              PIN{' '}
+              <span className="whitespace-nowrap">
+                code
                 <span className="ml-1 text-[#006BB8]" aria-hidden="true">
                   *
                 </span>
-              </label>
-              <span
-                className={`text-[11px] px-2 py-0.5 rounded-full ct-num font-medium ${
-                  pinDigits === 6
-                    ? 'bg-[#ECFDF5] text-[#047857] border border-[#047857]/35'
-                    : 'bg-[#FFFFFF] text-[#243647] border border-[#C7BEA7]'
-                }`}
-              >
-                {pinDigits}/6
               </span>
-            </div>
-            <input
-              id="pinCode"
-              name="pinCode"
-              type="text"
-              inputMode="numeric"
-              required
-              maxLength={6}
-              pattern="\d{6}"
-              autoCorrect="off"
-              spellCheck={false}
-              autoComplete="postal-code"
-              placeholder="6 digits"
-              value={values.pinCode}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
-                onUpdate('pinCode', digits);
-              }}
-              aria-invalid={Boolean(errorMap.pinCode)}
-              aria-describedby={errorMap.pinCode ? 'pinCode-error' : undefined}
-              data-error="pinCode-error"
-              className="ct-input font-mono tracking-wider ct-num"
-            />
+            </label>
+            <span
+              className={`shrink-0 text-[11px] px-2 py-0.5 rounded-full ct-num font-medium whitespace-nowrap ${
+                pinDigits === 6
+                  ? 'bg-[#ECFDF5] text-[#047857] border border-[#047857]/35'
+                  : 'bg-[#FFFFFF] text-[#243647] border border-[#C7BEA7]'
+              }`}
+            >
+              {pinDigits}/6
+            </span>
+          </div>
+          <input
+            id="pinCode"
+            name="pinCode"
+            type="text"
+            inputMode="numeric"
+            required
+            maxLength={6}
+            pattern="\d{6}"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="postal-code"
+            placeholder="6 digits"
+            value={values.pinCode}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+              onUpdate('pinCode', digits);
+            }}
+            aria-invalid={Boolean(errorMap.pinCode)}
+            aria-describedby={errorMap.pinCode ? 'pinCode-error' : undefined}
+            data-error="pinCode-error"
+            className="ct-input font-mono tracking-wider ct-num"
+          />
+          <div className="ct-field-meta">
             {/* 6-segment PIN fill bar */}
             <div aria-hidden="true" className="grid grid-cols-6 gap-1 pt-0.5">
               {Array.from({ length: 6 }, (_, idx) => (

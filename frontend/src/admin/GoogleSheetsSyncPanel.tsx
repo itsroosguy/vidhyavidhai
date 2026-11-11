@@ -4,38 +4,83 @@ import {
   CheckCircle2,
   CloudOff,
   Database,
+  ExternalLink,
   RefreshCw,
   Trash2,
 } from 'lucide-react';
+import { LiveBackendSetupCard } from '../components/sheets/LiveBackendSetupCard';
+import { DEFAULT_TARGET_SPREADSHEET_URL } from '../config/defaults';
 import type { BackendApiClient, BackendHealthInfo } from '../services/apiClient';
+import { getAuthEnvironment, loadAppsScriptBridgeConfig } from '../services/authService';
 import {
   loadLocalSyncEvents,
   removeSyncOutboxItem,
 } from '../services/syncService';
-import type { SyncLogEntry, SyncOutboxItem, UserProfile } from '../types/domain';
+import type {
+  GoogleSheetsConnectionState,
+  SyncLogEntry,
+  SyncOutboxItem,
+  UserProfile,
+} from '../types/domain';
 import { formatISODateToDDMMYYYY } from '../utils/temporal';
 
 interface GoogleSheetsSyncPanelProps {
   api: BackendApiClient;
   user: UserProfile;
   isLiveBackend: boolean;
+  needsDirectReauth?: boolean;
+  oauthSheetsConnection?: GoogleSheetsConnectionState | null;
   outboxItems: SyncOutboxItem[];
   onRetryItem?: (item: SyncOutboxItem) => Promise<void>;
   onRetryAll?: () => Promise<void>;
   onOutboxChanged?: () => void;
   onOpenSyncModal?: () => void;
+  onAuthorizeNow?: () => Promise<void> | void;
+  onConnectionChanged?: (next: GoogleSheetsConnectionState) => void;
+  onSynced?: () => Promise<void> | void;
+  onEnvironmentChanged?: () => void;
+  onLiveBackendActivated?: () => void;
+  onResetLiveBackend?: () => void;
+  onNotify?: (type: 'success' | 'error' | 'warning', title: string, detail?: string) => void;
 }
 
 export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
   api,
   user,
   isLiveBackend,
+  needsDirectReauth = false,
+  oauthSheetsConnection = null,
   outboxItems,
   onRetryItem,
   onRetryAll,
   onOutboxChanged,
   onOpenSyncModal,
+  onAuthorizeNow,
+  onConnectionChanged,
+  onSynced,
+  onEnvironmentChanged,
+  onLiveBackendActivated,
+  onResetLiveBackend,
+  onNotify,
 }) => {
+  const isSupabaseMode = api.mode === 'supabase';
+  const authEnv = getAuthEnvironment();
+  const hasSavedBridge = Boolean(loadAppsScriptBridgeConfig());
+  const isOAuthConnected = Boolean(
+    !needsDirectReauth &&
+      oauthSheetsConnection?.connected &&
+      oauthSheetsConnection.authMethod === 'google_oauth' &&
+      oauthSheetsConnection.spreadsheetId,
+  );
+  const isBridgeConnected = Boolean(
+    !needsDirectReauth &&
+      oauthSheetsConnection?.connected &&
+      oauthSheetsConnection.spreadsheetId &&
+      (oauthSheetsConnection.connectionProvider === 'apps_script' ||
+        oauthSheetsConnection.authMethod === 'apps_script') &&
+      (isLiveBackend || hasSavedBridge),
+  );
+  const effectiveLive = (isLiveBackend || isOAuthConnected || isBridgeConnected) && !needsDirectReauth;
   const [health, setHealth] = useState<BackendHealthInfo | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [checkingHealth, setCheckingHealth] = useState(false);
@@ -44,7 +89,7 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
   const [retryingKey, setRetryingKey] = useState<string | null>(null);
   const captionId = useId();
 
-  const refreshTelemetry = useCallback(async () => {
+  const refreshSyncStatus = useCallback(async () => {
     setLocalEvents(loadLocalSyncEvents(user.email));
     setCheckingHealth(true);
     setHealthError(null);
@@ -67,15 +112,15 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
   }, [api, user.email]);
 
   useEffect(() => {
-    void refreshTelemetry();
-  }, [refreshTelemetry]);
+    void refreshSyncStatus();
+  }, [refreshSyncStatus]);
 
   const handleRetrySingle = async (item: SyncOutboxItem) => {
     if (!onRetryItem) return;
     setRetryingKey(item.clientSubmissionKey);
     try {
       await onRetryItem(item);
-      await refreshTelemetry();
+      await refreshSyncStatus();
     } finally {
       setRetryingKey(null);
     }
@@ -99,21 +144,24 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
       {/* Connectivity & Endpoint Status */}
       <section className="ct-card p-5 sm:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg sm:text-xl font-medium text-[#0A1B2C] flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#006BB8]" aria-hidden="true" />
-              Google Sheets Sync &amp; Apps Script Pipeline
-            </h2>
-            <p className="text-xs sm:text-sm text-[#243647] mt-0.5">
-              Administrator-only connectivity telemetry, idempotent LockService sync status, and
-              offline retry outbox.
-            </p>
-          </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-medium text-[#0A1B2C] flex items-center gap-2">
+                <Database className="w-5 h-5 text-[#006BB8]" aria-hidden="true" />
+                {isSupabaseMode
+                  ? 'Google Sheets Webhook Mirror & Sync Status'
+                  : 'Google Sheets Online Sync & Storage Setup'}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#243647] mt-0.5">
+                {isSupabaseMode
+                  ? 'Supabase PostgreSQL is your primary database. Optionally link a Google Sheet and Apps Script Web App URL to mirror records via Edge Function google-sheets-sync.'
+                  : 'Connect your official Google Sheet, verify online sync status, and review queued updates.'}
+              </p>
+            </div>
 
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => void refreshTelemetry()}
+              onClick={() => void refreshSyncStatus()}
               disabled={checkingHealth}
               className="ct-btn-secondary text-xs min-h-[38px] px-3.5"
             >
@@ -138,8 +186,53 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
         <div className="p-4 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] space-y-2 text-xs sm:text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-medium text-[#0A1B2C] flex items-center gap-2">
-              {isLiveBackend ? (
-                health?.connectedToGoogleSheets ? (
+              {isSupabaseMode ? (
+                oauthSheetsConnection?.connected && oauthSheetsConnection.spreadsheetId ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
+                    <span>
+                      Primary Database: Supabase PostgreSQL Online · Sheets Mirror Linked
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-4 h-4 text-[#047857]" aria-hidden="true" />
+                    <span>
+                      Primary Database: Supabase PostgreSQL Online · Optional Google Sheets Webhook
+                    </span>
+                  </>
+                )
+              ) : needsDirectReauth ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                  <span>Direct Google OAuth Session Reloaded — Authorization Needed</span>
+                </>
+              ) : effectiveLive ? (
+                isBridgeConnected && !authEnv.isLiveBackendConfigured ? (
+                  (health?.connectedToGoogleSheets ?? !healthError) ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
+                      <span>Connected to Google Sheets via Apps Script Sync Bridge</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                      <span>Apps Script Sync Bridge check failed</span>
+                    </>
+                  )
+                ) : isOAuthConnected && !authEnv.appsScriptUrl ? (
+                  (health?.connectedToGoogleSheets ?? !healthError) ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
+                      <span>Connected to Google Sheets via Google OAuth 2.0</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                      <span>Google OAuth session requires re-authorization or probe failed</span>
+                    </>
+                  )
+                ) : health?.connectedToGoogleSheets ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-[#047857]" aria-hidden="true" />
                     <span>Connected to Google Sheets Apps Script Web App</span>
@@ -152,8 +245,8 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
                 )
               ) : (
                 <>
-                  <CloudOff className="w-4 h-4 text-[#243647]" aria-hidden="true" />
-                  <span>Running in Local Sandbox Mode (Not Connected to Live Google Sheets)</span>
+                  <CloudOff className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                  <span>Not Connected Online Yet — Saving Locally on This Device</span>
                 </>
               )}
             </div>
@@ -164,16 +257,70 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
             )}
           </div>
           <p className="text-xs text-[#243647] leading-relaxed">
-            {isLiveBackend
-              ? 'Every submission executes under Apps Script LockService with deterministic clientSubmissionKey idempotency and writes to all 8 Google Sheets tabs.'
-              : 'Set VITE_APPS_SCRIPT_URL and VITE_GOOGLE_CLIENT_ID in frontend/.env to connect this console to your live Google Apps Script deployment and Google Spreadsheet.'}
+            {isSupabaseMode
+              ? 'All programme submissions, schools, user approvals, and audit logs already save permanently in Supabase PostgreSQL under Row Level Security. Configure an Apps Script Web App webhook below if you want to mirror rows into Google Sheets.'
+              : effectiveLive
+                ? isBridgeConnected && !authEnv.isLiveBackendConfigured
+                  ? `Form submissions, edits, school directory updates, configuration changes, and logs write live into ${
+                      oauthSheetsConnection?.spreadsheetName || 'your connected Google Spreadsheet'
+                    } via the Apps Script Sync Bridge while retaining remembered local password sign-in.`
+                  : isOAuthConnected && !authEnv.appsScriptUrl
+                    ? `Form submissions, edits, school directory updates, and user approvals write live into ${
+                        oauthSheetsConnection?.spreadsheetName || 'your connected Google Spreadsheet'
+                      } under transactional locks and Google OAuth 2.0.`
+                    : 'All sessions write safely to your 10-tab Google Spreadsheet under server concurrency locks and Google Sign-In verification.'
+                : 'Changes saved right now stay only in this browser tab. Activate Live Google Sheets Storage below so facilitators save straight into Google Sheets online.'}
           </p>
+          {(isOAuthConnected ||
+            isBridgeConnected ||
+            (isSupabaseMode && Boolean(oauthSheetsConnection?.connected))) &&
+            oauthSheetsConnection?.spreadsheetId && (
+            <div className="pt-0.5">
+              <a
+                href={oauthSheetsConnection.spreadsheetUrl || DEFAULT_TARGET_SPREADSHEET_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#047857] hover:underline"
+              >
+                <span>
+                  Open {oauthSheetsConnection.spreadsheetName || oauthSheetsConnection.spreadsheetId}
+                </span>
+                <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              </a>
+            </div>
+          )}
           {healthError && (
             <div className="p-2.5 rounded-lg bg-[#FFF1F2] border border-[#BE123C]/40 text-xs text-[#BE123C]">
               {healthError}
             </div>
           )}
         </div>
+
+        <LiveBackendSetupCard
+          api={api}
+          isLiveBackend={effectiveLive}
+          needsDirectReauth={needsDirectReauth}
+          hasBuildTimeConfig={authEnv.hasBuildTimeConfig}
+          isRuntimeConfigured={authEnv.isRuntimeConfigured}
+          activeAppsScriptUrl={authEnv.appsScriptUrl}
+          activeGoogleClientId={authEnv.googleClientId}
+          oauthSheetsConnection={oauthSheetsConnection}
+          userEmail={user.email}
+          onConnectionChanged={(next) => {
+            onConnectionChanged?.(next);
+            void refreshSyncStatus();
+            void onSynced?.();
+          }}
+          onAuthorizeNow={() => {
+            void onAuthorizeNow?.();
+          }}
+          onEnvironmentChanged={onEnvironmentChanged}
+          onActivated={() => {
+            onLiveBackendActivated?.();
+          }}
+          onReset={onResetLiveBackend}
+          onNotify={onNotify}
+        />
       </section>
 
       {/* Retry Outbox */}
@@ -185,7 +332,7 @@ export const GoogleSheetsSyncPanel: React.FC<GoogleSheetsSyncPanelProps> = ({
           {outboxItems.length > 0 && onRetryAll && (
             <button
               type="button"
-              onClick={() => void onRetryAll().then(() => refreshTelemetry())}
+              onClick={() => void onRetryAll().then(() => refreshSyncStatus())}
               className="ct-btn-primary text-xs min-h-[36px] px-3.5 py-1"
             >
               Retry all queued ({outboxItems.length})

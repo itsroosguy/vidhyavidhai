@@ -127,16 +127,25 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
   const displayHourStr = hasValue ? String(selectedHour12).padStart(2, '0') : '--';
   const displayMinStr = hasValue ? String(selectedMinute).padStart(2, '0') : '--';
 
+  const labelWords = label.trim().split(/\s+/);
+  const lastWord = labelWords.pop() ?? '';
+  const labelPrefix = labelWords.join(' ');
+
   return (
-    <div ref={containerRef} className="flex flex-col gap-1.5 min-w-0">
-      <label htmlFor={id} className="text-sm font-medium text-[#0A1B2C]">
-        {label}
-        {required && (
-          <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-            *
+    <div ref={containerRef} className="ct-field-col">
+      <div className="ct-field-label">
+        <label htmlFor={id} className="text-sm font-medium text-[#0A1B2C]">
+          {labelPrefix ? `${labelPrefix} ` : ''}
+          <span className="whitespace-nowrap">
+            {lastWord}
+            {required && (
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                *
+              </span>
+            )}
           </span>
-        )}
-      </label>
+        </label>
+      </div>
 
       <button
         ref={triggerRef}
@@ -157,19 +166,20 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
         <Clock className="w-4 h-4 text-[#33475B] shrink-0" aria-hidden="true" />
       </button>
 
-      {errorMessage && (
-        <p id={errorId} className="text-xs text-[#BE123C] font-medium">
-          {errorMessage}
-        </p>
-      )}
+      <div className="ct-field-meta">
+        {errorMessage && (
+          <p id={errorId} className="text-xs text-[#BE123C] font-medium">
+            {errorMessage}
+          </p>
+        )}
 
-      {isOpen && (
-        <div
-          id={panelId}
-          role="region"
-          aria-label={`${label} clock selector`}
-          className="mt-1.5 p-3.5 sm:p-4 rounded-2xl bg-[#FFFFFF] border border-[#C7BEA7] shadow-[0_14px_34px_rgba(10,27,44,0.14)] w-full max-w-[300px] overflow-hidden"
-        >
+        {isOpen && (
+          <div
+            id={panelId}
+            role="region"
+            aria-label={`${label} clock selector`}
+            className="mt-0.5 p-3.5 sm:p-4 rounded-2xl bg-[#FFFFFF] border border-[#C7BEA7] shadow-[0_14px_34px_rgba(10,27,44,0.14)] w-full max-w-[320px] overflow-hidden"
+          >
           {/* Header: Digital HH:MM readout + segmented AM/PM toggle */}
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="inline-flex items-center gap-1 ct-num shrink-0">
@@ -380,7 +390,8 @@ export const AnalogueTimePicker: React.FC<AnalogueTimePickerProps> = ({
             />
           </div>
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

@@ -17,7 +17,7 @@ A production-ready classroom data-entry, feedback calculation, and programme man
 │   ├── Validation.gs          # Authoritative server-side business rules
 │   ├── Schools.gs             # UDISE lookup & non-destructive school upsert
 │   ├── Configuration.gs       # Master config manager with CacheService acceleration
-│   ├── Admin.gs               # Dashboard aggregations + 12-check reconciliation, block import, user/role management
+│   ├── Admin.gs               # Dashboard aggregations + 12-check reconciliation, user/role management
 │   ├── Export.gs              # Flattened row builder & 63-column export validation
 │   └── Audit.gs               # Append-only Audit Log & Sync Log writers/readers
 │
@@ -102,10 +102,9 @@ npm run dev
 
 Per strict no-fabrication safeguards, no synthetic defaults were invented for unprovided programme data. After completing [SETUP.md](./documentation/SETUP.md), sign in with either allowlisted Super Administrator Google account (`brinthajayaprakash888@gmail.com` or `karunya@vidhyavidhai.org`) and configure inside **Admin Console → Settings** (`/admin/settings`) and **User Management** (`/admin/user-management`):
 
-1. **Approved Block Master List (`.csv` / `.xlsx`)** for `Cuddalore`, `Nagapattinam`, and `Sivaganga`.
-2. **Partner Name** for reporting rows.
-3. **Official 63-Column `.xlsx` Template** upload (to capture exact reporting column headers 1–63).
-4. **Tour Video IDs** (e.g., for *Robotics Fulfillment Center* and non-Tamil languages of *Amazon Music*).
-5. **Live Google Cloud OAuth Client ID (`VITE_GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_ID`) & Apps Script Deployment (`VITE_APPS_SCRIPT_URL`)**.
+1. **Partner Name** for reporting rows.
+2. **Official 63-Column `.xlsx` Template** upload (to capture exact reporting column headers 1–63).
+3. **Tour Video IDs** (e.g., for *Robotics Fulfillment Center* and non-Tamil languages of *Amazon Music*).
+4. **Live Google Cloud OAuth Client ID (`VITE_GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_ID`) & Apps Script Deployment (`VITE_APPS_SCRIPT_URL`)**.
 
 See [SETUP.md](./documentation/SETUP.md) and [DEPLOYMENT.md](./documentation/DEPLOYMENT.md) for step-by-step instructions.

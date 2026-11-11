@@ -75,7 +75,6 @@ function ctBuildFlattenedExportRows_(sessions, config) {
         school_type: s.schoolType,
         state: s.state,
         district: s.district,
-        block: s.block,
         pin_code: String(s.pinCode),
         session_type: s.sessionType,
         total_classes: s.totalClasses,

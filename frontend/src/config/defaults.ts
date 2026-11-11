@@ -73,9 +73,6 @@ export const DEFAULT_APP_CONFIGURATION: AppConfiguration = {
   programmeTimezone: PROGRAMME_TIMEZONE,
   stateName: 'Tamil Nadu',
   allowedDistricts: [...APPROVED_DISTRICTS],
-  // Official district-to-block mapping is intentionally empty until imported by Super Administrator.
-  // Never fabricate or guess block names.
-  districtBlocks: [],
   gradeOptions: ['8', '9', '10', '11', '12'],
   sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'No section'],
   schoolTypes: [
@@ -192,7 +189,6 @@ export function createInitialSessionForm(
     schoolType: '',
     state: config.stateName || 'Tamil Nadu',
     district: '',
-    block: '',
     pinCode: '',
     sessionMode: 'single',
     classes: [createEmptyClassRow('row-1')],

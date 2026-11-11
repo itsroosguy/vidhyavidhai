@@ -17,17 +17,6 @@ import {
   isValidTime24,
 } from '../utils/temporal';
 
-export function getBlocksForDistrict(
-  district: string,
-  config: AppConfiguration,
-): string[] {
-  if (!district) return [];
-  return config.districtBlocks
-    .filter((entry) => entry.active && entry.district === district)
-    .map((entry) => entry.block)
-    .sort((a, b) => a.localeCompare(b));
-}
-
 export function validateSessionForm(
   values: SessionFormValues,
   config: AppConfiguration,

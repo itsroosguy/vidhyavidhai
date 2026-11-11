@@ -1,15 +1,16 @@
 import React from 'react';
 import {
   AlertTriangle,
+  Calculator,
   CheckCircle2,
   ClipboardEdit,
+  CloudOff,
   FolderKanban,
   GraduationCap,
   LogOut,
   Plus,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import vidhyaVidhaiMark from '../../assets/vidhya-vidhai-mark.png';
 import type { UserProfile } from '../../types/domain';
@@ -22,6 +23,12 @@ interface AppHeaderProps {
   onSelectTab: (tab: ActiveTab) => void;
   onSignOut: () => void;
   isLiveBackend: boolean;
+  isSupabaseMode?: boolean;
+  sheetsConnected?: boolean;
+  isTeamIntakeActive?: boolean;
+  needsDirectReauth?: boolean;
+  quickSyncOpen?: boolean;
+  onToggleQuickSyncBar?: () => void;
   outboxCount?: number;
   onOpenSyncStatus?: () => void;
   onRetryOutbox?: () => void;
@@ -34,12 +41,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onSelectTab,
   onSignOut,
   isLiveBackend,
+  isSupabaseMode = false,
+  sheetsConnected = false,
+  isTeamIntakeActive = false,
+  needsDirectReauth = false,
+  quickSyncOpen = false,
+  onToggleQuickSyncBar,
   outboxCount = 0,
   onOpenSyncStatus,
   onRetryOutbox,
   onOpenQuickAddModal,
 }) => {
   const isSuperAdmin = user.role === 'super_admin';
+  const isCentralDbForFacilitator = isSupabaseMode || isLiveBackend || isTeamIntakeActive;
   const containerClass = 'max-w-[1220px]';
 
   return (
@@ -76,22 +90,34 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border transition-colors ${
                   onOpenSyncStatus ? 'cursor-pointer hover:border-[#0284C7]' : ''
                 } ${
-                  outboxCount > 0
-                    ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309]'
-                    : isLiveBackend
+                  outboxCount > 0 || (!isSupabaseMode && needsDirectReauth)
+                    ? 'bg-[#FFFBEB] border-[#B45309]/40 text-[#92400E]'
+                    : isSupabaseMode || isLiveBackend
                       ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
-                      : 'bg-[#F5F2E9] border-[#C7BEA7] text-[#243647]'
+                      : 'bg-[#FFFBEB] border-[#B45309]/40 text-[#92400E]'
                 }`}
               >
-                {isLiveBackend ? (
+                {isSupabaseMode ? (
                   <>
                     <ShieldCheck className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
-                    Google Sheets connected
+                    {sheetsConnected
+                      ? 'Database + Sheets Live'
+                      : 'Database Online · Setup Sheets Webhook'}
+                  </>
+                ) : needsDirectReauth ? (
+                  <>
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#B45309]" aria-hidden="true" />
+                    Re-authorize Google Sheets
+                  </>
+                ) : isLiveBackend ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
+                    Google Sheets Live
                   </>
                 ) : (
                   <>
                     <AlertTriangle className="w-3.5 h-3.5 text-[#B45309]" aria-hidden="true" />
-                    Local sandbox mode
+                    Local Storage · Setup Google Sheets
                   </>
                 )}
                 {outboxCount > 0 && (
@@ -100,20 +126,55 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   </span>
                 )}
               </button>
+              {onToggleQuickSyncBar && (
+                <button
+                  type="button"
+                  aria-expanded={quickSyncOpen}
+                  onClick={onToggleQuickSyncBar}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium border transition-colors cursor-pointer ${
+                    quickSyncOpen
+                      ? 'bg-[#E8F6FF] border-[#0284C7]/60 text-[#0A1B2C]'
+                      : 'bg-[#FAF8F2] border-[#C7BEA7] text-[#243647] hover:border-[#0284C7] hover:text-[#0A1B2C]'
+                  }`}
+                >
+                  Quick Sheet Sync
+                </button>
+              )}
             </>
-          ) : outboxCount > 0 ? (
+          ) : (
             <>
               <span className="hidden sm:block h-4 w-px bg-[#C7BEA7]" aria-hidden="true" />
-              <button
-                type="button"
-                onClick={onRetryOutbox}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309] cursor-pointer hover:bg-[#FEF3C7]"
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border ${
+                  isCentralDbForFacilitator
+                    ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
+                    : 'bg-[#FFFBEB] border-[#B45309]/40 text-[#92400E]'
+                }`}
               >
-                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-                {outboxCount} offline pending · Retry save
-              </button>
+                {isCentralDbForFacilitator ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#047857]" aria-hidden="true" />
+                    {isSupabaseMode ? 'Vidhya Vidhai Cloud' : 'Central Database'}
+                  </>
+                ) : (
+                  <>
+                    <CloudOff className="w-3.5 h-3.5 text-[#B45309]" aria-hidden="true" />
+                    Device-Only Mode
+                  </>
+                )}
+              </span>
+              {outboxCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onRetryOutbox}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border bg-[#FFFBEB] border-[#B45309]/40 text-[#B45309] cursor-pointer hover:bg-[#FEF3C7]"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                  {outboxCount} offline pending · Retry save
+                </button>
+              )}
             </>
-          ) : null}
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -166,7 +227,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             ) : (
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#243647]">
                 <span className="inline-flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
+                  <Calculator className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
                   Live CSAT, ITP &amp; Session ID
                 </span>
                 <span className="inline-flex items-center gap-1.5">

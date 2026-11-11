@@ -41,25 +41,20 @@ describe('Form Validation & Temporal Rules (Asia/Kolkata)', () => {
     expect(res.errors.some((e) => e.code === 'PIN_INVALID')).toBe(true);
   });
 
-  it('rejects unapproved districts and accepts approved districts without requiring a block', () => {
+  it('rejects unapproved districts and accepts approved Tamil Nadu districts cleanly', () => {
     const cfg = createTestConfig();
     const badDistrict = validateSessionForm(
-      createValidFormValues({ district: 'Chennai', block: 'Adyar' }),
+      createValidFormValues({ district: 'Chennai' }),
       cfg,
     );
     expect(badDistrict.errors.some((e) => e.code === 'DISTRICT_INVALID')).toBe(true);
 
-    const emptyBlocksCfg = createTestConfig({ districtBlocks: [] });
-    const withoutBlock = validateSessionForm(
-      createValidFormValues({ district: 'Cuddalore', block: '' }),
-      emptyBlocksCfg,
+    const validDistrict = validateSessionForm(
+      createValidFormValues({ district: 'Cuddalore' }),
+      cfg,
     );
-    expect(withoutBlock.valid).toBe(true);
-    expect(
-      withoutBlock.errors.some(
-        (e) => e.code === 'BLOCKS_NOT_CONFIGURED' || e.code === 'BLOCK_REQUIRED',
-      ),
-    ).toBe(false);
+    expect(validDistrict.valid).toBe(true);
+    expect(validDistrict.errors).toHaveLength(0);
   });
 
   it('rejects negative/decimal student counts and response counts exceeding students present', () => {

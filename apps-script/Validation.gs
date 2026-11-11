@@ -2,19 +2,6 @@
  * Validation.gs — Authoritative server-side form & business rule validation.
  */
 
-function ctGetBlocksForDistrict_(district, config) {
-  if (!district || !config || !config.districtBlocks) return [];
-  var out = [];
-  for (var i = 0; i < config.districtBlocks.length; i++) {
-    var entry = config.districtBlocks[i];
-    if (entry && entry.active && entry.district === district) {
-      out.push(entry.block);
-    }
-  }
-  out.sort();
-  return out;
-}
-
 function ctArrayIncludes_(arr, item) {
   if (!arr || !arr.length) return false;
   for (var i = 0; i < arr.length; i++) {

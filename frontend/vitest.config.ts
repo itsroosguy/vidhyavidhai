@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    fs: {
+      allow: ['.', '../apps-script/dist'],
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

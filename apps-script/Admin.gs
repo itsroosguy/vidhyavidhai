@@ -1,5 +1,5 @@
 /**
- * Admin.gs — Server-side analytics aggregation, block master import, and user/role management.
+ * Admin.gs — Server-side analytics aggregation and user/role management.
  */
 
 var QA_LABELS = {
@@ -179,13 +179,11 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       scInit.udiseCode = s.udiseCode;
       scInit.schoolName = s.schoolName;
       scInit.district = s.district;
-      scInit.block = s.block;
       schoolMap[s.udiseCode] = scInit;
     }
     var scAgg = schoolMap[s.udiseCode];
     scAgg.sessions++;
     scAgg.schoolName = s.schoolName;
-    scAgg.block = s.block;
     scAgg.npsSum += s.teacherNps;
 
     var monthKey = /^\d{4}-\d{2}/.test(s.startDate) ? s.startDate.slice(0, 7) : 'Unknown';
@@ -335,7 +333,6 @@ function ctHandleGetDashboardSummary_(actor, payload) {
       udiseCode: sv.udiseCode,
       schoolName: sv.schoolName,
       district: sv.district,
-      block: sv.block,
       sessions: sv.sessions,
       studentsReached: sv.students,
       qaResponses: sQa.total,
@@ -525,68 +522,6 @@ function ctHandleGetDashboardSummary_(actor, payload) {
   return summaryObj;
 }
 
-function ctHandleImportBlockMaster_(actor, payload) {
-  ctRequireRole_(actor, ['super_admin']);
-  var entries = (payload && payload.entries) || [];
-  var replaceExisting = Boolean(payload && payload.replaceExisting);
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    var config = ctLoadConfiguration_();
-    var validMap = {};
-
-    if (!replaceExisting && config.districtBlocks) {
-      for (var eIdx = 0; eIdx < config.districtBlocks.length; eIdx++) {
-        var existing = config.districtBlocks[eIdx];
-        validMap[existing.district + '::' + existing.block.toLowerCase()] = existing;
-      }
-    }
-
-    var importedCount = 0;
-    for (var i = 0; i < entries.length; i++) {
-      var row = entries[i];
-      var d = String((row && row.district) || '').trim();
-      var b = String((row && row.block) || '').trim();
-      if (!ctArrayIncludes_(config.allowedDistricts, d) || !b) {
-        throw ctApiError_(
-          'INVALID_BLOCK_ROW',
-          'Invalid district/block entry: "' + d + '" / "' + b + '".'
-        );
-      }
-      validMap[d + '::' + b.toLowerCase()] = {
-        district: d,
-        block: b,
-        active: row.active !== false
-      };
-      importedCount++;
-    }
-
-    var nextBlocks = [];
-    for (var k in validMap) {
-      nextBlocks.push(validMap[k]);
-    }
-
-    var cfgSheet = ctGetSheet_(SHEET_NAMES.CONFIGURATION);
-    ctUpsertConfigKey_(cfgSheet, 'district_blocks', nextBlocks, actor.email);
-    ctInvalidateConfigCache_();
-
-    ctAppendAuditLog_(
-      actor,
-      'IMPORT_BLOCKS',
-      'Configuration',
-      'BLOCKS',
-      'replace=' + replaceExisting,
-      'imported=' + importedCount + ', total=' + nextBlocks.length,
-      'SUCCESS'
-    );
-
-    return { importedCount: importedCount, totalCount: nextBlocks.length };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
 function ctHandleListManagedUsers_(actor) {
   ctRequireRole_(actor, ['super_admin']);
   var admins = ctReadUserRowsFromSheet_(SHEET_NAMES.ADMIN_USERS);
@@ -697,8 +632,7 @@ function ctHandleManageUser_(actor, payload) {
       : 'DENIED';
   var active = status === 'APPROVED';
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var nowIso = ctNowIso_();
     var facRows = ctReadUserRowsFromSheet_(SHEET_NAMES.FACILITATORS);
@@ -761,7 +695,7 @@ function ctHandleManageUser_(actor, payload) {
       createdAt: nowIso,
       updatedAt: nowIso
     };
-    var newRowIdx = Math.max(2, facSheet.getLastRow() + 1);
+    var newRowIdx = Math.max(2, ctFindLastPopulatedRow_(facSheet, 1) + 1);
     var newRange = facSheet.getRange(newRowIdx, 1, 1, 8);
     newRange.setNumberFormat('@');
     newRange.setValues([[
@@ -790,6 +724,82 @@ function ctHandleManageUser_(actor, payload) {
   }
 }
 
+function ctHandleDeleteUser_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var identifier = String(
+    (payload && (payload.userIdOrEmail || payload.email || payload.userId)) || ''
+  ).trim();
+  if (!identifier) {
+    throw ctApiError_('INVALID_USER', 'userIdOrEmail is required.');
+  }
+
+  var allowlisted = ctGetInitialSuperAdmins_();
+  var cleanLower = identifier.toLowerCase();
+  for (var saIdx = 0; saIdx < allowlisted.length; saIdx++) {
+    if (allowlisted[saIdx].email === cleanLower || allowlisted[saIdx].userId === identifier) {
+      ctAppendAuditLog_(
+        actor,
+        'DELETE_USER',
+        'User',
+        identifier,
+        '',
+        'Attempted deletion of protected initial Super Administrator',
+        'DENIED'
+      );
+      throw ctApiError_(
+        'PROTECTED_ACCOUNT',
+        'Initial Super Administrator accounts are protected by server policy and cannot be modified or deleted.'
+      );
+    }
+  }
+
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var facRows = ctReadUserRowsFromSheet_(SHEET_NAMES.FACILITATORS);
+    var matched = null;
+    for (var i = 0; i < facRows.length; i++) {
+      if (facRows[i].userId === identifier || facRows[i].email === cleanLower) {
+        matched = facRows[i];
+        break;
+      }
+    }
+    if (!matched) {
+      throw ctApiError_('NOT_FOUND', 'Facilitator user record not found.');
+    }
+    if (ctIsAllowlistedSuperAdmin_(matched.email)) {
+      ctAppendAuditLog_(
+        actor,
+        'DELETE_USER',
+        'User',
+        matched.email,
+        '',
+        'Attempted deletion of protected initial Super Administrator',
+        'DENIED'
+      );
+      throw ctApiError_(
+        'PROTECTED_ACCOUNT',
+        'Initial Super Administrator accounts are protected by server policy and cannot be modified or deleted.'
+      );
+    }
+
+    var facSheet = ctGetSheet_(SHEET_NAMES.FACILITATORS);
+    facSheet.deleteRow(matched.rowNumber);
+
+    ctAppendAuditLog_(
+      actor,
+      'DELETE_USER',
+      'User',
+      matched.userId || matched.email,
+      matched.email + ' (' + matched.name + ', status=' + matched.status + ')',
+      'Removed from Facilitators directory',
+      'SUCCESS'
+    );
+    return { deleted: true, email: matched.email };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function ctSafeJsonParseArray_(str, fallback) {
   if (!str) return fallback;
   try {
@@ -800,17 +810,94 @@ function ctSafeJsonParseArray_(str, fallback) {
   }
 }
 
-function ctBuildSheetsConnectionState_() {
+function ctEnsureSheetsConnectionMetadata_(ss, optActorEmail) {
+  var props = PropertiesService.getScriptProperties();
+  if (String(props.getProperty('CONNECTED_DISCONNECTED') || '') === 'true') {
+    return false;
+  }
+  if (!ss) return false;
+  if (!ss.getSheetByName(SHEET_NAMES.SESSIONS) || !ss.getSheetByName(SHEET_NAMES.CONFIGURATION)) {
+    return false;
+  }
+
+  var resolvedId =
+    (typeof ss.getId === 'function' && ss.getId()) ||
+    String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim() ||
+    String(props.getProperty('SPREADSHEET_ID') || '').trim() ||
+    CT_DEFAULT_TARGET_SPREADSHEET_ID;
+  if (!resolvedId) return false;
+
+  var existingId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+  var existingName = String(props.getProperty('CONNECTED_SPREADSHEET_NAME') || '').trim();
+  var existingUrl = String(props.getProperty('CONNECTED_SPREADSHEET_URL') || '').trim();
+  var existingAccount = String(props.getProperty('CONNECTED_GOOGLE_ACCOUNT') || '').trim();
+  var existingAt = String(props.getProperty('CONNECTED_AT') || '').trim();
+  var existingBy = String(props.getProperty('CONNECTED_BY') || '').trim();
+  var existingTabs = ctSafeJsonParseArray_(props.getProperty('CONNECTED_TABS_JSON'), []);
+
+  if (existingId && existingName && existingUrl && existingAccount && existingTabs.length > 0) {
+    return true;
+  }
+
+  var ssName =
+    existingName ||
+    (typeof ss.getName === 'function' && ss.getName()) ||
+    'Vidhya Vidhai · Career Tours Database';
+  var ssUrl =
+    existingUrl ||
+    (typeof ss.getUrl === 'function' && ss.getUrl()) ||
+    'https://docs.google.com/spreadsheets/d/' + resolvedId + '/edit';
+  var tabs = existingTabs;
+  if (tabs.length === 0) {
+    tabs = [];
+    for (var t = 0; t < CT_SCHEMA_DEFINITIONS.length; t++) {
+      if (ss.getSheetByName(CT_SCHEMA_DEFINITIONS[t].name)) {
+        tabs.push(CT_SCHEMA_DEFINITIONS[t].name);
+      }
+    }
+  }
+  var cleanActor = String(optActorEmail || '').trim().toLowerCase();
+  var nowIso = ctNowIso_();
+
+  if (typeof props.setProperty === 'function') {
+    if (!existingId) props.setProperty('CONNECTED_SPREADSHEET_ID', resolvedId);
+    if (!existingName) props.setProperty('CONNECTED_SPREADSHEET_NAME', ssName);
+    if (!existingUrl) props.setProperty('CONNECTED_SPREADSHEET_URL', ssUrl);
+    if (!existingAccount && cleanActor) props.setProperty('CONNECTED_GOOGLE_ACCOUNT', cleanActor);
+    if (!existingAt) props.setProperty('CONNECTED_AT', nowIso);
+    if (!existingBy && cleanActor) props.setProperty('CONNECTED_BY', cleanActor);
+    props.setProperty('CONNECTED_DISCONNECTED', 'false');
+    if (existingTabs.length === 0 && tabs.length > 0) {
+      props.setProperty('CONNECTED_TABS_JSON', JSON.stringify(tabs));
+    }
+  }
+  return true;
+}
+
+function ctBuildSheetsConnectionState_(optActorEmail) {
   var props = PropertiesService.getScriptProperties();
   var disconnected = String(props.getProperty('CONNECTED_DISCONNECTED') || '') === 'true';
   var connectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
   var fallbackId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
   var effectiveId = !disconnected ? (connectedId || fallbackId) : connectedId;
 
+  if (!disconnected && !effectiveId) {
+    try {
+      var boundSs = ctGetSpreadsheet_();
+      if (boundSs && ctEnsureSheetsConnectionMetadata_(boundSs, optActorEmail)) {
+        connectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+        effectiveId = connectedId || fallbackId;
+      }
+    } catch (ignoreBound) {
+      // Ignore if default spreadsheet is not yet accessible
+    }
+  }
+
   if (!effectiveId) {
     return {
       connected: false,
       authMethod: 'apps_script',
+      connectionProvider: 'apps_script',
       oauthConfigured: false,
       connectedAccount: '',
       spreadsheetId: '',
@@ -846,17 +933,25 @@ function ctBuildSheetsConnectionState_() {
             }
           }
         }
+        if (typeof ctEnsureSheetsConnectionMetadata_ === 'function') {
+          ctEnsureSheetsConnectionMetadata_(ss, optActorEmail);
+        }
       }
     } catch (ignore) {
       // Ignore metadata probe failures when building state summary
     }
   }
 
+  var account =
+    String(props.getProperty('CONNECTED_GOOGLE_ACCOUNT') || '').trim() ||
+    String(optActorEmail || '').trim().toLowerCase();
+
   return {
     connected: true,
     authMethod: 'apps_script',
+    connectionProvider: 'apps_script',
     oauthConfigured: true,
-    connectedAccount: String(props.getProperty('CONNECTED_GOOGLE_ACCOUNT') || ''),
+    connectedAccount: account,
     spreadsheetId: effectiveId,
     spreadsheetName: ssName || 'Career Tours Spreadsheet',
     spreadsheetUrl: ssUrl || ('https://docs.google.com/spreadsheets/d/' + effectiveId + '/edit'),
@@ -873,7 +968,7 @@ function ctBuildSheetsConnectionState_() {
 
 function ctHandleGetSheetsConnection_(actor) {
   ctRequireRole_(actor, ['super_admin']);
-  return ctBuildSheetsConnectionState_();
+  return ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : '');
 }
 
 function ctHandleConnectGoogleSheet_(actor, payload) {
@@ -888,8 +983,7 @@ function ctHandleConnectGoogleSheet_(actor, payload) {
   }
   var shouldInit = !payload || payload.initializeSchema !== false;
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var ss;
     try {
@@ -940,6 +1034,7 @@ function ctHandleConnectGoogleSheet_(actor, payload) {
       props.setProperty('CONNECTED_TABS_JSON', JSON.stringify(tabs));
     }
 
+    ctInvalidateConfigCache_();
     ctAppendAuditLog_(
       actor,
       'CONNECT_GOOGLE_SHEET',
@@ -950,7 +1045,7 @@ function ctHandleConnectGoogleSheet_(actor, payload) {
       'SUCCESS'
     );
 
-    return ctBuildSheetsConnectionState_();
+    return ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : '');
   } finally {
     lock.releaseLock();
   }
@@ -963,8 +1058,7 @@ function ctHandleCreateGoogleSheet_(actor, payload) {
     throw ctApiError_('INVALID_TITLE', 'Spreadsheet name is required.');
   }
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var ss = SpreadsheetApp.create(title);
     var tabs = ctInitializeSpreadsheetObject_(ss, actor.email);
@@ -988,6 +1082,7 @@ function ctHandleCreateGoogleSheet_(actor, payload) {
       props.setProperty('CONNECTED_TABS_JSON', JSON.stringify(tabs));
     }
 
+    ctInvalidateConfigCache_();
     ctAppendAuditLog_(
       actor,
       'CREATE_GOOGLE_SHEET',
@@ -998,7 +1093,7 @@ function ctHandleCreateGoogleSheet_(actor, payload) {
       'SUCCESS'
     );
 
-    return ctBuildSheetsConnectionState_();
+    return ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : '');
   } finally {
     lock.releaseLock();
   }
@@ -1006,8 +1101,7 @@ function ctHandleCreateGoogleSheet_(actor, payload) {
 
 function ctHandleDisconnectGoogleSheet_(actor) {
   ctRequireRole_(actor, ['super_admin']);
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var prev = ctBuildSheetsConnectionState_();
     ctAppendAuditLog_(
@@ -1034,18 +1128,63 @@ function ctHandleDisconnectGoogleSheet_(actor) {
       props.setProperty('CONNECTED_DISCONNECTED', 'true');
     }
 
+    ctInvalidateConfigCache_();
     return ctBuildSheetsConnectionState_();
   } finally {
     lock.releaseLock();
   }
 }
 
+function ctHandleLoadWorkspace_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  var ss = ctGetSpreadsheet_();
+  if (!ss.getSheetByName(SHEET_NAMES.SESSIONS) || !ss.getSheetByName(SHEET_NAMES.CONFIGURATION)) {
+    ctInitializeSpreadsheetObject_(ss, actor.email);
+  }
+  ctEnsureSheetsConnectionMetadata_(ss, actor.email);
+
+  var sessionsRaw = ctReadAllSessionsWithDetails_(null);
+  var sessions = [];
+  for (var i = 0; i < sessionsRaw.length; i++) {
+    sessions.push(ctStripInternalRowMeta_(sessionsRaw[i]));
+  }
+
+  var schoolSheet = ctGetSheet_(SHEET_NAMES.SCHOOLS);
+  var schoolLastRow = schoolSheet.getLastRow();
+  var schools = [];
+  if (schoolLastRow >= 2) {
+    var schoolLayout = ctResolveSchoolSheetLayout_(schoolSheet);
+    var schoolVals = schoolSheet.getRange(2, 1, schoolLastRow - 1, schoolLayout.colCount).getValues();
+    for (var sIdx = 0; sIdx < schoolVals.length; sIdx++) {
+      var rec = ctRowToSchoolRecord_(schoolVals[sIdx], schoolLayout.hasBlock);
+      if (rec.udiseCode || rec.schoolName) {
+        schools.push(rec);
+      }
+    }
+  }
+
+  var users = ctHandleListManagedUsers_(actor);
+  var configuration = ctLoadConfiguration_();
+  var auditLogs = ctHandleGetAuditLogs_(actor, { page: 1, pageSize: 25 });
+  var syncLogs = ctHandleGetSyncLogs_(actor, { page: 1, pageSize: 25 });
+
+  return {
+    connection: ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : ''),
+    configuration: configuration,
+    sessions: sessions,
+    schools: schools,
+    users: users,
+    auditLogs: auditLogs,
+    syncLogs: syncLogs,
+    loadedAt: ctNowIso_()
+  };
+}
+
 function ctHandleSyncAllToGoogleSheet_(actor, payload) {
   ctRequireRole_(actor, ['super_admin']);
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
-    var state = ctBuildSheetsConnectionState_();
+    var state = ctBuildSheetsConnectionState_(actor && actor.email ? actor.email : '');
     if (!state.connected || !state.spreadsheetId) {
       throw ctApiError_(
         'NOT_CONNECTED',
@@ -1056,6 +1195,7 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
     var incomingSessions = (payload && Array.isArray(payload.sessions) && payload.sessions) || [];
     var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
     var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var sessionLayout = ctResolveSessionSheetLayout_(sessionSheet);
     var lastRow = sessionSheet.getLastRow();
 
     var existingRecordIds = {};
@@ -1076,6 +1216,7 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
 
     var syncedCount = 0;
     var skippedDuplicates = 0;
+    var syncedSessionsList = [];
     var nowIso = ctNowIso_();
 
     for (var sIdx = 0; sIdx < incomingSessions.length; sIdx++) {
@@ -1097,11 +1238,11 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
       if (!recId) rec.sessionRecordId = 'REC_' + Utilities.getUuid().toUpperCase();
       if (!sessId) continue;
 
-      var rowArr = ctSessionRecordToSheetRow_(rec);
-      var targetRow = Math.max(2, sessionSheet.getLastRow() + 1);
-      var sessionRange = sessionSheet.getRange(targetRow, 1, 1, SESSION_COL_COUNT);
+      var rowArr = ctSessionRecordToSheetRow_(rec, sessionLayout.hasBlock);
+      var targetRow = Math.max(2, ctFindLastPopulatedRow_(sessionSheet, 1) + 1);
+      var sessionRange = sessionSheet.getRange(targetRow, 1, 1, sessionLayout.colCount);
       sessionRange.setNumberFormats([
-        ctBuildTextFormatRow_(rowArr, [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42])
+        ctBuildTextFormatRow_(rowArr, sessionLayout.textColumns)
       ]);
       sessionRange.setValues([rowArr]);
 
@@ -1114,7 +1255,7 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
           detailRows.push(dRow);
           detailFormats.push(ctBuildTextFormatRow_(dRow, [1, 2, 3, 4, 5]));
         }
-        var detailStart = Math.max(2, detailSheet.getLastRow() + 1);
+        var detailStart = Math.max(2, ctFindLastPopulatedRow_(detailSheet, 1) + 1);
         var detRange = detailSheet.getRange(detailStart, 1, detailRows.length, DETAIL_COL_COUNT);
         detRange.setNumberFormats(detailFormats);
         detRange.setValues(detailRows);
@@ -1123,15 +1264,165 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
       existingRecordIds[rec.sessionRecordId] = true;
       existingSessionIds[rec.sessionId] = true;
       if (clientKey) existingClientKeys[clientKey] = true;
+      syncedSessionsList.push(rec);
       syncedCount++;
     }
 
-    var totalSheetSessions = Math.max(0, sessionSheet.getLastRow() - 1);
+    var incomingSchools = (payload && Array.isArray(payload.schools) && payload.schools) || [];
+    var syncedSchoolsCount = 0;
+    for (var schIdx = 0; schIdx < incomingSchools.length; schIdx++) {
+      var sch = incomingSchools[schIdx];
+      if (!sch || !ctCellToString_(sch.udiseCode) || !ctCellToString_(sch.schoolName)) continue;
+      if (!ctFindSchoolByUdise_(sch.udiseCode)) {
+        ctUpsertSchoolWithoutOverwrite_(sch, nowIso);
+        syncedSchoolsCount++;
+      }
+    }
+    for (var sSchIdx = 0; sSchIdx < syncedSessionsList.length; sSchIdx++) {
+      var sRec = syncedSessionsList[sSchIdx];
+      if (ctCellToString_(sRec.udiseCode) && ctCellToString_(sRec.schoolName) && !ctFindSchoolByUdise_(sRec.udiseCode)) {
+        ctUpsertSchoolWithoutOverwrite_(sRec, nowIso);
+        syncedSchoolsCount++;
+      }
+    }
+
+    var incomingUsers =
+      (payload && Array.isArray(payload.facilitators) && payload.facilitators) ||
+      (payload && Array.isArray(payload.users) && payload.users) ||
+      [];
+    var syncedFacilitatorsCount = 0;
+    if (incomingUsers.length > 0) {
+      var existingFacs = ctReadUserRowsFromSheet_(SHEET_NAMES.FACILITATORS);
+      var existingFacEmails = {};
+      for (var ef = 0; ef < existingFacs.length; ef++) {
+        existingFacEmails[existingFacs[ef].email] = true;
+      }
+      var facSheetSync = ctGetSheet_(SHEET_NAMES.FACILITATORS);
+      for (var uIdx = 0; uIdx < incomingUsers.length; uIdx++) {
+        var u = incomingUsers[uIdx];
+        if (!u) continue;
+        var uEmail = ctCellToString_(u.email).toLowerCase();
+        var uRole = ctCellToString_(u.role || 'facilitator').toLowerCase();
+        if (!uEmail || ctIsAllowlistedSuperAdmin_(uEmail) || uRole !== 'facilitator') continue;
+        if (existingFacEmails[uEmail]) continue;
+        var uName = ctCellToString_(u.name || uEmail);
+        var uStatusRaw = ctCellToString_(u.status || '').toUpperCase();
+        var uStatus =
+          uStatusRaw === 'APPROVED' || uStatusRaw === 'PENDING' || uStatusRaw === 'DENIED'
+            ? uStatusRaw
+            : u.active !== false
+            ? 'APPROVED'
+            : 'DENIED';
+        var uActive = uStatus === 'APPROVED';
+        var uId = ctCellToString_(u.userId) || ('FAC_' + ctShortUuid_().slice(0, 8));
+        var nextFacRow = Math.max(2, ctFindLastPopulatedRow_(facSheetSync, 1) + 1);
+        var facRange = facSheetSync.getRange(nextFacRow, 1, 1, 8);
+        facRange.setNumberFormat('@');
+        facRange.setValues([[
+          uId,
+          uName,
+          uEmail,
+          'facilitator',
+          uActive ? 'true' : 'false',
+          ctCellToString_(u.createdAt) || nowIso,
+          nowIso,
+          uStatus
+        ]]);
+        existingFacEmails[uEmail] = true;
+        syncedFacilitatorsCount++;
+      }
+    }
+
+    var incomingConfig =
+      payload && payload.configuration && typeof payload.configuration === 'object'
+        ? payload.configuration
+        : null;
+    if (incomingConfig) {
+      var currentCfg = ctLoadConfiguration_();
+      var cfgSheetSync = ctGetSheet_(SHEET_NAMES.CONFIGURATION);
+      var syncPropMap = {
+        programmeTimezone: 'programme_timezone',
+        stateName: 'state_name',
+        allowedDistricts: 'allowed_districts',
+        gradeOptions: 'grade_options',
+        sectionOptions: 'section_options',
+        schoolTypes: 'school_types',
+        tours: 'tours',
+        languageOptions: 'language_options',
+        languageCodes: 'language_codes',
+        schoolYear: 'school_year',
+        partnerName: 'partner_name',
+        reportingDefaults: 'reporting_defaults',
+        policy: 'policy',
+        exportTemplate63: 'export_template_63'
+      };
+      var cfgUpdated = false;
+      for (var cProp in syncPropMap) {
+        if (
+          !Object.prototype.hasOwnProperty.call(incomingConfig, cProp) ||
+          incomingConfig[cProp] === undefined
+        ) {
+          continue;
+        }
+        var cVal = incomingConfig[cProp];
+        if (
+          cProp === 'partnerName' &&
+          !String(cVal || '').trim() &&
+          String(currentCfg.partnerName || '').trim()
+        ) {
+          continue;
+        }
+        if (cProp === 'exportTemplate63') {
+          if (cVal === null) continue;
+          if (!cVal.columns || cVal.columns.length !== 63) continue;
+        }
+        if (cProp === 'policy' && cVal && typeof cVal === 'object') {
+          cVal = {
+            allowFacilitatorDeleteOwn: cVal.allowFacilitatorDeleteOwn !== false,
+            allowFacilitatorExportOwn: false,
+            facilitatorApprovalMode:
+              cVal.facilitatorApprovalMode === 'auto_approve' ? 'auto_approve' : 'manual_allowlist'
+          };
+        }
+        ctUpsertConfigKey_(cfgSheetSync, syncPropMap[cProp], cVal, actor.email);
+        cfgUpdated = true;
+      }
+      if (cfgUpdated) {
+        ctInvalidateConfigCache_();
+      }
+    }
+
+    try {
+      var ssSync = ctGetSpreadsheet_();
+      var cfgSync = ctLoadConfiguration_();
+      if (typeof ctRefreshSummaryAndKpisSheet_ === 'function') {
+        ctRefreshSummaryAndKpisSheet_(ssSync, cfgSync);
+      }
+      if (typeof ctRefreshDeclarationsSheet_ === 'function') {
+        ctRefreshDeclarationsSheet_(ssSync, cfgSync);
+      }
+    } catch (refreshErr) {
+      // Non-fatal: Summary & KPIs live formulas stay intact
+    }
+
+    var totalSheetSessions = Math.max(0, ctFindLastPopulatedRow_(sessionSheet, 1) - 1);
     var props = PropertiesService.getScriptProperties();
+    var extras = [];
+    if (syncedSchoolsCount > 0) extras.push(syncedSchoolsCount + ' school(s)');
+    if (syncedFacilitatorsCount > 0) extras.push(syncedFacilitatorsCount + ' facilitator(s)');
+    var extraSuffix = extras.length > 0 ? ' Plus ' + extras.join(' and ') + '.' : '';
     var msg =
       syncedCount > 0
-        ? 'Synced ' + syncedCount + ' session(s); skipped ' + skippedDuplicates + ' existing duplicate(s).'
-        : 'Verified ' + totalSheetSessions + ' session(s) up to date (0 duplicates overwritten).';
+        ? 'Synced ' +
+          syncedCount +
+          ' session(s); skipped ' +
+          skippedDuplicates +
+          ' existing duplicate(s).' +
+          extraSuffix
+        : 'Verified ' +
+          totalSheetSessions +
+          ' session(s) up to date (0 duplicates overwritten).' +
+          extraSuffix;
 
     if (typeof props.setProperty === 'function') {
       props.setProperty('CONNECTED_LAST_SYNC_AT', nowIso);
@@ -1145,9 +1436,427 @@ function ctHandleSyncAllToGoogleSheet_(actor, payload) {
     return {
       syncedCount: syncedCount,
       skippedDuplicates: skippedDuplicates,
+      syncedSchoolsCount: syncedSchoolsCount,
+      syncedFacilitatorsCount: syncedFacilitatorsCount,
       totalSheetSessions: totalSheetSessions,
       syncedAt: nowIso,
       message: msg
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleGetTeamIntakeConfig_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  var intakeKey = ctConfigureFacilitatorIntakeKey_('');
+  var cfg = ctLoadConfiguration_();
+  return {
+    configured: Boolean(intakeKey && intakeKey.length >= 16),
+    intakeKey: intakeKey,
+    approvalMode:
+      cfg && cfg.policy && cfg.policy.facilitatorApprovalMode === 'auto_approve'
+        ? 'auto_approve'
+        : 'manual_allowlist',
+    updatedAt: ctNowIso_()
+  };
+}
+
+function ctHandleRotateTeamIntakeKey_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var nextKey = ctConfigureFacilitatorIntakeKey_('', true);
+    var cfg = ctLoadConfiguration_();
+    ctAppendAuditLog_(
+      actor,
+      'ROTATE_TEAM_INTAKE_KEY',
+      'Security',
+      'FACILITATOR_INTAKE_KEY',
+      '',
+      'Rotated Facilitator Team Submission Intake Key (previous share links invalidated)',
+      'SUCCESS'
+    );
+    return {
+      configured: true,
+      intakeKey: nextKey,
+      approvalMode:
+        cfg && cfg.policy && cfg.policy.facilitatorApprovalMode === 'auto_approve'
+          ? 'auto_approve'
+          : 'manual_allowlist',
+      updatedAt: ctNowIso_()
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctConvertIncomingSessionToFormValues_(rec, fallbackActorEmail) {
+  var facEmail = ctCellToString_(rec.facilitatorEmail).toLowerCase() || String(fallbackActorEmail || '').toLowerCase();
+  var rawDetails = Array.isArray(rec.details) && rec.details.length > 0 ? rec.details : [];
+  var classes = [];
+  for (var i = 0; i < rawDetails.length; i++) {
+    var d = rawDetails[i] || {};
+    classes.push({
+      rowId: String(d.detailRecordId || ('imp_' + (i + 1))),
+      grade: String(d.grade || ''),
+      section: String(d.section || ''),
+      studentsPresent: String(d.studentsPresent !== undefined ? d.studentsPresent : ''),
+      questionA: {
+        score5: String(d.questionAScore5 !== undefined ? d.questionAScore5 : 0),
+        score4: String(d.questionAScore4 !== undefined ? d.questionAScore4 : 0),
+        score3: String(d.questionAScore3 !== undefined ? d.questionAScore3 : 0),
+        score2: String(d.questionAScore2 !== undefined ? d.questionAScore2 : 0),
+        score1: String(d.questionAScore1 !== undefined ? d.questionAScore1 : 0)
+      },
+      questionB: {
+        score5: String(d.questionBScore5 !== undefined ? d.questionBScore5 : 0),
+        score4: String(d.questionBScore4 !== undefined ? d.questionBScore4 : 0),
+        score3: String(d.questionBScore3 !== undefined ? d.questionBScore3 : 0),
+        score2: String(d.questionBScore2 !== undefined ? d.questionBScore2 : 0),
+        score1: String(d.questionBScore1 !== undefined ? d.questionBScore1 : 0)
+      }
+    });
+  }
+
+  var npsGroup = String(rec.teacherNpsGroup || '').trim().toLowerCase();
+  if (npsGroup !== 'promoter' && npsGroup !== 'passive' && npsGroup !== 'detractor') {
+    var scoreVal = ctCellToNumOrNull_(rec.teacherScore);
+    if (scoreVal !== null) {
+      npsGroup = scoreVal >= 9 ? 'promoter' : scoreVal >= 7 ? 'passive' : 'detractor';
+    } else {
+      var clsLabel = ctCellToString_(rec.teacherClassification).toLowerCase();
+      npsGroup = clsLabel === 'detractor' ? 'detractor' : clsLabel === 'passive' ? 'passive' : 'promoter';
+    }
+  }
+
+  var sessionMode = rec.sessionType === 'combined' || classes.length > 1 ? 'combined' : 'single';
+  var startDate = ctCellToString_(rec.startDate);
+  var endDate = ctCellToString_(rec.endDate) || startDate;
+
+  return {
+    clientSubmissionKey: ctCellToString_(rec.clientSubmissionKey),
+    facilitatorName: ctCellToString_(rec.facilitatorName) || facEmail,
+    facilitatorEmail: facEmail,
+    tourId: ctCellToString_(rec.tourId),
+    language: ctCellToString_(rec.language),
+    startDate: startDate,
+    endDate: endDate,
+    startTime: ctCellToString_(rec.startTime),
+    endTime: ctCellToString_(rec.endTime),
+    schoolName: ctCellToString_(rec.schoolName),
+    udiseCode: ctCellToString_(rec.udiseCode),
+    schoolType: ctCellToString_(rec.schoolType),
+    state: ctCellToString_(rec.state) || 'Tamil Nadu',
+    district: ctCellToString_(rec.district),
+    pinCode: ctCellToString_(rec.pinCode),
+    sessionMode: sessionMode,
+    classes: classes,
+    teacherNpsGroup: npsGroup,
+    teacherExactScore:
+      rec.teacherScore !== null && rec.teacherScore !== undefined && String(rec.teacherScore).trim() !== ''
+        ? String(rec.teacherScore)
+        : ''
+  };
+}
+
+/**
+ * Verified import / recovery of facilitator transfer packages or backup session records.
+ * Validates schema server-side, recomputes CSAT/ITP/NPS, deduplicates against existing IDs,
+ * registers missing non-admin facilitators as APPROVED, and upserts Schools without overwrite.
+ */
+function ctHandleImportSessions_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var incoming = (payload && Array.isArray(payload.sessions) && payload.sessions) || null;
+  if (!incoming || incoming.length === 0) {
+    throw ctApiError_('BAD_REQUEST', 'Select a transfer or backup package containing at least one session.');
+  }
+
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var config = ctLoadConfiguration_();
+    var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var facSheet = ctGetSheet_(SHEET_NAMES.FACILITATORS);
+    var sessionLayout = ctResolveSessionSheetLayout_(sessionSheet);
+    var lastRow = sessionSheet.getLastRow();
+
+    var existingRecordIds = {};
+    var existingSessionIds = {};
+    var existingClientKeys = {};
+
+    if (lastRow >= 2) {
+      var cols = sessionSheet.getRange(2, 1, lastRow - 1, 3).getValues();
+      for (var i = 0; i < cols.length; i++) {
+        var rId = ctCellToString_(cols[i][0]);
+        var sId = ctCellToString_(cols[i][1]);
+        var cKey = ctCellToString_(cols[i][2]);
+        if (rId) existingRecordIds[rId] = true;
+        if (sId) existingSessionIds[sId] = true;
+        if (cKey) existingClientKeys[cKey] = true;
+      }
+    }
+
+    var facRows = ctReadUserRowsFromSheet_(SHEET_NAMES.FACILITATORS);
+    var knownFacByEmail = {};
+    for (var fi = 0; fi < facRows.length; fi++) {
+      knownFacByEmail[facRows[fi].email] = facRows[fi];
+    }
+
+    var importedCount = 0;
+    var skippedDuplicates = 0;
+    var rejectedCount = 0;
+    var registeredFacilitators = 0;
+    var registeredSchools = 0;
+    var errors = [];
+    var nowIso = ctNowIso_();
+
+    for (var idx = 0; idx < incoming.length; idx++) {
+      var raw = incoming[idx];
+      if (!raw || typeof raw !== 'object') {
+        rejectedCount++;
+        errors.push({ index: idx, sessionId: '', message: 'Malformed record entry.' });
+        continue;
+      }
+
+      var rawRecId = ctCellToString_(raw.sessionRecordId);
+      var rawSessId = ctCellToString_(raw.sessionId);
+      var rawClientKey = ctCellToString_(raw.clientSubmissionKey);
+
+      if (
+        (rawRecId && existingRecordIds[rawRecId]) ||
+        (rawClientKey && existingClientKeys[rawClientKey]) ||
+        (rawSessId && existingSessionIds[rawSessId])
+      ) {
+        skippedDuplicates++;
+        continue;
+      }
+
+      var values = ctConvertIncomingSessionToFormValues_(raw, actor.email);
+      var validation = ctValidateSessionForm_(values, config);
+      if (!validation.valid) {
+        var errMsgs = [];
+        for (var e = 0; e < validation.errors.length; e++) errMsgs.push(validation.errors[e].message);
+        rejectedCount++;
+        errors.push({
+          index: idx,
+          sessionId: rawSessId || rawRecId || ('Row ' + (idx + 1)),
+          message: errMsgs.join(' ')
+        });
+        continue;
+      }
+
+      var tour = null;
+      for (var tIdx = 0; tIdx < (config.tours || []).length; tIdx++) {
+        if (config.tours[tIdx].tourId === values.tourId) {
+          tour = config.tours[tIdx];
+          break;
+        }
+      }
+
+      var prefix = ctBuildSessionIdPrefix_(values.startDate, values.udiseCode, values.sessionMode, values.classes);
+      var sessionId = rawSessId && !existingSessionIds[rawSessId] ? rawSessId : '';
+      if (!sessionId) {
+        var maxSeq = 0;
+        for (var ek in existingSessionIds) {
+          if (ek.indexOf(prefix + '_') === 0) {
+            var sp = parseInt(ek.slice(prefix.length + 1), 10);
+            if (!isNaN(sp) && sp > maxSeq) maxSeq = sp;
+          }
+        }
+        var seq = maxSeq + 1;
+        sessionId = ctFormatSessionIdWithSequence_(prefix, seq);
+        while (existingSessionIds[sessionId]) {
+          seq++;
+          sessionId = ctFormatSessionIdWithSequence_(prefix, seq);
+        }
+      }
+
+      var sessionRecordId = rawRecId || ('REC_' + Utilities.getUuid().toUpperCase());
+      var metrics = ctCalculateSessionMetrics_(values.classes, values.teacherNpsGroup, values.teacherExactScore);
+      var durationMinutes =
+        ctCalculateSessionDurationMinutes_(values.startDate, values.startTime, values.endDate, values.endTime) || 0;
+      var videoInfo = ctResolveConfiguredVideoId_(tour, values.language);
+
+      var facEmail = values.facilitatorEmail;
+      var facUserId = ctCellToString_(raw.facilitatorUserId);
+      var matchedAdmin = ctFindInitialSuperAdminByEmail_(facEmail);
+      if (matchedAdmin) {
+        facUserId = matchedAdmin.userId;
+      } else if (knownFacByEmail[facEmail]) {
+        facUserId = knownFacByEmail[facEmail].userId || facUserId || ('USR_' + facEmail);
+      } else {
+        facUserId = facUserId || ('FAC_' + ctShortUuid_().slice(0, 8));
+        var newFacRowIdx = Math.max(2, ctFindLastPopulatedRow_(facSheet, 1) + 1);
+        var facRng = facSheet.getRange(newFacRowIdx, 1, 1, 8);
+        facRng.setNumberFormat('@');
+        facRng.setValues([[
+          facUserId,
+          values.facilitatorName || facEmail,
+          facEmail,
+          'facilitator',
+          'true',
+          nowIso,
+          nowIso,
+          'APPROVED'
+        ]]);
+        knownFacByEmail[facEmail] = { userId: facUserId, email: facEmail, status: 'APPROVED', active: true };
+        registeredFacilitators++;
+      }
+
+      var detailRecords = [];
+      var detailRows = [];
+      for (var cIdx = 0; cIdx < metrics.classBreakdown.length; cIdx++) {
+        var c = metrics.classBreakdown[cIdx];
+        var detObj = {
+          detailRecordId: 'DET_' + sessionRecordId + '_' + (cIdx + 1),
+          sessionRecordId: sessionRecordId,
+          sessionId: sessionId,
+          grade: c.grade,
+          section: c.section,
+          studentsPresent: c.studentsPresent,
+          questionAScore5: c.questionACounts.score5,
+          questionAScore4: c.questionACounts.score4,
+          questionAScore3: c.questionACounts.score3,
+          questionAScore2: c.questionACounts.score2,
+          questionAScore1: c.questionACounts.score1,
+          questionATotal: c.questionATotal,
+          questionAWeightedScore: c.questionAWeighted,
+          csat: c.csatAverage,
+          questionBScore5: c.questionBCounts.score5,
+          questionBScore4: c.questionBCounts.score4,
+          questionBScore3: c.questionBCounts.score3,
+          questionBScore2: c.questionBCounts.score2,
+          questionBScore1: c.questionBCounts.score1,
+          questionBTotal: c.questionBTotal,
+          questionBWeightedScore: c.questionBWeighted,
+          itp: c.itpAverage,
+          createdAt: ctCellToString_(raw.createdAt) || nowIso,
+          updatedAt: nowIso
+        };
+        detailRecords.push(detObj);
+        detailRows.push(ctDetailRecordToSheetRow_(detObj));
+      }
+
+      var finalStatus = raw.submissionStatus === 'CORRECTED' ? 'CORRECTED' : 'COMMITTED';
+      var newRec = {
+        sessionRecordId: sessionRecordId,
+        sessionId: sessionId,
+        clientSubmissionKey: values.clientSubmissionKey || ('IMP_' + sessionRecordId),
+        facilitatorName: values.facilitatorName,
+        facilitatorEmail: facEmail,
+        facilitatorUserId: facUserId,
+        tourId: tour.tourId,
+        tourName: tour.tourName,
+        videoId: videoInfo.isConfigured ? videoInfo.videoId : 'UNCONFIGURED_VIDEO_ID',
+        language: values.language,
+        startDate: values.startDate,
+        endDate: values.endDate,
+        startTime: values.startTime,
+        endTime: values.endTime,
+        durationMinutes: durationMinutes,
+        durationFormatted: ctFormatDurationHuman_(durationMinutes),
+        reportingMonth: ctGetMonthNameFromISO_(values.startDate),
+        submissionTimestamp: ctCellToString_(raw.submissionTimestamp) || nowIso,
+        submissionDateFormatted:
+          ctCellToString_(raw.submissionDateFormatted) || ctFormatISODateToDDMMYYYY_(ctGetTodayKolkataISO_()),
+        schoolName: values.schoolName,
+        udiseCode: values.udiseCode,
+        schoolType: values.schoolType,
+        state: values.state,
+        district: values.district,
+        pinCode: values.pinCode,
+        sessionType: values.sessionMode,
+        totalClasses: metrics.totalClasses,
+        totalStudentsPresent: metrics.totalStudentsPresent,
+        totalQuestionAResponses: metrics.totalQuestionAResponses,
+        totalQuestionBResponses: metrics.totalQuestionBResponses,
+        overallCsat: metrics.overallCsat,
+        overallItp: metrics.overallItp,
+        teacherScore: metrics.teacherScoreExact,
+        teacherClassification: metrics.teacherClassification,
+        teacherNps: metrics.teacherNps,
+        submissionStatus: 'PENDING',
+        createdAt: ctCellToString_(raw.createdAt) || nowIso,
+        updatedAt: nowIso,
+        createdBy: facEmail,
+        updatedBy: actor.email,
+        archived: Boolean(raw.archived),
+        details: detailRecords
+      };
+
+      var targetSessionRowIdx = Math.max(2, ctFindLastPopulatedRow_(sessionSheet, 1) + 1);
+      var sessionRowArr = ctSessionRecordToSheetRow_(newRec, sessionLayout.hasBlock);
+      var sessionRange = sessionSheet.getRange(targetSessionRowIdx, 1, 1, sessionLayout.colCount);
+      sessionRange.setNumberFormats([ctBuildTextFormatRow_(sessionRowArr, sessionLayout.textColumns)]);
+      sessionRange.setValues([sessionRowArr]);
+
+      var detailStart = Math.max(2, ctFindLastPopulatedRow_(detailSheet, 1) + 1);
+      var detailRange = detailSheet.getRange(detailStart, 1, detailRows.length, DETAIL_COL_COUNT);
+      var detFormats = [];
+      for (var df = 0; df < detailRows.length; df++) {
+        detFormats.push(ctBuildTextFormatRow_(detailRows[df], [1, 2, 3, 4, 5]));
+      }
+      detailRange.setNumberFormats(detFormats);
+      detailRange.setValues(detailRows);
+
+      SpreadsheetApp.flush();
+      sessionSheet.getRange(targetSessionRowIdx, sessionLayout.statusCol).setValue(finalStatus);
+      newRec.submissionStatus = finalStatus;
+
+      if (!ctFindSchoolByUdise_(values.udiseCode)) {
+        ctUpsertSchoolWithoutOverwrite_(values, nowIso);
+        registeredSchools++;
+      } else {
+        ctUpsertSchoolWithoutOverwrite_(values, nowIso);
+      }
+
+      existingRecordIds[sessionRecordId] = true;
+      existingSessionIds[sessionId] = true;
+      if (newRec.clientSubmissionKey) existingClientKeys[newRec.clientSubmissionKey] = true;
+      importedCount++;
+    }
+
+    try {
+      var ssImp = ctGetSpreadsheet_();
+      var cfgImp = ctLoadConfiguration_();
+      if (typeof ctRefreshSummaryAndKpisSheet_ === 'function') ctRefreshSummaryAndKpisSheet_(ssImp, cfgImp);
+      if (typeof ctRefreshDeclarationsSheet_ === 'function') ctRefreshDeclarationsSheet_(ssImp, cfgImp);
+    } catch (ignoreRefresh) {}
+
+    ctAppendAuditLog_(
+      actor,
+      'IMPORT_SESSIONS',
+      'Session',
+      'IMPORT',
+      '',
+      'Imported ' +
+        importedCount +
+        ' verified session(s); skipped ' +
+        skippedDuplicates +
+        ' duplicate(s); rejected ' +
+        rejectedCount,
+      importedCount > 0 ? 'SUCCESS' : rejectedCount > 0 ? 'DENIED' : 'SUCCESS'
+    );
+    ctAppendSyncLog_(
+      actor,
+      'IMPORT_PACKAGE',
+      'IMPORT',
+      String(importedCount),
+      'importSessions',
+      1,
+      'SYNCED',
+      rejectedCount > 0 ? rejectedCount + ' record(s) failed validation' : ''
+    );
+
+    return {
+      importedCount: importedCount,
+      skippedDuplicates: skippedDuplicates,
+      rejectedCount: rejectedCount,
+      registeredFacilitators: registeredFacilitators,
+      registeredSchools: registeredSchools,
+      errors: errors,
+      importedAt: nowIso
     };
   } finally {
     lock.releaseLock();

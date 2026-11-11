@@ -2,15 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Award,
   Building2,
+  Calculator,
   Check,
   CheckCircle2,
   Clapperboard,
   CloudOff,
+  Database,
+  ExternalLink,
   Hash,
   History,
   ListChecks,
   RotateCcw,
-  Sparkles,
+  ShieldCheck,
   UserRound,
   Users,
 } from 'lucide-react';
@@ -26,7 +29,12 @@ import {
   generateUuid,
 } from '../config/defaults';
 import type { BackendApiClient } from '../services/apiClient';
-import { getAuthEnvironment } from '../services/authService';
+import {
+  getAuthEnvironment,
+  loadAppsScriptBridgeConfig,
+  loadTeamIntakeConfig,
+} from '../services/authService';
+import { triggerJsonDownload } from '../services/durableStorage';
 import {
   clearFormDraft,
   loadFormDraft,
@@ -41,6 +49,7 @@ import {
 import type {
   AppConfiguration,
   DuplicateSessionCandidate,
+  GoogleSheetsConnectionState,
   SchoolRecord,
   ScoreCounts,
   SessionFormValues,
@@ -66,6 +75,9 @@ interface SessionEntryFormProps {
   user: UserProfile;
   config: AppConfiguration;
   editingSession: SessionRecord | null;
+  isGoogleSheetsLive?: boolean;
+  isTeamIntakeActive?: boolean;
+  sheetsConnection?: GoogleSheetsConnectionState | null;
   onCancelEdit: () => void;
   onSavedNavigateToMyClasses: () => void;
   onNotify: (type: 'success' | 'error' | 'warning', title: string, detail?: string) => void;
@@ -100,7 +112,6 @@ function sessionRecordToFormValues(record: SessionRecord): SessionFormValues {
     schoolType: record.schoolType,
     state: record.state,
     district: record.district,
-    block: record.block,
     pinCode: record.pinCode,
     sessionMode: record.sessionType,
     classes: record.details.map((d, i) => ({
@@ -140,7 +151,6 @@ function resolveFieldDomId(field: string): string | null {
   if (field === 'udiseCode') return 'udiseCode';
   if (field === 'schoolType') return 'schoolType';
   if (field === 'district') return 'district';
-  if (field === 'block') return 'block';
   if (field === 'pinCode') return 'pinCode';
   if (field === 'teacherNpsGroup' || field === 'teacherExactScore') return 'teacherNpsGroup';
 
@@ -162,6 +172,9 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
   user,
   config,
   editingSession,
+  isGoogleSheetsLive = false,
+  isTeamIntakeActive = false,
+  sheetsConnection = null,
   onCancelEdit,
   onSavedNavigateToMyClasses,
   onNotify,
@@ -183,8 +196,30 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
     return loadFormDraft(user.email);
   });
   const isSuperAdmin = user.role === 'super_admin';
+  const isSupabaseMode = api.mode === 'supabase';
+  const authEnv = getAuthEnvironment();
+  const hasSavedBridge = Boolean(loadAppsScriptBridgeConfig());
+  const teamIntakeCfg = loadTeamIntakeConfig();
+  const isFacilitatorCentralLive = Boolean(
+    !isSuperAdmin &&
+      (isSupabaseMode ||
+        isTeamIntakeActive ||
+        authEnv.isLiveBackendConfigured ||
+        (teamIntakeCfg?.appsScriptUrl && teamIntakeCfg?.intakeKey)),
+  );
+  const effectiveSheetsLive = Boolean(
+    isGoogleSheetsLive ||
+      authEnv.isLiveBackendConfigured ||
+      (sheetsConnection?.connected &&
+        sheetsConnection.spreadsheetId &&
+        (sheetsConnection.connectionProvider === 'apps_script' ||
+          (sheetsConnection.authMethod === 'apps_script' && hasSavedBridge) ||
+          (sheetsConnection.authMethod === 'google_oauth' &&
+            sheetsConnection.connectionProvider !== 'direct_browser'))),
+  );
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [downloadingTransfer, setDownloadingTransfer] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [matchedSchool, setMatchedSchool] = useState<SchoolRecord | null>(null);
   const [savedResult, setSavedResult] = useState<{
@@ -201,6 +236,34 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [queuedOfflineNotice, setQueuedOfflineNotice] = useState(false);
+
+  const hasMeaningfulDraftData = (candidate: SessionFormValues): boolean =>
+    candidate.schoolName.trim() !== '' ||
+    candidate.udiseCode.trim() !== '' ||
+    candidate.schoolType !== '' ||
+    candidate.district !== '' ||
+    candidate.startTime !== '' ||
+    candidate.endTime !== '' ||
+    candidate.pinCode.trim() !== '' ||
+    candidate.teacherNpsGroup !== '' ||
+    candidate.teacherExactScore.trim() !== '' ||
+    candidate.classes.some(
+      (c) =>
+        c.grade !== '' ||
+        c.section !== '' ||
+        c.studentsPresent !== '' ||
+        Object.values(c.questionA).some((s) => s !== '') ||
+        Object.values(c.questionB).some((s) => s !== ''),
+    );
+
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
+  const editingSessionRef = useRef(editingSession);
+  editingSessionRef.current = editingSession;
+  const savedResultRef = useRef(savedResult);
+  savedResultRef.current = savedResult;
+  const userEmailRef = useRef(user.email);
+  userEmailRef.current = user.email;
 
   useEffect(() => {
     if (!formRef.current) return;
@@ -298,12 +361,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
   useEffect(() => {
     if (savedResult) return;
     const timer = setTimeout(() => {
-      const hasAnyData =
-        values.schoolName.trim() !== '' ||
-        values.udiseCode.trim() !== '' ||
-        values.startTime !== '' ||
-        values.classes.some((c) => c.grade !== '' || c.studentsPresent !== '');
-      if (hasAnyData) {
+      if (hasMeaningfulDraftData(values)) {
         saveFormDraft(
           user.email,
           values,
@@ -314,6 +372,54 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
     }, 500);
     return () => clearTimeout(timer);
   }, [editingSession, savedResult, user.email, values]);
+
+  // Synchronous draft flush on reload, tab hide, close, or route change so <500ms edits are never lost
+  useEffect(() => {
+    const flushPendingDraftNow = () => {
+      if (savedResultRef.current) return;
+      const latest = valuesRef.current;
+      if (!hasMeaningfulDraftData(latest)) return;
+      saveFormDraft(
+        userEmailRef.current,
+        latest,
+        editingSessionRef.current?.sessionRecordId ?? null,
+        editingSessionRef.current?.sessionId ?? null,
+      );
+    };
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        flushPendingDraftNow();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', flushPendingDraftNow);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+    return () => {
+      flushPendingDraftNow();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pagehide', flushPendingDraftNow);
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+  }, []);
+
+  // Warn before accidental navigation only while an active submission request is in flight
+  useEffect(() => {
+    if (!isSubmitting || typeof window === 'undefined') return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSubmitting]);
 
   // UDISE lookup when 11 digits entered
   useEffect(() => {
@@ -404,7 +510,6 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
     setValues((prev) => ({
       ...prev,
       district,
-      block: '',
     }));
   };
 
@@ -415,7 +520,6 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
       schoolName: school.schoolName,
       schoolType: config.schoolTypes.includes(school.schoolType) ? school.schoolType : prev.schoolType,
       district: allowed ? school.district : prev.district,
-      block: allowed ? school.block : '',
       pinCode: school.pinCode,
     }));
   };
@@ -590,10 +694,39 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
     setReviewModalOpen(true);
   };
 
+  const handleDownloadTransferFile = async () => {
+    if (!api.exportFacilitatorTransferPackage) return;
+    setDownloadingTransfer(true);
+    try {
+      const res = await api.exportFacilitatorTransferPackage();
+      if (!res.ok || !res.data) {
+        onNotify('error', 'Transfer file export failed', res.error);
+        return;
+      }
+      if (res.data.recordCount === 0) {
+        onNotify(
+          'warning',
+          'No sessions to package yet',
+          'Submit at least one session before downloading a Transfer File (.json).',
+        );
+        return;
+      }
+      const slug = user.email.split('@')[0]?.replace(/[^a-z0-9_-]/gi, '_') || 'facilitator';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      triggerJsonDownload(`Career_Tours_Transfer_${slug}_${dateStr}.json`, res.data);
+      onNotify(
+        'success',
+        'Transfer File (.json) downloaded',
+        `${res.data.recordCount} session(s) packaged for Administrator merge.`,
+      );
+    } finally {
+      setDownloadingTransfer(false);
+    }
+  };
+
   const executeConfirmedSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    const env = getAuthEnvironment();
 
     try {
       const res = editingSession
@@ -601,8 +734,12 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
         : await api.createSession(values);
 
       if (!res.ok || !res.data) {
-        if (res.code === 'NETWORK_ERROR') {
+        if (res.code === 'NETWORK_ERROR' || res.code === 'PENDING_APPROVAL') {
           const nowIso = new Date().toISOString();
+          const fallbackErr =
+            res.code === 'PENDING_APPROVAL'
+              ? res.error || 'Awaiting Administrator approval on the central database'
+              : res.error || 'Network unavailable';
           enqueueSyncOutboxItem(user.email, {
             clientSubmissionKey: values.clientSubmissionKey,
             operation: editingSession ? 'updateSession' : 'createSession',
@@ -615,7 +752,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
             syncStatus: 'PENDING_RETRY',
             attempts: 1,
             lastAttemptAt: nowIso,
-            lastError: res.error || 'Network unavailable',
+            lastError: fallbackErr,
             values,
           });
           appendLocalSyncEvent(user.email, {
@@ -628,7 +765,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
             operation: editingSession ? 'updateSession' : 'createSession',
             attempt: 1,
             status: 'PENDING_RETRY',
-            errorMessage: res.error || 'Network unavailable',
+            errorMessage: fallbackErr,
           });
           clearFormDraft(user.email);
           setReviewModalOpen(false);
@@ -636,10 +773,20 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
           onOutboxEnqueued?.();
           onNotify(
             'warning',
-            isSuperAdmin ? 'Saved offline to Sync Outbox' : 'Saved offline on this device',
-            isSuperAdmin
-              ? 'Google Sheets could not be reached. Open Sync Status to retry submission idempotently.'
-              : 'Network connection unavailable. Use Retry save in the top bar once reconnected.',
+            res.code === 'PENDING_APPROVAL'
+              ? 'Saved safely on this device · Awaiting approval'
+              : isSuperAdmin
+                ? 'Saved offline to Sync Outbox'
+                : 'Saved offline on this device',
+            res.code === 'PENDING_APPROVAL'
+              ? isSupabaseMode
+                ? 'An Administrator must approve your email in User Management before submissions are saved to the Central Database.'
+                : 'An Administrator must approve your email or enable Auto-Approve via Team Link. You can also send a Transfer File (.json) from My classes.'
+              : isSuperAdmin
+                ? isSupabaseMode
+                  ? 'Supabase database could not be reached. Open Sync Status to retry the queued submission.'
+                  : 'Google Sheets could not be reached. Open Sync Status to retry the queued submission.'
+                : 'Network connection unavailable. Use Retry save in the top bar once reconnected.',
           );
           return;
         }
@@ -653,9 +800,16 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
         return;
       }
 
-      const actualSyncStatus: SyncStatus = env.isLiveBackendConfigured
-        ? (res.data.session.syncStatus ?? 'SYNCED')
-        : 'LOCAL_SANDBOX';
+      const explicitSync = res.data.session.syncStatus;
+      const actualSyncStatus: SyncStatus =
+        explicitSync === 'SYNCED' ||
+        explicitSync === 'PENDING_RETRY' ||
+        explicitSync === 'FAILED' ||
+        explicitSync === 'LOCAL_SANDBOX'
+          ? explicitSync
+          : effectiveSheetsLive || isFacilitatorCentralLive
+            ? 'SYNCED'
+            : 'LOCAL_SANDBOX';
 
       appendLocalSyncEvent(user.email, {
         syncId: generateUuid(),
@@ -719,7 +873,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
     { id: 'section-4', label: 'Class', dockTitle: 'About the class', icon: Users, statusIdx: 3 },
     { id: 'section-5', label: 'Answers', dockTitle: "Students' answers", icon: ListChecks, statusIdx: 4 },
     { id: 'section-6', label: 'Teacher', dockTitle: "Teacher's answer", icon: Award, statusIdx: 5 },
-    { id: 'section-7', label: 'Summary', dockTitle: 'Your results', icon: Sparkles, statusIdx: -1 },
+    { id: 'section-7', label: 'Summary', dockTitle: 'Your results', icon: Calculator, statusIdx: -1 },
   ] as const;
 
   return (
@@ -738,7 +892,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
           } px-3 py-2 rounded-2xl flex items-center justify-between gap-2.5 text-xs`}
         >
           <nav
-            className="flex-1 min-w-0 flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:overflow-x-auto"
+            className="flex-1 min-w-0 flex flex-nowrap items-center gap-1.5 overflow-x-auto py-1 -my-1 px-0.5 ct-jump-scroll"
             aria-label="Form sections"
           >
             {SECTION_LINKS.map((s) => {
@@ -748,7 +902,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                 <a
                   key={s.id}
                   href={`#${s.id}`}
-                  className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${
+                  className={`shrink-0 snap-start inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors ${
                     done
                       ? 'bg-[#E8F6FF] border-[#0284C7] text-[#0A1B2C]'
                       : 'bg-[#FFFFFF] border-[#8E8674] text-[#243647] hover:text-[#0A1B2C] hover:border-[#0284C7]'
@@ -794,10 +948,125 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
         className={
           embeddedInModal
             ? 'w-full'
-            : 'lg:grid lg:grid-cols-[minmax(0,1fr)_336px] xl:grid-cols-[minmax(0,1fr)_356px] lg:gap-6 items-start'
+            : 'lg:grid lg:grid-cols-[minmax(0,1fr)_304px] xl:grid-cols-[minmax(0,1fr)_344px] lg:gap-6 items-start'
         }
       >
         <div className="min-w-0 flex flex-col">
+          {/* Save Destination Banner — strictly scoped to Super Administrators (zero leakage to Facilitators) */}
+          {isSuperAdmin && (
+            <div
+              role="status"
+              className={`mb-4 px-4 py-2.5 rounded-xl border flex flex-wrap items-center justify-between gap-2.5 text-xs ${
+                isSupabaseMode || effectiveSheetsLive
+                  ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#0A1B2C]'
+                  : 'bg-[#FFFBEB] border-[#B45309]/35 text-[#0A1B2C]'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {isSupabaseMode ? (
+                  <>
+                    <Database className="w-4 h-4 text-[#047857] shrink-0" aria-hidden="true" />
+                    <span className="truncate">
+                      <strong className="font-medium text-[#047857]">
+                        {effectiveSheetsLive && sheetsConnection?.spreadsheetName
+                          ? 'Supabase + Sheets Live'
+                          : 'Supabase PostgreSQL Database'}
+                      </strong>{' '}
+                      · Entries save permanently to Vidhya Vidhai Cloud
+                      {effectiveSheetsLive && sheetsConnection?.spreadsheetName && (
+                        <>
+                          {' '}
+                          + <strong className="font-medium">{sheetsConnection.spreadsheetName}</strong>{' '}
+                          mirror
+                        </>
+                      )}
+                    </span>
+                  </>
+                ) : effectiveSheetsLive ? (
+                  <>
+                    <Database className="w-4 h-4 text-[#047857] shrink-0" aria-hidden="true" />
+                    <span className="truncate">
+                      <strong className="font-medium text-[#047857]">Google Sheets Live</strong> ·
+                      Form details save directly into{' '}
+                      <strong className="font-medium">
+                        {sheetsConnection?.spreadsheetName || 'your connected Google Sheet'}
+                      </strong>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <CloudOff className="w-4 h-4 text-[#B45309] shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong className="font-medium text-[#92400E]">Local Storage</strong> ·
+                      Entries save on this device until Google Sheets is connected
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {effectiveSheetsLive && sheetsConnection?.spreadsheetUrl && (
+                  <a
+                    href={sheetsConnection.spreadsheetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-[#047857] hover:underline"
+                  >
+                    <span>Open Sheet</span>
+                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                  </a>
+                )}
+                {onOpenSyncStatus && (
+                  <button
+                    type="button"
+                    onClick={onOpenSyncStatus}
+                    className="ct-btn-secondary text-xs min-h-[32px] px-2.5 py-1"
+                  >
+                    {isSupabaseMode
+                      ? effectiveSheetsLive
+                        ? 'Sync & Mirror Status'
+                        : 'Optional Sheets Mirror'
+                      : effectiveSheetsLive
+                        ? 'Sync Status'
+                        : 'Setup Google Sheets'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isSuperAdmin && (
+            <div
+              role="status"
+              className={`mb-4 px-4 py-2.5 rounded-xl border flex flex-wrap items-center justify-between gap-2.5 text-xs ${
+                effectiveSheetsLive || isFacilitatorCentralLive
+                  ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#0A1B2C]'
+                  : 'bg-[#FFFBEB] border-[#B45309]/35 text-[#0A1B2C]'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {effectiveSheetsLive || isFacilitatorCentralLive ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-[#047857] shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong className="font-medium text-[#047857]">Central Programme Database</strong> ·
+                      Your entries save directly for programme review
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <CloudOff className="w-4 h-4 text-[#B45309] shrink-0" aria-hidden="true" />
+                    <span>
+                      <strong className="font-medium text-[#92400E]">Saved on This Device Only</strong> ·
+                      Entries stay on this device until you open a Team Sync Link or send a Transfer File (.json) from{' '}
+                      <strong className="font-medium">My classes</strong>
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Offline Outbox Notice */}
           {queuedOfflineNotice && (
             <div
@@ -810,11 +1079,12 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
                   <p className="font-medium text-[#B45309]">
                     {isSuperAdmin
                       ? 'Submission queued offline for Google Sheets retry'
-                      : 'Submission saved offline on this device'}
+                      : 'Submission saved on this device for safe sync'}
                   </p>
                   <p className="text-xs text-[#92400E] mt-0.5">
-                    Network connectivity failed. Your exact responses are saved locally for safe
-                    retry.
+                    {isSuperAdmin
+                      ? 'Network connectivity failed. Your exact responses are saved locally for safe retry.'
+                      : 'Your exact responses are saved safely on this device. Retry sync when connected or share via Download Transfer File (.json) in My classes.'}
                   </p>
                 </div>
               </div>
@@ -974,6 +1244,7 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
               validation={validation}
               config={config}
               isSuperAdmin={isSuperAdmin}
+              isSupabaseMode={isSupabaseMode}
               hasAttemptedSubmit={hasAttemptedSubmit}
               isSubmitting={isSubmitting}
               isEditing={Boolean(editingSession)}
@@ -1060,11 +1331,11 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
               </nav>
             </div>
 
-            {/* Card 2: Real-Time Telemetry Pulse */}
+            {/* Card 2: Real-Time Summary Panel */}
             <div className="ct-glass rounded-2xl p-4 flex flex-col gap-3.5 ct-num">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-medium uppercase tracking-wider text-[#33475B]">
-                  Live Telemetry
+                  Live Summary
                 </span>
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${
@@ -1135,7 +1406,9 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
               <div className="ct-bento-well p-3 flex items-start gap-2 text-xs">
                 <Hash className="w-3.5 h-3.5 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wider text-[#33475B]">ID Preview</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#33475B]">
+                    Session ID Format
+                  </div>
                   <div className="font-mono text-[11px] text-[#0A1B2C] break-all mt-0.5">
                     {savedResult
                       ? savedResult.session.sessionId
@@ -1205,8 +1478,11 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
         open={successModalOpen}
         isEditing={Boolean(editingSession)}
         isSuperAdmin={isSuperAdmin}
+        isSupabaseMode={isSupabaseMode}
         session={savedResult?.session ?? null}
         syncStatus={savedResult?.syncStatus ?? 'LOCAL_SANDBOX'}
+        spreadsheetName={sheetsConnection?.spreadsheetName}
+        spreadsheetUrl={sheetsConnection?.spreadsheetUrl}
         warnings={savedResult?.warnings ?? []}
         schoolUdiseConflict={savedResult?.schoolUdiseConflict}
         onClose={() => {
@@ -1225,6 +1501,10 @@ export const SessionEntryForm: React.FC<SessionEntryFormProps> = ({
           onSavedNavigateToMyClasses();
         }}
         onOpenSyncStatus={isSuperAdmin ? onOpenSyncStatus : undefined}
+        onDownloadTransferFile={
+          !isSuperAdmin && !isSupabaseMode ? () => void handleDownloadTransferFile() : undefined
+        }
+        downloadingTransfer={downloadingTransfer}
       />
 
       {/* Modal #6: Confirm Clear Form */}

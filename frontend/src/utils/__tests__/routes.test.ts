@@ -28,6 +28,15 @@ describe('SPA route base path normalization', () => {
     expect(parseAppRoute('/auth/google', 'facilitator', '/')).toEqual({
       kind: 'classroom_entry',
     });
+    expect(parseAppRoute('/auth/reset-password', null, '/')).toEqual({
+      kind: 'reset_password',
+    });
+    expect(parseAppRoute('/auth/reset-password', 'facilitator', '/')).toEqual({
+      kind: 'reset_password',
+    });
+    expect(parseAppRoute('/auth/reset-password', 'super_admin', '/')).toEqual({
+      kind: 'reset_password',
+    });
   });
 
   it('handles GitHub Pages project subpath (/vidhyavidhai/) cleanly', () => {
@@ -65,6 +74,15 @@ describe('SPA route base path normalization', () => {
     });
     expect(parseAppRoute('/vidhyavidhai/my-classes', 'facilitator', base)).toEqual({
       kind: 'my_classes',
+    });
+    expect(parseAppRoute('/vidhyavidhai/auth/reset-password', null, base)).toEqual({
+      kind: 'reset_password',
+    });
+    expect(parseAppRoute('/vidhyavidhai/auth/reset-password', 'facilitator', base)).toEqual({
+      kind: 'reset_password',
+    });
+    expect(parseAppRoute('/vidhyavidhai/auth/reset-password', 'super_admin', base)).toEqual({
+      kind: 'reset_password',
     });
   });
 });

@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Check, CheckCircle2, CloudOff, Copy, Database, RefreshCw } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  CloudOff,
+  Copy,
+  Database,
+  Download,
+  ExternalLink,
+  RefreshCw,
+} from 'lucide-react';
 import { formatScore2 } from '../../calculations/metrics';
 import type { SessionRecord, SyncStatus } from '../../types/domain';
 import { formatISODateToDDMMYYYY } from '../../utils/temporal';
@@ -9,28 +18,38 @@ interface SubmissionSuccessModalProps {
   open: boolean;
   isEditing: boolean;
   isSuperAdmin?: boolean;
+  isSupabaseMode?: boolean;
   session: SessionRecord | null;
   syncStatus: SyncStatus;
+  spreadsheetName?: string;
+  spreadsheetUrl?: string;
   warnings: string[];
   schoolUdiseConflict?: string;
   onClose: () => void;
   onStartNewSession: () => void;
   onViewInMyClasses: () => void;
   onOpenSyncStatus?: () => void;
+  onDownloadTransferFile?: () => Promise<void> | void;
+  downloadingTransfer?: boolean;
 }
 
 export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
   open,
   isEditing,
   isSuperAdmin = false,
+  isSupabaseMode = false,
   session,
   syncStatus,
+  spreadsheetName,
+  spreadsheetUrl,
   warnings,
   schoolUdiseConflict,
   onClose,
   onStartNewSession,
   onViewInMyClasses,
   onOpenSyncStatus,
+  onDownloadTransferFile,
+  downloadingTransfer = false,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -52,12 +71,38 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
       size="md"
       eyebrow={isEditing ? 'Record Updated' : 'Submission Committed'}
       title={isEditing ? 'Session updated successfully!' : 'Session saved successfully!'}
-      subtitle="All weighted averages, Session ID sequences, and class breakdown rows have been finalized."
+      subtitle={
+        isSupabaseMode
+          ? isSuperAdmin
+            ? 'All weighted averages, Session ID sequences, and class breakdown rows are permanently saved in Supabase PostgreSQL.'
+            : 'All weighted averages, Session ID sequences, and class breakdown rows have been finalized.'
+          : isSuperAdmin && syncStatus === 'SYNCED'
+            ? 'All weighted averages, Session ID sequences, and class breakdown rows have been saved live into your Google Sheet.'
+            : 'All weighted averages, Session ID sequences, and class breakdown rows have been finalized.'
+      }
       headerBadge={
-        syncStatus === 'SYNCED' ? (
+        isSupabaseMode ? (
+          syncStatus === 'PENDING_RETRY' || syncStatus === 'FAILED' ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FFFBEB] border border-[#B45309]/40 text-[#92400E]">
+              <RefreshCw className="w-3 h-3" aria-hidden="true" />
+              Queued offline · Retry pending
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
+              <Database className="w-3 h-3" aria-hidden="true" />
+              {syncStatus === 'SYNCED'
+                ? isSuperAdmin
+                  ? 'Saved in Supabase + Sheets'
+                  : 'Saved to Central Database'
+                : isSuperAdmin
+                  ? 'Saved in Supabase PostgreSQL'
+                  : 'Saved to Central Database'}
+            </span>
+          )
+        ) : syncStatus === 'SYNCED' ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
             <Database className="w-3 h-3" aria-hidden="true" />
-            {isSuperAdmin ? 'Synced to Google Sheets' : 'Saved to records'}
+            {isSuperAdmin ? 'Synced to Google Sheets' : 'Synced to Central Database'}
           </span>
         ) : syncStatus === 'PENDING_RETRY' || syncStatus === 'FAILED' ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FFFBEB] border border-[#B45309]/40 text-[#92400E]">
@@ -67,7 +112,9 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
         ) : (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2E9] border border-[#C7BEA7] text-[#243647]">
             <CloudOff className="w-3 h-3" aria-hidden="true" />
-            {isSuperAdmin ? 'Local Sandbox (not live Google Sheets)' : 'Saved in Local Sandbox'}
+            {isSuperAdmin
+              ? 'Saved locally · not synced to Google Sheets'
+              : 'Saved on this device'}
           </span>
         )
       }
@@ -160,9 +207,55 @@ export const SubmissionSuccessModal: React.FC<SubmissionSuccessModalProps> = ({
             </div>
           </div>
 
+          {isSuperAdmin && syncStatus === 'SYNCED' && (spreadsheetName || spreadsheetUrl) && (
+            <div className="p-3 rounded-lg bg-[#ECFDF5]/70 border border-[#047857]/30 flex flex-wrap items-center justify-between gap-2 text-xs text-[#0A1B2C]">
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                <Database className="w-3.5 h-3.5 text-[#047857] shrink-0" aria-hidden="true" />
+                <span className="truncate">
+                  Destination: Google Sheet{' '}
+                  <strong>{spreadsheetName || 'Connected Spreadsheet'}</strong>
+                </span>
+              </span>
+              {spreadsheetUrl && (
+                <a
+                  href={spreadsheetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-[#047857] hover:underline shrink-0"
+                >
+                  <span>Open in Google Sheets</span>
+                  <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                </a>
+              )}
+            </div>
+          )}
+
           {schoolUdiseConflict && (
             <div className="p-3 rounded-lg bg-[#FFFBEB] border border-[#B45309]/40 text-xs text-[#92400E]">
               {schoolUdiseConflict}
+            </div>
+          )}
+
+          {!isSuperAdmin && syncStatus !== 'SYNCED' && onDownloadTransferFile && (
+            <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#0A1B2C]">
+              <div>
+                <p className="font-medium text-[#92400E]">
+                  Share this submission with your Programme Administrator
+                </p>
+                <p className="text-[#243647] mt-0.5 leading-relaxed">
+                  Your device is not linked to the Central Programme Database yet. Download a verified
+                  Transfer File (.json) and send it to an Administrator to merge your records safely.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={downloadingTransfer}
+                onClick={() => void onDownloadTransferFile()}
+                className="ct-btn-secondary text-xs min-h-[38px] px-3 py-1.5 shrink-0"
+              >
+                <Download className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
+                {downloadingTransfer ? 'Preparing...' : 'Download Transfer File (.json)'}
+              </button>
             </div>
           )}
 

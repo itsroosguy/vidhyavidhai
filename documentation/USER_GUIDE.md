@@ -7,8 +7,8 @@ This guide explains day-to-day workflows for **Facilitators** and **Super Admini
 ## 1. Signing In, Account Security & Approval Policy
 
 1. Open the portal URL in Chrome, Edge, Safari, or a mobile browser.
-2. Click the **Sign in with Google** button ([AuthGate](../frontend/src/components/layout/AuthGate.tsx)). Zero passwords are stored or accepted in the application.
-   - **Initial Super Administrators:** Only `brinthajayaprakash888@gmail.com` and `karunya@vidhyavidhai.org` authenticate with full `SUPER_ADMIN` access and automatically redirect to **`/admin/overview`**.
+2. Sign in on the portal ([AuthGate](../frontend/src/components/layout/AuthGate.tsx)):
+   - **Initial Super Administrators:** Only `brinthajayaprakash888@gmail.com` and `karunya@vidhyavidhai.org` authenticate with full `SUPER_ADMIN` access and automatically redirect to **`/admin/overview`**. In standard workspace / browser mode, Super Administrators verify with their password (verified via salted PBKDF2-SHA256 hashes; zero plaintext passwords are written to Google Sheets or exports); in full Google Apps Script OAuth deployments, Google OAuth 2.0 verifies their account.
    - **All Other Users (Facilitators):** Authenticated automatically via their verified Google email and assigned the **`Facilitator`** role only (subject to the configured approval policy):
      - Under **`manual_allowlist` (default):** First-time Google users are automatically logged as `PENDING` and shown **Account Pending Approval** with zero programme data exposed until a Super Administrator approves them in `/admin/user-management`.
      - Under **`auto_approve`:** Verified Google users enter directly into the classroom entry form (`DENIED` accounts remain blocked on an **Access Denied** screen).
@@ -50,9 +50,8 @@ The continuous form contains **6 numbered input sections** followed by the live 
    - If the UDISE already exists in the central `Schools` sheet, a helper card appears allowing you to click **Fill school details**. If your entered school name differs from the saved master name, an amber notice reminds you that the existing master record will not be overwritten.
 3. **What kind of school is it?:** Choose from the approved school category list.
 4. **State:** Pre-set to `Tamil Nadu`.
-5. **District:** Choose from the three approved districts: **`Cuddalore`**, **`Nagapattinam`**, or **`Sivaganga`**. Changing District clears the Block selection automatically.
-6. **Block:** Once a District is chosen, select an approved **Block** (includes a quick search filter when more than 8 blocks exist). *(If you see `"Block list not configured. Please contact the administrator."`, an Administrator must import the official block list under **Admin: all facilitators → Master Data, Users & Settings** first.)*
-7. **PIN code:** Enter the exact **6-digit numeric** postal PIN code (leading zeroes preserved).
+5. **District:** Choose from the three approved districts: **`Cuddalore`**, **`Nagapattinam`**, or **`Sivaganga`**.
+6. **PIN code:** Enter the exact **6-digit numeric** postal PIN code (leading zeroes preserved).
 
 ### Section 4 — About the class
 1. Answer **"Did you take this session for more than one section or grade together?"**:
@@ -108,12 +107,12 @@ Only allowlisted Super Administrators (`brinthajayaprakash888@gmail.com` and `ka
 1. **`Overview` (`/admin/overview`):** Executive setup readiness checklist, key KPI strip (Total Sessions, Students Reached, Schools Covered, Active Facilitators, Pooled CSAT/ITP, Teacher NPS), District reach bars, and Student Sentiment / NPS summary charts.
 2. **`Analytics` (`/admin/analytics`):** Full visual analytics across District comparisons, Monthly trajectory trend chart, Career Tour & Language summaries, Grade-level reach table, and `DetailedAnalyticsModal` **Inspect** drill-downs.
 3. **`All Submissions` (`/admin/all-submissions`):** Filterable, paginated cross-facilitator submission ledger supporting View, Admin Edit (`CORRECTED` status + `Audit Log` trail while preserving the original `facilitatorEmail` owner), Archive, and `Export Filtered (.xlsx)`.
-4. **`Schools` (`/admin/schools`):** Accessible sortable **School-wise Performance** table (`School / UDISE`, `District / Block`, `Sessions`, `Students Reached`, `Pooled CSAT`, `Pooled ITP`, `Unanswered`) plus live UDISE School Master directory search.
+4. **`Schools` (`/admin/schools`):** Accessible sortable **School-wise Performance** table (`School / UDISE`, `District`, `Sessions`, `Students Reached`, `Pooled CSAT`, `Pooled ITP`, `Unanswered`) plus live UDISE School Master directory search.
 5. **`Facilitators` (`/admin/facilitators`):** Expandable Facilitator activity & pooled feedback panels across all educators.
 6. **`Student Feedback` (`/admin/student-feedback`):** Detailed Question A (CSAT) & Question B (ITP) `5..1` vote histograms and per-session breakdowns.
 7. **`Teacher Feedback` (`/admin/teacher-feedback`):** Dedicated Teacher NPS score breakdown (`Promoter 9–10`, `Passive 7–8`, `Detractor 0–6`) and verbatim session log.
 8. **`Performance Reports` (`/admin/performance-reports`):** Partner readiness metrics (`School Year`, `Partner Name`, `63-Column Template` status) and `Export Official Workbook (.xlsx)` launching the **Export Programme Report** preview modal (`1 row per grade/section` expansion + `@` plain-text formatting).
 9. **`Data Quality` (`/admin/data-quality`):** 12 automated cross-checks (`reconcileDashboardAnalytics`), response coverage %, missing-answer tallies, and `UNCONFIGURED_VIDEO_ID` warnings.
 10. **`Google Sheets Sync` (`/admin/google-sheets-sync`):** Live `pingHealth()` diagnostic, queued offline Sync Outbox retry, and `Sync Log` event ledger ([GoogleSheetsSyncPanel](../frontend/src/admin/GoogleSheetsSyncPanel.tsx)).
-11. **`User Management` (`/admin/user-management`):** Read-only Protected Super Administrators card, **Google Sign-In Approval Policy** toggle (`manual_allowlist` vs `auto_approve`), Pending Approval Queue (`Approve` / `Deny`), Facilitator creation by Google email (zero password fields, zero admin escalation options), and status directory ([UserAccessManager](../frontend/src/admin/UserAccessManager.tsx)).
-12. **`Settings` (`/admin/settings`):** District–Block `.csv` / `.xlsx` importer, `School Year` & `Partner Name`, Career Tour & language-matched Video ID editor, `allowFacilitatorDeleteOwn` policy toggle, Official 63-Column `.xlsx` template mapper ([MasterDataSettings](../frontend/src/admin/MasterDataSettings.tsx)), and paginated immutable `Audit Log` viewer ([AuditLogViewer](../frontend/src/admin/AuditLogViewer.tsx)).
+11. **`User Management` (`/admin/user-management`):** Read-only Protected Super Administrators card + Super Administrator Change Password form, **Google Sign-In Approval Policy** toggle (`manual_allowlist` vs `auto_approve`), Pending Approval Queue (`Approve` / `Deny`), Facilitator creation by Google email (zero password fields, zero admin escalation options), and status directory ([UserAccessManager](../frontend/src/admin/UserAccessManager.tsx)).
+12. **`Settings` (`/admin/settings`):** `School Year` & `Partner Name`, Career Tour & language-matched Video ID editor, `allowFacilitatorDeleteOwn` policy toggle, Official 63-Column `.xlsx` template mapper ([MasterDataSettings](../frontend/src/admin/MasterDataSettings.tsx)), and paginated immutable `Audit Log` viewer ([AuditLogViewer](../frontend/src/admin/AuditLogViewer.tsx)).

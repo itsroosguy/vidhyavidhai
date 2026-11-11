@@ -3,6 +3,7 @@ import type { BackendApiClient } from '../../services/apiClient';
 import { SessionEntryForm } from '../../forms/SessionEntryForm';
 import type {
   AppConfiguration,
+  GoogleSheetsConnectionState,
   SessionRecord,
   SyncStatus,
   UserProfile,
@@ -16,6 +17,9 @@ interface SubmissionFormModalProps {
   user: UserProfile;
   config: AppConfiguration;
   editingSession: SessionRecord | null;
+  isGoogleSheetsLive?: boolean;
+  isTeamIntakeActive?: boolean;
+  sheetsConnection?: GoogleSheetsConnectionState | null;
   onSavedNavigateToMyClasses: () => void;
   onSessionSaved?: (session: SessionRecord, syncStatus: SyncStatus) => void;
   onOpenSyncStatus?: () => void;
@@ -30,6 +34,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
   user,
   config,
   editingSession,
+  isGoogleSheetsLive = false,
+  isTeamIntakeActive = false,
+  sheetsConnection = null,
   onSavedNavigateToMyClasses,
   onSessionSaved,
   onOpenSyncStatus,
@@ -62,6 +69,9 @@ export const SubmissionFormModal: React.FC<SubmissionFormModalProps> = ({
           user={user}
           config={config}
           editingSession={editingSession}
+          isGoogleSheetsLive={isGoogleSheetsLive}
+          isTeamIntakeActive={isTeamIntakeActive}
+          sheetsConnection={sheetsConnection}
           embeddedInModal={true}
           onCancelEdit={onClose}
           onCloseModal={onClose}

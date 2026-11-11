@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import {
   Archive,
+  CloudOff,
   Download,
   Edit3,
   Eye,
@@ -8,11 +9,14 @@ import {
   Plus,
   RefreshCw,
   Search,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatScore2 } from '../calculations/metrics';
 import { ExportReportModal } from '../components/modals/ExportReportModal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import type { BackendApiClient } from '../services/apiClient';
+import { loadTeamIntakeConfig } from '../services/authService';
+import { triggerJsonDownload } from '../services/durableStorage';
 import type {
   AppConfiguration,
   PaginatedResult,
@@ -28,6 +32,9 @@ interface MyClassesPageProps {
   user: UserProfile;
   config: AppConfiguration;
   dataVersion?: number;
+  isCentralDatabase?: boolean;
+  outboxCount?: number;
+  onRetryOutbox?: () => Promise<void> | void;
   onEditSession: (session: SessionRecord) => void;
   onOpenNewModal?: () => void;
   onOpenEditModal?: (session: SessionRecord) => void;
@@ -39,6 +46,9 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
   user,
   config,
   dataVersion = 0,
+  isCentralDatabase,
+  outboxCount = 0,
+  onRetryOutbox,
   onEditSession,
   onOpenNewModal,
   onOpenEditModal,
@@ -64,11 +74,17 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
   });
   const [loading, setLoading] = useState(true);
   const [preparingExport, setPreparingExport] = useState(false);
+  const [downloadingTransfer, setDownloadingTransfer] = useState(false);
   const [exportModalSessions, setExportModalSessions] = useState<SessionRecord[] | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<SessionRecord | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<SessionRecord | null>(null);
 
   const isSuperAdmin = user.role === 'super_admin';
+  const isSupabaseMode = api.mode === 'supabase';
+  const teamIntakeCfg = loadTeamIntakeConfig();
+  const effectiveCentralDb =
+    isCentralDatabase ??
+    (isSupabaseMode || Boolean(teamIntakeCfg?.appsScriptUrl && teamIntakeCfg?.intakeKey));
   const captionId = useId();
 
   const fetchSessions = useCallback(async () => {
@@ -143,6 +159,28 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
     }
   };
 
+  const handleDownloadTransferFile = async () => {
+    if (!api.exportFacilitatorTransferPackage) return;
+    setDownloadingTransfer(true);
+    try {
+      const res = await api.exportFacilitatorTransferPackage();
+      if (!res.ok || !res.data) {
+        onNotify('error', 'Transfer file export failed', res.error);
+        return;
+      }
+      const slug = user.email.split('@')[0]?.replace(/[^a-z0-9_-]/gi, '_') || 'facilitator';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      triggerJsonDownload(`Career_Tours_Transfer_${slug}_${dateStr}.json`, res.data);
+      onNotify(
+        'success',
+        'Transfer File (.json) downloaded',
+        `${res.data.recordCount} classroom record(s) packaged for Administrator merge.`,
+      );
+    } finally {
+      setDownloadingTransfer(false);
+    }
+  };
+
   const handleEditAction = (session: SessionRecord) => {
     if (onOpenEditModal) {
       onOpenEditModal(session);
@@ -186,12 +224,26 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             )}
             <button
               type="button"
-              onClick={() => void fetchSessions()}
+              onClick={() => {
+                api.invalidateWorkspaceCache?.();
+                void fetchSessions();
+              }}
               className="ct-btn-secondary text-xs min-h-[40px] px-3"
             >
               <RefreshCw className="w-4 h-4" aria-hidden="true" />
               Refresh
             </button>
+            {!isSuperAdmin && (!isSupabaseMode || outboxCount > 0) && api.exportFacilitatorTransferPackage && (
+              <button
+                type="button"
+                disabled={downloadingTransfer || (result.total === 0 && outboxCount === 0)}
+                onClick={() => void handleDownloadTransferFile()}
+                className="ct-btn-secondary text-xs min-h-[40px] px-3.5"
+              >
+                <Download className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
+                {downloadingTransfer ? 'Packaging...' : 'Download Transfer File (.json)'}
+              </button>
+            )}
             {isSuperAdmin && (
               <button
                 type="button"
@@ -336,6 +388,73 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
             </button>
           </div>
         </div>
+
+        {!isSuperAdmin && (outboxCount > 0 || !effectiveCentralDb) && (
+          <div
+            role="status"
+            className="mt-4 p-3.5 rounded-xl bg-[#FFFBEB] border border-[#B45309]/40 flex flex-wrap items-center justify-between gap-3 text-xs text-[#0A1B2C]"
+          >
+            <div className="flex items-start gap-2.5 min-w-0">
+              <CloudOff className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="space-y-0.5">
+                {outboxCount > 0 ? (
+                  <>
+                    <p className="font-medium text-[#92400E]">
+                      {outboxCount} saved classroom {outboxCount === 1 ? 'entry' : 'entries'} waiting to sync
+                    </p>
+                    <p className="text-[#78350F] leading-relaxed">
+                      Your records stay safely stored on this device. Retry upload when connected, or
+                      send a Transfer File (.json) to your Administrator.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-[#92400E]">
+                      Device-Only Mode — Entries saved on this device
+                    </p>
+                    <p className="text-[#78350F] leading-relaxed">
+                      To sync automatically across devices, open your Administrator&apos;s Team Sync Link
+                      on Sign In, or click <strong>Download Transfer File (.json)</strong> above to share your entries.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {outboxCount > 0 && onRetryOutbox && (
+              <button
+                type="button"
+                onClick={() => void onRetryOutbox()}
+                className="ct-btn-secondary text-xs min-h-[34px] px-3 py-1 shrink-0"
+              >
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                Retry Sync
+              </button>
+            )}
+          </div>
+        )}
+
+        {!isSuperAdmin && outboxCount === 0 && effectiveCentralDb && (
+          <div
+            role="status"
+            className="mt-4 px-3.5 py-2.5 rounded-xl bg-[#ECFDF5] border border-[#047857]/30 flex flex-wrap items-center gap-2 text-xs text-[#047857]"
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>
+              {isSupabaseMode ? (
+                <>
+                  <strong>Central PostgreSQL Database</strong> · Your submitted classroom records are
+                  saved permanently for programme review.
+                </>
+              ) : (
+                <>
+                  <strong>Central Database</strong> · Your submitted classroom records are visible to
+                  programme administrators.
+                </>
+              )}
+            </span>
+          </div>
+        )}
       </section>
 
       {/* Results Table */}
@@ -367,7 +486,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                   <tr>
                     <th scope="col" className="p-3 font-medium">Session ID</th>
                     <th scope="col" className="p-3 font-medium">School Name</th>
-                    <th scope="col" className="p-3 font-medium">District / Block</th>
+                    <th scope="col" className="p-3 font-medium">District</th>
                     <th scope="col" className="p-3 font-medium">Tour</th>
                     <th scope="col" className="p-3 font-medium">Class</th>
                     <th scope="col" className="p-3 font-medium">Date</th>
@@ -397,7 +516,6 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                         </td>
                         <td className="p-3 text-[#243647]">
                           <div className="text-[#0A1B2C]">{s.district}</div>
-                          {s.block && <div className="text-xs text-[#33475B]">{s.block}</div>}
                         </td>
                         <td className="p-3 text-[#243647] max-w-[180px] truncate" title={s.tourName}>
                           {s.tourName}
@@ -417,9 +535,34 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
                           {s.teacherNps > 0 ? '+100' : s.teacherNps} ({s.teacherClassification})
                         </td>
                         <td className="p-3">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] text-[#047857] border border-[#047857]/35">
-                            {s.submissionStatus}
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] text-[#047857] border border-[#047857]/35">
+                              {s.submissionStatus}
+                            </span>
+                            {!isSuperAdmin && (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                                  isSupabaseMode
+                                    ? s.syncStatus === 'PENDING_RETRY' || s.syncStatus === 'FAILED'
+                                      ? 'bg-[#FFFBEB] text-[#92400E] border-[#B45309]/35'
+                                      : 'bg-[#ECFDF5] text-[#047857] border-[#047857]/30'
+                                    : s.syncStatus === 'SYNCED'
+                                      ? 'bg-[#ECFDF5] text-[#047857] border-[#047857]/30'
+                                      : 'bg-[#FFFBEB] text-[#92400E] border-[#B45309]/35'
+                                }`}
+                              >
+                                {isSupabaseMode
+                                  ? s.syncStatus === 'PENDING_RETRY' || s.syncStatus === 'FAILED'
+                                    ? 'Pending Retry'
+                                    : 'Saved in Database'
+                                  : s.syncStatus === 'SYNCED'
+                                    ? 'Synced'
+                                    : s.syncStatus === 'PENDING_RETRY' || s.syncStatus === 'FAILED'
+                                      ? 'Pending Retry'
+                                      : 'Device Only'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1.5">
@@ -497,6 +640,7 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
       <SessionDetailModal
         session={selectedDetail}
         isSuperAdmin={isSuperAdmin}
+        isSupabaseMode={isSupabaseMode}
         onClose={() => setSelectedDetail(null)}
         onEdit={handleEditAction}
       />
@@ -512,9 +656,10 @@ export const MyClassesPage: React.FC<MyClassesPageProps> = ({
           scopeLabel={`MY_SESSIONS (${filters.district || 'All districts'})`}
           onExportComplete={(rowCount, colCount, usedOfficial63, mode) => {
             void api.logExportEvent('MY_SESSIONS', rowCount, mode);
+            const isCsv = mode.endsWith(':csv');
             onNotify(
               'success',
-              'Excel export downloaded',
+              isCsv ? 'CSV export downloaded' : 'Excel export downloaded',
               `${rowCount} class rows exported across ${colCount} columns${
                 usedOfficial63
                   ? ' (official 63-column template)'

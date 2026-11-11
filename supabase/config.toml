@@ -1,0 +1,20 @@
+project_id = "gjkworgzniinnpnoinsd"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "https://vidhyavidhai.roosstudiox.com"
+additional_redirect_urls = [
+  "http://localhost:5173/auth/callback",
+  "http://localhost:5173/auth/reset-password",
+  "https://vidhyavidhai.roosstudiox.com/auth/callback",
+  "https://vidhyavidhai.roosstudiox.com/auth/reset-password"
+]
+
+[functions.google-sheets-sync]
+verify_jwt = true

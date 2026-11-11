@@ -3,8 +3,38 @@
  * PENDING->COMMITTED write workflow, row-level updates, filtering, and pagination.
  */
 
-var SESSION_COL_COUNT = 42;
+var SESSION_COL_COUNT = 41;
+var SESSION_TEXT_COLS = [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 25, 36, 37, 38, 41];
+var SESSION_LEGACY_TEXT_COLS = [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42];
 var DETAIL_COL_COUNT = 24;
+
+function ctResolveSessionSheetLayout_(sheet) {
+  var lastCol = typeof sheet.getLastColumn === 'function' ? sheet.getLastColumn() : 0;
+  var probeCols = lastCol >= 1 ? Math.max(SESSION_COL_COUNT, lastCol) : SESSION_COL_COUNT;
+  var hasBlock = false;
+  if (sheet.getLastRow() >= 1) {
+    var hdrs = sheet.getRange(1, 1, 1, probeCols).getValues()[0];
+    for (var i = 0; i < hdrs.length; i++) {
+      if (String(hdrs[i] || '').trim().toLowerCase() === 'block') {
+        hasBlock = true;
+        break;
+      }
+    }
+  }
+  var offset = hasBlock ? 1 : 0;
+  return {
+    hasBlock: hasBlock,
+    colCount: hasBlock ? 42 : SESSION_COL_COUNT,
+    textColumns: hasBlock ? SESSION_LEGACY_TEXT_COLS : SESSION_TEXT_COLS,
+    pinCol: 25 + offset,
+    totalClassesIdx: 26 + offset,
+    statusCol: 36 + offset,
+    statusIdx: 35 + offset,
+    updatedAtCol: 38 + offset,
+    updatedByCol: 40 + offset,
+    archivedCol: 41 + offset
+  };
+}
 
 function ctCellToString_(val) {
   if (val === null || val === undefined) return '';
@@ -55,8 +85,8 @@ function ctBuildTextFormatRow_(valuesArray, textColumnIndicesOneBased) {
   return rowFmt;
 }
 
-function ctSessionRecordToSheetRow_(rec) {
-  return [
+function ctSessionRecordToSheetRow_(rec, optHasBlock) {
+  var row = [
     rec.sessionRecordId,
     rec.sessionId,
     rec.clientSubmissionKey,
@@ -80,8 +110,12 @@ function ctSessionRecordToSheetRow_(rec) {
     rec.udiseCode,
     rec.schoolType,
     rec.state,
-    rec.district,
-    rec.block,
+    rec.district
+  ];
+  if (optHasBlock) {
+    row.push('');
+  }
+  row.push(
     rec.pinCode,
     rec.sessionType,
     rec.totalClasses,
@@ -99,7 +133,8 @@ function ctSessionRecordToSheetRow_(rec) {
     rec.createdBy,
     rec.updatedBy,
     rec.archived ? 'true' : 'false'
-  ];
+  );
+  return row;
 }
 
 function ctDetailRecordToSheetRow_(d) {
@@ -161,7 +196,16 @@ function ctSheetRowToDetailRecord_(r, rowNumber) {
   };
 }
 
-function ctSheetRowToSessionRecord_(r, rowNumber, detailsList) {
+function ctSheetRowToSessionRecord_(r, rowNumber, detailsList, optHasBlock) {
+  var st25 = ctCellToString_(r[25]);
+  var st26 = ctCellToString_(r[26]);
+  var hasBlock =
+    optHasBlock !== undefined
+      ? Boolean(optHasBlock)
+      : r.length >= 42 ||
+        ((st26 === 'single' || st26 === 'combined') && st25 !== 'single' && st25 !== 'combined');
+  var off = hasBlock ? 1 : 0;
+
   return {
     _rowNumber: rowNumber,
     sessionRecordId: ctCellToString_(r[0]),
@@ -188,24 +232,23 @@ function ctSheetRowToSessionRecord_(r, rowNumber, detailsList) {
     schoolType: ctCellToString_(r[21]),
     state: ctCellToString_(r[22]),
     district: ctCellToString_(r[23]),
-    block: ctCellToString_(r[24]),
-    pinCode: ctCellToString_(r[25]),
-    sessionType: ctCellToString_(r[26]),
-    totalClasses: ctCellToNumber_(r[27], 1),
-    totalStudentsPresent: ctCellToNumber_(r[28], 0),
-    totalQuestionAResponses: ctCellToNumber_(r[29], 0),
-    totalQuestionBResponses: ctCellToNumber_(r[30], 0),
-    overallCsat: ctCellToNumOrNull_(r[31]),
-    overallItp: ctCellToNumOrNull_(r[32]),
-    teacherScore: ctCellToNumOrNull_(r[33]),
-    teacherClassification: ctCellToString_(r[34]),
-    teacherNps: ctCellToNumber_(r[35], 0),
-    submissionStatus: ctCellToString_(r[36]),
-    createdAt: ctCellToString_(r[37]),
-    updatedAt: ctCellToString_(r[38]),
-    createdBy: ctCellToString_(r[39]),
-    updatedBy: ctCellToString_(r[40]),
-    archived: ctCellToBool_(r[41]),
+    pinCode: ctCellToString_(r[24 + off]),
+    sessionType: ctCellToString_(r[25 + off]),
+    totalClasses: ctCellToNumber_(r[26 + off], 1),
+    totalStudentsPresent: ctCellToNumber_(r[27 + off], 0),
+    totalQuestionAResponses: ctCellToNumber_(r[28 + off], 0),
+    totalQuestionBResponses: ctCellToNumber_(r[29 + off], 0),
+    overallCsat: ctCellToNumOrNull_(r[30 + off]),
+    overallItp: ctCellToNumOrNull_(r[31 + off]),
+    teacherScore: ctCellToNumOrNull_(r[32 + off]),
+    teacherClassification: ctCellToString_(r[33 + off]),
+    teacherNps: ctCellToNumber_(r[34 + off], 0),
+    submissionStatus: ctCellToString_(r[35 + off]),
+    createdAt: ctCellToString_(r[36 + off]),
+    updatedAt: ctCellToString_(r[37 + off]),
+    createdBy: ctCellToString_(r[38 + off]),
+    updatedBy: ctCellToString_(r[39 + off]),
+    archived: ctCellToBool_(r[40 + off]),
     details: detailsList || []
   };
 }
@@ -232,8 +275,9 @@ function ctReadAllSessionsWithDetails_(ownerEmailFilter) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
+  var layout = ctResolveSessionSheetLayout_(sheet);
   var detailsMap = ctReadAllDetailsGrouped_();
-  var rows = sheet.getRange(2, 1, lastRow - 1, SESSION_COL_COUNT).getValues();
+  var rows = sheet.getRange(2, 1, lastRow - 1, layout.colCount).getValues();
   var list = [];
   var targetOwner = ownerEmailFilter ? String(ownerEmailFilter).trim().toLowerCase() : null;
 
@@ -251,7 +295,7 @@ function ctReadAllSessionsWithDetails_(ownerEmailFilter) {
       delete detCopy._rowNumber;
       cleanDetails.push(detCopy);
     }
-    var sess = ctSheetRowToSessionRecord_(r, i + 2, cleanDetails);
+    var sess = ctSheetRowToSessionRecord_(r, i + 2, cleanDetails, layout.hasBlock);
     list.push(sess);
   }
   return list;
@@ -275,6 +319,7 @@ function ctCreateSessionCore_(actor, rawValues) {
 
   var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
   var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+  var sessionLayout = ctResolveSessionSheetLayout_(sessionSheet);
   var lastSessionRow = sessionSheet.getLastRow();
 
   // Read IDs & client keys to check idempotency and guarantee Session ID uniqueness
@@ -297,9 +342,9 @@ function ctCreateSessionCore_(actor, rawValues) {
   }
 
   if (lastSessionRow >= 2) {
-    // Columns 1..3 (session_record_id, session_id, client_submission_key) + col 37 (submission_status)
+    // Columns 1..3 (session_record_id, session_id, client_submission_key) + submission_status column
     var keyRange = sessionSheet.getRange(2, 1, lastSessionRow - 1, 3).getValues();
-    var statusCol = sessionSheet.getRange(2, 37, lastSessionRow - 1, 1).getValues();
+    var statusCol = sessionSheet.getRange(2, sessionLayout.statusCol, lastSessionRow - 1, 1).getValues();
     for (var i = 0; i < keyRange.length; i++) {
       var sid = ctCellToString_(keyRange[i][1]);
       var cKey = ctCellToString_(keyRange[i][2]);
@@ -409,7 +454,6 @@ function ctCreateSessionCore_(actor, rawValues) {
     schoolType: values.schoolType,
     state: values.state,
     district: values.district,
-    block: values.block,
     pinCode: values.pinCode,
     sessionType: values.sessionMode,
     totalClasses: metrics.totalClasses,
@@ -431,16 +475,16 @@ function ctCreateSessionCore_(actor, rawValues) {
   };
 
   // Phase 1: Insert Session master row as PENDING (append single row, never rewrite sheet)
-  var targetSessionRowIdx = Math.max(2, sessionSheet.getLastRow() + 1);
-  var sessionRowArr = ctSessionRecordToSheetRow_(newRecord);
-  var sessionRange = sessionSheet.getRange(targetSessionRowIdx, 1, 1, SESSION_COL_COUNT);
+  var targetSessionRowIdx = Math.max(2, ctFindLastPopulatedRow_(sessionSheet, 1) + 1);
+  var sessionRowArr = ctSessionRecordToSheetRow_(newRecord, sessionLayout.hasBlock);
+  var sessionRange = sessionSheet.getRange(targetSessionRowIdx, 1, 1, sessionLayout.colCount);
   sessionRange.setNumberFormats([
-    ctBuildTextFormatRow_(sessionRowArr, [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42])
+    ctBuildTextFormatRow_(sessionRowArr, sessionLayout.textColumns)
   ]);
   sessionRange.setValues([sessionRowArr]);
 
   // Phase 2: Insert class detail rows
-  var detailStartRow = Math.max(2, detailSheet.getLastRow() + 1);
+  var detailStartRow = Math.max(2, ctFindLastPopulatedRow_(detailSheet, 1) + 1);
   var detailRange = detailSheet.getRange(detailStartRow, 1, detailRows.length, DETAIL_COL_COUNT);
   var detFormats = [];
   for (var df = 0; df < detailRows.length; df++) {
@@ -452,8 +496,8 @@ function ctCreateSessionCore_(actor, rawValues) {
   // Verify count before finalizing COMMITTED
   SpreadsheetApp.flush();
 
-  // Phase 3: Promote status cell (col 37) ONLY from PENDING -> COMMITTED
-  sessionSheet.getRange(targetSessionRowIdx, 37).setValue('COMMITTED');
+  // Phase 3: Promote submission_status cell ONLY from PENDING -> COMMITTED
+  sessionSheet.getRange(targetSessionRowIdx, sessionLayout.statusCol).setValue('COMMITTED');
   newRecord.submissionStatus = 'COMMITTED';
 
   // Phase 4: Upsert School Master without silent overwrite
@@ -470,7 +514,7 @@ function ctCreateSessionCore_(actor, rawValues) {
     'Session',
     sessionRecordId,
     '',
-    'Session ' + sessionId + ' (' + values.district + (values.block ? '/' + values.block : '') + ', ' + metrics.totalStudentsPresent + ' students)',
+    'Session ' + sessionId + ' (' + values.district + ', ' + metrics.totalStudentsPresent + ' students)',
     'SUCCESS'
   );
   ctAppendSyncLog_(
@@ -495,8 +539,7 @@ function ctCreateSessionCore_(actor, rawValues) {
 
 function ctHandleCreateSession_(actor, payload) {
   if (!actor) throw ctApiError_('UNAUTHENTICATED', 'Authentication required.');
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     return ctCreateSessionCore_(actor, payload && payload.values);
   } finally {
@@ -509,7 +552,8 @@ function ctFindSessionByRecordId_(sessionRecordId) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
 
-  var rows = sheet.getRange(2, 1, lastRow - 1, SESSION_COL_COUNT).getValues();
+  var layout = ctResolveSessionSheetLayout_(sheet);
+  var rows = sheet.getRange(2, 1, lastRow - 1, layout.colCount).getValues();
   for (var i = 0; i < rows.length; i++) {
     if (ctCellToString_(rows[i][0]) === sessionRecordId) {
       var details = ctFindDetailRowsBySessionRecordId_(sessionRecordId);
@@ -519,7 +563,7 @@ function ctFindSessionByRecordId_(sessionRecordId) {
         delete c._rowNumber;
         clean.push(c);
       }
-      return ctSheetRowToSessionRecord_(rows[i], i + 2, clean);
+      return ctSheetRowToSessionRecord_(rows[i], i + 2, clean, layout.hasBlock);
     }
   }
   return null;
@@ -544,8 +588,7 @@ function ctHandleUpdateSession_(actor, payload) {
   var sessionRecordId = String((payload && payload.sessionRecordId) || '').trim();
   if (!sessionRecordId) throw ctApiError_('INVALID_ID', 'sessionRecordId is required.');
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var existing = ctFindSessionByRecordId_(sessionRecordId);
     if (!existing) throw ctApiError_('NOT_FOUND', 'Session record not found.');
@@ -643,7 +686,6 @@ function ctHandleUpdateSession_(actor, payload) {
       schoolType: values.schoolType,
       state: values.state,
       district: values.district,
-      block: values.block,
       pinCode: values.pinCode,
       sessionType: values.sessionMode,
       totalClasses: metrics.totalClasses,
@@ -666,10 +708,11 @@ function ctHandleUpdateSession_(actor, payload) {
 
     // Row-level update ONLY on the matched Sessions row
     var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
-    var sessionRowArr = ctSessionRecordToSheetRow_(updatedRecord);
-    var sessionRange = sessionSheet.getRange(existing._rowNumber, 1, 1, SESSION_COL_COUNT);
+    var sessionLayout = ctResolveSessionSheetLayout_(sessionSheet);
+    var sessionRowArr = ctSessionRecordToSheetRow_(updatedRecord, sessionLayout.hasBlock);
+    var sessionRange = sessionSheet.getRange(existing._rowNumber, 1, 1, sessionLayout.colCount);
     sessionRange.setNumberFormats([
-      ctBuildTextFormatRow_(sessionRowArr, [1, 2, 3, 11, 12, 13, 14, 18, 19, 21, 26, 37, 38, 39, 42])
+      ctBuildTextFormatRow_(sessionRowArr, sessionLayout.textColumns)
     ]);
     sessionRange.setValues([sessionRowArr]);
 
@@ -692,7 +735,7 @@ function ctHandleUpdateSession_(actor, payload) {
         toAppend.push(aArr);
         toAppendFmt.push(ctBuildTextFormatRow_(aArr, [1, 2, 3, 4, 5]));
       }
-      var appendStart = Math.max(2, detailSheet.getLastRow() + 1);
+      var appendStart = Math.max(2, ctFindLastPopulatedRow_(detailSheet, 1) + 1);
       var appRange = detailSheet.getRange(appendStart, 1, toAppend.length, DETAIL_COL_COUNT);
       appRange.setNumberFormats(toAppendFmt);
       appRange.setValues(toAppend);
@@ -741,8 +784,7 @@ function ctHandleArchiveSession_(actor, payload) {
   var sessionRecordId = String((payload && payload.sessionRecordId) || '').trim();
   if (!sessionRecordId) throw ctApiError_('INVALID_ID', 'sessionRecordId is required.');
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var existing = ctFindSessionByRecordId_(sessionRecordId);
     if (!existing) throw ctApiError_('NOT_FOUND', 'Session record not found.');
@@ -760,14 +802,179 @@ function ctHandleArchiveSession_(actor, payload) {
     }
 
     var sheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var layout = ctResolveSessionSheetLayout_(sheet);
     var nowIso = ctNowIso_();
-    // Column 39 = updated_at, Column 41 = updated_by, Column 42 = archived (single-row cells)
-    sheet.getRange(existing._rowNumber, 39).setValue(nowIso);
-    sheet.getRange(existing._rowNumber, 41).setValue(actor.email);
-    sheet.getRange(existing._rowNumber, 42).setNumberFormat('@').setValue('true');
+    // updated_at, updated_by, archived (single-row cells; header-aware for 41-col & legacy 42-col sheets)
+    sheet.getRange(existing._rowNumber, layout.updatedAtCol).setValue(nowIso);
+    sheet.getRange(existing._rowNumber, layout.updatedByCol).setValue(actor.email);
+    sheet.getRange(existing._rowNumber, layout.archivedCol).setNumberFormat('@').setValue('true');
 
     ctAppendAuditLog_(actor, 'ARCHIVE_SESSION', 'Session', sessionRecordId, 'archived=false', 'archived=true', 'SUCCESS');
+    ctAppendSyncLog_(actor, existing.clientSubmissionKey || '', sessionRecordId, existing.sessionId, 'archiveSession', 1, 'SYNCED', '');
     return { archived: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctDeleteRowsDescending_(sheet, rowNumbers) {
+  if (!rowNumbers || rowNumbers.length === 0) return;
+  var seen = {};
+  var unique = [];
+  for (var i = 0; i < rowNumbers.length; i++) {
+    var num = Number(rowNumbers[i]);
+    if (num >= 2 && !seen[num]) {
+      seen[num] = true;
+      unique.push(num);
+    }
+  }
+  unique.sort(function (a, b) { return b - a; });
+  for (var j = 0; j < unique.length; j++) {
+    sheet.deleteRow(unique[j]);
+  }
+}
+
+function ctHandleRestoreSession_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var sessionRecordId = String((payload && payload.sessionRecordId) || '').trim();
+  if (!sessionRecordId) throw ctApiError_('INVALID_ID', 'sessionRecordId is required.');
+
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var existing = ctFindSessionByRecordId_(sessionRecordId);
+    if (!existing) throw ctApiError_('NOT_FOUND', 'Session record not found.');
+
+    var sheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var layout = ctResolveSessionSheetLayout_(sheet);
+    var nowIso = ctNowIso_();
+    sheet.getRange(existing._rowNumber, layout.updatedAtCol).setValue(nowIso);
+    sheet.getRange(existing._rowNumber, layout.updatedByCol).setValue(actor.email);
+    sheet.getRange(existing._rowNumber, layout.archivedCol).setNumberFormat('@').setValue('false');
+
+    ctAppendAuditLog_(actor, 'RESTORE_SESSION', 'Session', sessionRecordId, 'archived=true', 'archived=false', 'SUCCESS');
+    ctAppendSyncLog_(actor, existing.clientSubmissionKey || '', sessionRecordId, existing.sessionId, 'restoreSession', 1, 'SYNCED', '');
+    return { archived: false };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleDeleteSession_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var sessionRecordId = String((payload && payload.sessionRecordId) || '').trim();
+  if (!sessionRecordId) throw ctApiError_('INVALID_ID', 'sessionRecordId is required.');
+
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var existing = ctFindSessionByRecordId_(sessionRecordId);
+    if (!existing) throw ctApiError_('NOT_FOUND', 'Session record not found.');
+
+    var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var detailRows = ctFindDetailRowsBySessionRecordId_(sessionRecordId);
+    var detailRowNums = [];
+    for (var i = 0; i < detailRows.length; i++) {
+      detailRowNums.push(detailRows[i]._rowNumber);
+    }
+
+    ctDeleteRowsDescending_(detailSheet, detailRowNums);
+    ctDeleteRowsDescending_(sessionSheet, [existing._rowNumber]);
+
+    var prevSummary =
+      'Session ' + existing.sessionId + ' (' + existing.schoolName + ', ' + existing.totalStudentsPresent + ' students, ' + detailRowNums.length + ' detail rows)';
+    ctAppendAuditLog_(actor, 'DELETE_SESSION', 'Session', sessionRecordId, prevSummary, 'Permanently deleted', 'SUCCESS');
+    ctAppendSyncLog_(actor, existing.clientSubmissionKey || '', sessionRecordId, existing.sessionId, 'deleteSession', 1, 'SYNCED', '');
+    return { deleted: true, deletedDetailsCount: detailRowNums.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ctHandleBulkDeleteSessions_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var rawIds = payload && payload.sessionRecordIds;
+  if (!Array.isArray(rawIds)) {
+    throw ctApiError_('INVALID_ID', 'sessionRecordIds must be an array.');
+  }
+
+  var targetIdMap = {};
+  var requestedIds = [];
+  for (var i = 0; i < rawIds.length; i++) {
+    var cleanId = String(rawIds[i] || '').trim();
+    if (cleanId && !targetIdMap[cleanId]) {
+      targetIdMap[cleanId] = true;
+      requestedIds.push(cleanId);
+    }
+  }
+  if (requestedIds.length === 0) {
+    throw ctApiError_('INVALID_ID', 'At least one sessionRecordId is required.');
+  }
+
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    var sessionSheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+    var lastSessionRow = sessionSheet.getLastRow();
+    var matchedSessionRowNums = [];
+    var matchedRecordIdMap = {};
+    var matchedSessionIds = [];
+
+    if (lastSessionRow >= 2) {
+      var sessRows = sessionSheet.getRange(2, 1, lastSessionRow - 1, 2).getValues();
+      for (var sIdx = 0; sIdx < sessRows.length; sIdx++) {
+        var recId = ctCellToString_(sessRows[sIdx][0]);
+        if (recId && targetIdMap[recId]) {
+          matchedRecordIdMap[recId] = true;
+          matchedSessionRowNums.push(sIdx + 2);
+          matchedSessionIds.push(ctCellToString_(sessRows[sIdx][1]) || recId);
+        }
+      }
+    }
+
+    if (matchedSessionRowNums.length === 0) {
+      throw ctApiError_('NOT_FOUND', 'No matching session records found.');
+    }
+
+    var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+    var lastDetailRow = detailSheet.getLastRow();
+    var matchedDetailRowNums = [];
+    if (lastDetailRow >= 2) {
+      var detRows = detailSheet.getRange(2, 1, lastDetailRow - 1, 2).getValues();
+      for (var dIdx = 0; dIdx < detRows.length; dIdx++) {
+        var parentId = ctCellToString_(detRows[dIdx][1]);
+        if (parentId && matchedRecordIdMap[parentId]) {
+          matchedDetailRowNums.push(dIdx + 2);
+        }
+      }
+    }
+
+    ctDeleteRowsDescending_(detailSheet, matchedDetailRowNums);
+    ctDeleteRowsDescending_(sessionSheet, matchedSessionRowNums);
+
+    var summaryIds = matchedSessionIds.slice(0, 10).join(', ') + (matchedSessionIds.length > 10 ? ' (+' + (matchedSessionIds.length - 10) + ' more)' : '');
+    ctAppendAuditLog_(
+      actor,
+      'BULK_DELETE_SESSIONS',
+      'Session',
+      'BULK',
+      summaryIds,
+      'Deleted ' + matchedSessionRowNums.length + ' session(s) and ' + matchedDetailRowNums.length + ' detail row(s)',
+      'SUCCESS'
+    );
+    ctAppendSyncLog_(
+      actor,
+      'BULK_DELETE',
+      String(matchedSessionRowNums.length),
+      summaryIds,
+      'bulkDeleteSessions',
+      1,
+      'SYNCED',
+      ''
+    );
+
+    return {
+      deletedCount: matchedSessionRowNums.length,
+      deletedDetailsCount: matchedDetailRowNums.length
+    };
   } finally {
     lock.releaseLock();
   }
@@ -802,7 +1009,6 @@ function ctApplySessionFilters_(rows, filters, config) {
     if (!ctArrayIncludes_(allowed, s.district)) continue;
 
     if (f.district && s.district !== f.district) continue;
-    if (f.block && s.block !== f.block) continue;
     if (qSchool && s.schoolName.toLowerCase().indexOf(qSchool) === -1) continue;
     if (qFac && s.facilitatorEmail.toLowerCase() !== qFac) continue;
     if (f.tourId && s.tourId !== f.tourId) continue;
@@ -823,7 +1029,7 @@ function ctApplySessionFilters_(rows, filters, config) {
     }
 
     if (qSearch) {
-      var hay = (s.sessionId + ' ' + s.schoolName + ' ' + s.udiseCode + ' ' + s.facilitatorName + ' ' + s.block).toLowerCase();
+      var hay = (s.sessionId + ' ' + s.schoolName + ' ' + s.udiseCode + ' ' + s.facilitatorName).toLowerCase();
       if (hay.indexOf(qSearch) === -1) continue;
     }
 
@@ -867,29 +1073,215 @@ function ctHandleGetAdminSessions_(actor, payload) {
 }
 
 /**
+ * Computes full structural health & recovery metrics across Sessions, Session Details, and Schools.
+ * When `optPerformRepair` is true, promotes recoverable PENDING sessions (whose detail rows are
+ * complete) to COMMITTED and inserts missing canonical Schools rows without overwriting existing ones.
+ */
+function ctBuildDatabaseHealth_(optPerformRepair, optActor) {
+  var sheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
+  var detailSheet = ctGetSheet_(SHEET_NAMES.SESSION_DETAILS);
+  var schoolSheet = ctGetSheet_(SHEET_NAMES.SCHOOLS);
+  var performRepair = Boolean(optPerformRepair);
+
+  var totalSessions = 0;
+  var committedCount = 0;
+  var correctedCount = 0;
+  var pendingCount = 0;
+  var recoverablePendingCount = 0;
+  var archivedCount = 0;
+  var promotedPendingCount = 0;
+  var orphanPendingCount = 0;
+  var orphanDetailRowCount = 0;
+  var duplicateSessionIds = [];
+  var duplicateRecordIds = [];
+  var missingSchoolMasterUdise = [];
+  var repairedSchoolMasters = 0;
+
+  var detailsMap = ctReadAllDetailsGrouped_();
+  var sessionRecordIds = {};
+  var seenSessionIds = {};
+  var seenRecordIds = {};
+  var duplicateSessionIdMap = {};
+  var duplicateRecordIdMap = {};
+  var committedSessions = [];
+
+  var lastSessionRow = sheet.getLastRow();
+  if (lastSessionRow >= 2) {
+    var layout = ctResolveSessionSheetLayout_(sheet);
+    var rows = sheet.getRange(2, 1, lastSessionRow - 1, layout.colCount).getValues();
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var recId = ctCellToString_(r[0]);
+      var sessId = ctCellToString_(r[1]);
+      if (!recId && !sessId) continue;
+
+      totalSessions++;
+      if (recId) {
+        if (seenRecordIds[recId] && !duplicateRecordIdMap[recId]) {
+          duplicateRecordIdMap[recId] = true;
+          duplicateRecordIds.push(recId);
+        }
+        seenRecordIds[recId] = true;
+        sessionRecordIds[recId] = true;
+      }
+      if (sessId) {
+        if (seenSessionIds[sessId] && !duplicateSessionIdMap[sessId]) {
+          duplicateSessionIdMap[sessId] = true;
+          duplicateSessionIds.push(sessId);
+        }
+        seenSessionIds[sessId] = true;
+      }
+
+      var status = ctCellToString_(r[layout.statusIdx]);
+      var archived = ctCellToBool_(r[40 + (layout.hasBlock ? 1 : 0)]);
+      if (archived) archivedCount++;
+
+      if (status === 'PENDING') {
+        pendingCount++;
+        var expectedClasses = ctCellToNumber_(r[layout.totalClassesIdx], 1);
+        var actualDetails = (detailsMap[recId] || []).length;
+        if (recId && actualDetails === expectedClasses && expectedClasses > 0) {
+          recoverablePendingCount++;
+          if (performRepair) {
+            sheet.getRange(i + 2, layout.statusCol).setValue('COMMITTED');
+            promotedPendingCount++;
+            pendingCount--;
+            committedCount++;
+            recoverablePendingCount--;
+            status = 'COMMITTED';
+          }
+        } else {
+          orphanPendingCount++;
+        }
+      } else if (status === 'CORRECTED') {
+        correctedCount++;
+      } else {
+        committedCount++;
+      }
+
+      if (!archived && status !== 'PENDING') {
+        committedSessions.push(ctSheetRowToSessionRecord_(r, i + 2, [], layout.hasBlock));
+      }
+    }
+  }
+
+  var lastDetailRow = detailSheet.getLastRow();
+  if (lastDetailRow >= 2) {
+    var detRows = detailSheet.getRange(2, 1, lastDetailRow - 1, 2).getValues();
+    for (var dIdx = 0; dIdx < detRows.length; dIdx++) {
+      var detId = ctCellToString_(detRows[dIdx][0]);
+      var parentRecId = ctCellToString_(detRows[dIdx][1]);
+      if (!detId && !parentRecId) continue;
+      if (!parentRecId || !sessionRecordIds[parentRecId]) {
+        orphanDetailRowCount++;
+      }
+    }
+  }
+
+  var existingUdises = {};
+  var lastSchoolRow = schoolSheet.getLastRow();
+  if (lastSchoolRow >= 2) {
+    var schLayout = ctResolveSchoolSheetLayout_(schoolSheet);
+    var schRows = schoolSheet.getRange(2, 1, lastSchoolRow - 1, schLayout.colCount).getValues();
+    for (var sIdx = 0; sIdx < schRows.length; sIdx++) {
+      var uCode = ctCellToString_(schRows[sIdx][2]);
+      if (uCode) existingUdises[uCode] = true;
+    }
+  }
+
+  var nowIso = ctNowIso_();
+  var seenMissingUdises = {};
+  for (var cs = 0; cs < committedSessions.length; cs++) {
+    var csRec = committedSessions[cs];
+    if (!csRec.udiseCode || existingUdises[csRec.udiseCode] || seenMissingUdises[csRec.udiseCode]) {
+      continue;
+    }
+    seenMissingUdises[csRec.udiseCode] = true;
+    if (performRepair) {
+      ctUpsertSchoolWithoutOverwrite_(csRec, nowIso);
+      existingUdises[csRec.udiseCode] = true;
+      repairedSchoolMasters++;
+    } else {
+      missingSchoolMasterUdise.push(csRec.udiseCode);
+    }
+  }
+
+  if (performRepair && (promotedPendingCount > 0 || repairedSchoolMasters > 0)) {
+    ctAppendAuditLog_(
+      optActor || { userId: 'SYSTEM_RECOVERY', email: 'SYSTEM_RECOVERY' },
+      'DATABASE_RECOVERY',
+      'Session',
+      'HEALTH',
+      '',
+      'Promoted ' +
+        promotedPendingCount +
+        ' COMPLETE PENDING session(s) and restored ' +
+        repairedSchoolMasters +
+        ' missing School master record(s)',
+      'SUCCESS'
+    );
+    try {
+      var ssRec = ctGetSpreadsheet_();
+      var cfgRec = ctLoadConfiguration_();
+      if (typeof ctRefreshSummaryAndKpisSheet_ === 'function') ctRefreshSummaryAndKpisSheet_(ssRec, cfgRec);
+    } catch (ignoreRef) {}
+  }
+
+  var healthy =
+    pendingCount === 0 &&
+    orphanPendingCount === 0 &&
+    orphanDetailRowCount === 0 &&
+    duplicateSessionIds.length === 0 &&
+    duplicateRecordIds.length === 0 &&
+    missingSchoolMasterUdise.length === 0;
+
+  return {
+    healthy: healthy,
+    totalSessions: totalSessions,
+    committedCount: committedCount,
+    correctedCount: correctedCount,
+    pendingCount: pendingCount,
+    recoverablePendingCount: recoverablePendingCount,
+    archivedCount: archivedCount,
+    promotedPendingCount: promotedPendingCount,
+    orphanPendingCount: orphanPendingCount,
+    orphanDetailRowCount: orphanDetailRowCount,
+    duplicateSessionIds: duplicateSessionIds,
+    duplicateRecordIds: duplicateRecordIds,
+    missingSchoolMasterUdise: missingSchoolMasterUdise,
+    repairedSchoolMasters: repairedSchoolMasters,
+    checkedAt: nowIso
+  };
+}
+
+function ctHandleGetDatabaseHealth_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  return ctBuildDatabaseHealth_(false, actor);
+}
+
+function ctHandleRecoverPendingSessions_(actor) {
+  ctRequireRole_(actor, ['super_admin']);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
+  try {
+    return ctBuildDatabaseHealth_(true, actor);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
  * Administrative diagnostic helper to inspect stale PENDING sessions if an execution crashed mid-write.
  */
 function recoverPendingSessions() {
   var sheet = ctGetSheet_(SHEET_NAMES.SESSIONS);
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 'No session rows exist.';
-  var detailsMap = ctReadAllDetailsGrouped_();
-  var rows = sheet.getRange(2, 1, lastRow - 1, SESSION_COL_COUNT).getValues();
-  var recovered = 0;
-  var incomplete = [];
-
-  for (var i = 0; i < rows.length; i++) {
-    if (ctCellToString_(rows[i][36]) === 'PENDING') {
-      var recId = ctCellToString_(rows[i][0]);
-      var expectedClasses = ctCellToNumber_(rows[i][27], 1);
-      var actualDetails = (detailsMap[recId] || []).length;
-      if (actualDetails === expectedClasses) {
-        sheet.getRange(i + 2, 37).setValue('COMMITTED');
-        recovered++;
-      } else {
-        incomplete.push(recId + ' (expected ' + expectedClasses + ' details, found ' + actualDetails + ')');
-      }
-    }
-  }
-  return 'Recovered COMPLETE pending rows: ' + recovered + '; Incomplete pending rows: ' + (incomplete.join('; ') || 'none');
+  if (sheet.getLastRow() < 2) return 'No session rows exist.';
+  var res = ctBuildDatabaseHealth_(true, null);
+  return (
+    'Recovered COMPLETE pending rows: ' +
+    res.promotedPendingCount +
+    '; Incomplete pending rows: ' +
+    (res.orphanPendingCount || 'none') +
+    '; Repaired school masters: ' +
+    res.repairedSchoolMasters
+  );
 }

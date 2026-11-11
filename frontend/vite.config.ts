@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       allowedHosts: ['.local'],
+      fs: {
+        allow: ['.', '../apps-script/dist'],
+      },
     },
     build: {
       target: 'esnext',

@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { createTestConfig, createValidFormValues } from '../../testFixtures';
 import { LocalSandboxApiClient } from '../apiClient';
@@ -157,7 +158,7 @@ describe('Excel (.xlsx) Export & 63-Column Template Ingestion', () => {
     expect(sheet.getRow(4).getCell(24).value).toBe(4.5); // class CSAT 4.50
   });
 
-  it('generates initialized 8-tab Google Sheets database workbook preserving UDISE/PIN leading zeroes', async () => {
+  it('generates initialized 10-tab Google Sheets database workbook preserving UDISE/PIN leading zeroes, filters, validations, Summary & KPIs, and Declarations', async () => {
     const cfg = createTestConfig();
     const api = new LocalSandboxApiClient(() => SANDBOX_USERS.facilitator.userId, cfg);
     const saved = await api.createSession(
@@ -173,7 +174,7 @@ describe('Excel (.xlsx) Export & 63-Column Template Ingestion', () => {
       sessions: [session],
       config: cfg,
     });
-    expect(tabsCount).toBe(8);
+    expect(tabsCount).toBe(10);
     expect(rowCount).toBe(1);
 
     const wb = new ExcelJS.Workbook();
@@ -188,9 +189,82 @@ describe('Excel (.xlsx) Export & 63-Column Template Ingestion', () => {
       'Admin Users',
       'Audit Log',
       'Sync Log',
+      'Summary & KPIs',
+      'Declarations',
     ]);
     const sessSheet = wb.getWorksheet('Sessions')!;
+    const sessHeaders = (sessSheet.getRow(1).values as unknown[]).filter(Boolean);
+    expect(sessHeaders).toHaveLength(41);
+    expect(sessHeaders).not.toContain('block');
     expect(sessSheet.getRow(2).getCell(21).value).toBe('01234567890');
-    expect(sessSheet.getRow(2).getCell(26).value).toBe('006001');
+    expect(sessSheet.getRow(2).getCell(25).value).toBe('006001');
+    expect(sessSheet.autoFilter).toBeTruthy();
+
+    const schoolsSheet = wb.getWorksheet('Schools')!;
+    const schoolHeaders = (schoolsSheet.getRow(1).values as unknown[]).filter(Boolean);
+    expect(schoolHeaders).toHaveLength(10);
+    expect(schoolHeaders).not.toContain('block');
+
+    const summarySheet = wb.getWorksheet('Summary & KPIs')!;
+    expect(String(summarySheet.getRow(6).getCell(3).formula || '')).toContain('COUNTIFS(');
+
+    const declSheet = wb.getWorksheet('Declarations')!;
+    expect(declSheet.autoFilter).toBeTruthy();
+    const declText = declSheet.getSheetValues().flat().filter(Boolean).join(' ');
+    expect(declText).toContain('GOV-01');
+    expect(declText).toContain('MET-01');
+    expect(declText).toContain('udise_code');
+  });
+
+  it('generates structured schema-ready .xlsx workbooks even when 0 sessions exist (filters, dropdown validations, zero-evaluated Summary & KPIs, and full Declarations)', async () => {
+    const cfg = createTestConfig();
+    const emptyExport = await generateExportWorkbookBuffer([], cfg, 'standard');
+    expect(emptyExport.rowCount).toBe(0);
+    expect(emptyExport.columnCount).toBe(56);
+
+    // Inspect raw OOXML structure to ensure valid Excel AutoFilter, DataValidations, & ConditionalFormatting
+    const zip = await JSZip.loadAsync(emptyExport.buffer);
+    const sheet1Xml = await zip.file('xl/worksheets/sheet1.xml')!.async('string');
+    expect(sheet1Xml).toContain('<autoFilter');
+    expect(sheet1Xml).toContain('<dataValidations');
+    expect(sheet1Xml).toContain('Cuddalore,Nagapattinam,Sivaganga');
+    expect(sheet1Xml).toContain('<conditionalFormatting');
+    expect(sheet1Xml).not.toContain('<tablePart');
+    expect(sheet1Xml).not.toContain('<formula>=');
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(emptyExport.buffer);
+    expect(wb.worksheets.map((ws) => ws.name)).toEqual([
+      'Career Tours Data',
+      'Summary & KPIs',
+      'Declarations',
+    ]);
+
+    const dataWs = wb.getWorksheet('Career Tours Data')!;
+    expect(dataWs.rowCount).toBe(1);
+    expect(dataWs.autoFilter).toBeTruthy();
+
+    const summaryWs = wb.getWorksheet('Summary & KPIs')!;
+    expect(summaryWs.getRow(6).getCell(3).result).toBe(0);
+    expect(String(summaryWs.getRow(6).getCell(3).formula || '')).toContain('IFERROR(');
+    const summaryText = summaryWs.getSheetValues().flat().filter(Boolean).join(' ');
+    expect(summaryText).not.toContain('Active Blocks');
+    expect(summaryText).not.toContain('Configured Blocks');
+
+    const declWs = wb.getWorksheet('Declarations')!;
+    expect(declWs.autoFilter).toBeTruthy();
+    expect(declWs.rowCount).toBeGreaterThanOrEqual(65); // 9 official declarations + 56 columns
+
+    const emptyDb = await generateInitializedDatabaseWorkbookBuffer({
+      sessions: [],
+      config: cfg,
+    });
+    expect(emptyDb.tabsCount).toBe(10);
+    expect(emptyDb.rowCount).toBe(0);
+    const dbWb = new ExcelJS.Workbook();
+    await dbWb.xlsx.load(emptyDb.buffer);
+    expect(dbWb.getWorksheet('Sessions')!.rowCount).toBe(1);
+    expect(dbWb.getWorksheet('Sessions')!.autoFilter).toBeTruthy();
+    expect(dbWb.getWorksheet('Declarations')!.rowCount).toBeGreaterThan(100);
   });
 });

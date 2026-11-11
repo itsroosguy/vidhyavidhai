@@ -12,18 +12,39 @@ function ctJsonResponse_(obj) {
  * Health check endpoint (returns no sensitive or database data).
  */
 function doGet() {
+  var configured =
+    typeof ctGetSandboxSyncKey_ === 'function' ? ctGetSandboxSyncKey_().length >= 16 : false;
+  var intakeConfigured =
+    typeof ctGetFacilitatorIntakeKey_ === 'function'
+      ? ctGetFacilitatorIntakeKey_().length >= 16
+      : false;
   return ctJsonResponse_({
     ok: true,
     service: 'Career Tours Classroom Data Entry & Feedback Management API',
     timezone: 'Asia/Kolkata',
-    status: 'READY'
+    status: 'READY',
+    authModes: ['google_oauth', 'sandbox_sync_bridge', 'facilitator_intake_link'],
+    syncKeyConfigured: configured,
+    intakeKeyConfigured: intakeConfigured,
+    capabilities: [
+      'loadWorkspace',
+      'createSession',
+      'connectGoogleSheet',
+      'createGoogleSheet',
+      'syncAllToGoogleSheet',
+      'importSessions',
+      'getDatabaseHealth',
+      'recoverPendingSessions',
+      'getTeamIntakeConfig'
+    ]
   });
 }
 
 /**
  * Main JSON API entrypoint.
- * Expects POST body `{ action, idToken, payload }` with `Content-Type: text/plain;charset=utf-8`
- * so browser requests succeed without preflight OPTIONS errors on Google Apps Script Web Apps.
+ * Expects POST body `{ action, idToken?, syncKey?, actorEmail?, payload }` with
+ * `Content-Type: text/plain;charset=utf-8` so browser requests succeed without preflight OPTIONS
+ * errors on Google Apps Script Web Apps.
  */
 function doPost(e) {
   var action = '';
@@ -39,21 +60,24 @@ function doPost(e) {
     }
 
     // Verify caller identity and resolve server-side role from sheets
-    var actor = ctAuthenticateRequest_(idToken);
+    var actor = ctAuthenticateRequest_(idToken, req);
+    if (typeof ctRequireIntakeActionAllowed_ === 'function') {
+      ctRequireIntakeActionAllowed_(actor, action);
+    }
     var data;
 
     switch (action) {
       case 'getCurrentUser':
         data = ctHandleGetCurrentUser_(actor);
         break;
+      case 'loadWorkspace':
+        data = ctHandleLoadWorkspace_(actor);
+        break;
       case 'getAppConfiguration':
         data = ctHandleGetAppConfiguration_(actor);
         break;
       case 'saveAppConfiguration':
         data = ctHandleSaveAppConfiguration_(actor, payload);
-        break;
-      case 'importBlockMaster':
-        data = ctHandleImportBlockMaster_(actor, payload);
         break;
       case 'createSession':
         data = ctHandleCreateSession_(actor, payload);
@@ -63,6 +87,15 @@ function doPost(e) {
         break;
       case 'archiveSession':
         data = ctHandleArchiveSession_(actor, payload);
+        break;
+      case 'restoreSession':
+        data = ctHandleRestoreSession_(actor, payload);
+        break;
+      case 'deleteSession':
+        data = ctHandleDeleteSession_(actor, payload);
+        break;
+      case 'bulkDeleteSessions':
+        data = ctHandleBulkDeleteSessions_(actor, payload);
         break;
       case 'getSessionById':
         data = ctHandleGetSessionById_(actor, payload);
@@ -82,11 +115,20 @@ function doPost(e) {
       case 'searchSchools':
         data = ctHandleSearchSchools_(actor, payload);
         break;
+      case 'updateSchool':
+        data = ctHandleUpdateSchool_(actor, payload);
+        break;
+      case 'deleteSchool':
+        data = ctHandleDeleteSchool_(actor, payload);
+        break;
       case 'listManagedUsers':
         data = ctHandleListManagedUsers_(actor);
         break;
       case 'manageUser':
         data = ctHandleManageUser_(actor, payload);
+        break;
+      case 'deleteUser':
+        data = ctHandleDeleteUser_(actor, payload);
         break;
       case 'getAuditLogs':
         data = ctHandleGetAuditLogs_(actor, payload);
@@ -111,6 +153,21 @@ function doPost(e) {
         break;
       case 'syncAllToGoogleSheet':
         data = ctHandleSyncAllToGoogleSheet_(actor, payload);
+        break;
+      case 'getTeamIntakeConfig':
+        data = ctHandleGetTeamIntakeConfig_(actor);
+        break;
+      case 'rotateTeamIntakeKey':
+        data = ctHandleRotateTeamIntakeKey_(actor);
+        break;
+      case 'getDatabaseHealth':
+        data = ctHandleGetDatabaseHealth_(actor);
+        break;
+      case 'recoverPendingSessions':
+        data = ctHandleRecoverPendingSessions_(actor);
+        break;
+      case 'importSessions':
+        data = ctHandleImportSessions_(actor, payload);
         break;
       default:
         return ctJsonResponse_({

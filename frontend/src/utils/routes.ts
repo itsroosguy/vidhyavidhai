@@ -92,7 +92,7 @@ export const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     slug: 'settings',
     label: 'Settings',
     path: '/admin/settings',
-    description: 'District blocks, tours, Video IDs, 63-col template, audit log',
+    description: 'System configuration, tours, Video IDs, 63-col template, audit log',
   },
 ] as const;
 
@@ -104,7 +104,8 @@ export type AppRoute =
   | { kind: 'pending_approval' }
   | { kind: 'login' }
   | { kind: 'google_auth' }
-  | { kind: 'auth_callback' };
+  | { kind: 'auth_callback' }
+  | { kind: 'reset_password' };
 
 const ADMIN_SLUG_SET = new Set<string>(ADMIN_NAV_ITEMS.map((item) => item.slug));
 
@@ -213,6 +214,12 @@ export function parseAppRoute(
   baseUrl: string = import.meta.env.BASE_URL || '/',
 ): AppRoute {
   const path = normalizePathname(rawPathname, baseUrl);
+
+  // Recovery links establish an authenticated recovery session before the user sets a new password,
+  // so /auth/reset-password must resolve regardless of current role.
+  if (path === '/auth/reset-password') {
+    return { kind: 'reset_password' };
+  }
 
   if (path === '/login') {
     return role ? (role === 'super_admin' ? { kind: 'admin', section: 'overview' } : { kind: 'classroom_entry' }) : { kind: 'login' };

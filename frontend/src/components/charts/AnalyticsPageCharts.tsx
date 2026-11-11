@@ -9,7 +9,6 @@ import {
   HeartHandshake,
   Lightbulb,
   MapPin,
-  Sparkles,
   Star,
   TrendingDown,
   TrendingUp,
@@ -1809,7 +1808,7 @@ export const ProgrammeInsightsPanel: React.FC<{ report: ProgrammeInsightsReport 
           </div>
 
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFFFFF] border border-[#F3DFC1] text-[11px] font-medium text-[#9A3412]">
-            <Sparkles className="w-3 h-3" aria-hidden="true" />
+            <TrendingUp className="w-3 h-3" aria-hidden="true" />
             {report.hasData ? 'Live calculation' : 'Awaiting submissions'}
           </span>
         </div>
@@ -1867,6 +1866,6 @@ export const KPI_ICON_MAP = {
   schools: Award,
   facilitators: HeartHandshake,
   csat: Star,
-  itp: Sparkles,
+  itp: Compass,
   nps: Award,
 } as const;

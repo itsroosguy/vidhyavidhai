@@ -122,7 +122,7 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
 
       <div className="ct-bento-well p-4 flex flex-col gap-3.5">
         {/* Visual Quick-Tier Cards synced cleanly with the dropdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="ct-tier-grid-3">
           {NPS_TIER_CARDS.map((card) => {
             const active = teacherNpsGroup === card.group;
             const Icon = card.icon;
@@ -132,22 +132,24 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
                 type="button"
                 aria-pressed={active}
                 onClick={() => handleGroupPick(card.group)}
-                className={`ct-interactive-tile text-left rounded-xl p-3 border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                className={`ct-interactive-tile h-full text-left rounded-xl p-3 border transition-colors cursor-pointer flex flex-col justify-between gap-1.5 ${
                   active
                     ? card.activeClass
                     : 'bg-[#FFFFFF] border-[#8E8674] hover:border-[#0284C7]'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`w-4 h-4 shrink-0 ${card.iconColor}`} aria-hidden="true" />
-                  <div>
-                    <div className="text-sm font-medium text-[#0A1B2C]">{card.title}</div>
-                    <div className="text-[11px] text-[#243647] ct-num">{card.range}</div>
-                  </div>
+                <div className="w-full flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 min-w-0">
+                    <Icon className={`w-4 h-4 shrink-0 ${card.iconColor}`} aria-hidden="true" />
+                    <span className="text-sm font-medium text-[#0A1B2C] truncate">{card.title}</span>
+                  </span>
+                  <span className={`text-[11px] font-medium ct-num whitespace-nowrap shrink-0 ${card.iconColor}`}>
+                    {card.npsValue}
+                  </span>
                 </div>
-                <span className={`text-[11px] font-medium ct-num ${card.iconColor}`}>
-                  {card.npsValue}
-                </span>
+                <div className="text-[11px] text-[#243647] ct-num whitespace-nowrap pl-6">
+                  {card.range}
+                </div>
               </button>
             );
           })}
@@ -155,9 +157,12 @@ export const Section6TeachersAnswer: React.FC<Section6Props> = ({
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="teacherNpsGroup" className="text-sm font-medium text-[#0A1B2C]">
-            Teacher's score
-            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-              *
+            Teacher's{' '}
+            <span className="whitespace-nowrap">
+              score
+              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                *
+              </span>
             </span>
           </label>
           <select

@@ -1,3 +1,11 @@
+export interface SuperAdminPasswordHashRecord {
+  algorithm: 'pbkdf2-sha256';
+  iterations: 100000;
+  saltHex: string;
+  hashHex: string;
+  updatedAt?: string;
+}
+
 export const INITIAL_SUPER_ADMIN_EMAILS = [
   'brinthajayaprakash888@gmail.com',
   'karunya@vidhyavidhai.org',
@@ -15,6 +23,28 @@ export const INITIAL_SUPER_ADMINS = [
     email: 'karunya@vidhyavidhai.org',
   },
 ] as const;
+
+/**
+ * Salted PBKDF2-HMAC-SHA256 (100,000 iterations, 256-bit derived key) credentials
+ * for allowlisted Super Administrators. Zero plaintext passwords are stored in source code,
+ * browser storage, Google Sheets, exports, or audit logs.
+ */
+export const INITIAL_SUPER_ADMIN_PASSWORD_HASHES: Readonly<
+  Record<string, SuperAdminPasswordHashRecord>
+> = {
+  'brinthajayaprakash888@gmail.com': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '6c33736087930d18bd3faf56ecf1d287',
+    hashHex: '772841c0d2586bd9d991fe1acfa8252e195dbefc9ee220eb94489636bbb9d12b',
+  },
+  'karunya@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '9a7bcc12825714fc908bba7e68f7a36f',
+    hashHex: '31216f61aed945b3e78233f885471829911a44f0c4c1ed0647d74912bb299aba',
+  },
+};
 
 export function normalizeEmail(email: string | undefined | null): string {
   return String(email ?? '').trim().toLowerCase();

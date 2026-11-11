@@ -10,8 +10,6 @@ function ctDefaultConfigObject_() {
     programmeTimezone: 'Asia/Kolkata',
     stateName: 'Tamil Nadu',
     allowedDistricts: ['Cuddalore', 'Nagapattinam', 'Sivaganga'],
-    // Intentionally empty until Super Administrator / Administrator imports official block list
-    districtBlocks: [],
     gradeOptions: ['8', '9', '10', '11', '12'],
     sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'No section'],
     schoolTypes: [
@@ -87,7 +85,11 @@ function ctLoadConfiguration_() {
   try {
     var cached = CacheService.getScriptCache().get(CONFIG_CACHE_KEY);
     if (cached) {
-      return JSON.parse(cached);
+      var parsedCached = JSON.parse(cached);
+      if (parsedCached && Object.prototype.hasOwnProperty.call(parsedCached, 'districtBlocks')) {
+        delete parsedCached.districtBlocks;
+      }
+      return parsedCached;
     }
   } catch (e) {
     // Ignore cache read error and read authoritative sheet
@@ -103,7 +105,6 @@ function ctLoadConfiguration_() {
       programme_timezone: 'programmeTimezone',
       state_name: 'stateName',
       allowed_districts: 'allowedDistricts',
-      district_blocks: 'districtBlocks',
       grade_options: 'gradeOptions',
       section_options: 'sectionOptions',
       school_types: 'schoolTypes',
@@ -175,7 +176,7 @@ function ctUpsertConfigKey_(sheet, key, valueObj, actorEmail) {
     }
   }
 
-  var appendRowIdx = Math.max(2, sheet.getLastRow() + 1);
+  var appendRowIdx = Math.max(2, ctFindLastPopulatedRow_(sheet, 1) + 1);
   var appendRange = sheet.getRange(appendRowIdx, 1, 1, 4);
   appendRange.setNumberFormat('@');
   appendRange.setValues([[key, jsonStr, nowIso, actorEmail]]);
@@ -192,7 +193,6 @@ function ctHandleGetAppConfiguration_(actor) {
     programmeTimezone: full.programmeTimezone,
     stateName: full.stateName,
     allowedDistricts: full.allowedDistricts,
-    districtBlocks: full.districtBlocks,
     gradeOptions: full.gradeOptions,
     sectionOptions: full.sectionOptions,
     schoolTypes: full.schoolTypes,
@@ -222,8 +222,7 @@ function ctHandleSaveAppConfiguration_(actor, payload) {
   ctRequireRole_(actor, ['super_admin']);
 
   var partial = (payload && payload.config) || {};
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = ctAcquireScriptLockWithRetry_(20000, 3);
   try {
     var current = ctLoadConfiguration_();
     var prevSummary = JSON.stringify({
@@ -238,7 +237,6 @@ function ctHandleSaveAppConfiguration_(actor, payload) {
       programmeTimezone: 'programme_timezone',
       stateName: 'state_name',
       allowedDistricts: 'allowed_districts',
-      districtBlocks: 'district_blocks',
       gradeOptions: 'grade_options',
       sectionOptions: 'section_options',
       schoolTypes: 'school_types',

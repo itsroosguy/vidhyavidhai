@@ -5,12 +5,6 @@ import { getTodayKolkataISO } from './utils/temporal';
 export function createTestConfig(overrides?: Partial<AppConfiguration>): AppConfiguration {
   return {
     ...DEFAULT_APP_CONFIGURATION,
-    districtBlocks: [
-      { district: 'Cuddalore', block: 'Panruti', active: true },
-      { district: 'Cuddalore', block: 'Kurinjipadi', active: true },
-      { district: 'Nagapattinam', block: 'Kilvelur', active: true },
-      { district: 'Sivaganga', block: 'Karaikudi', active: true },
-    ],
     partnerName: 'Test Programme Partner',
     policy: {
       ...DEFAULT_APP_CONFIGURATION.policy,
@@ -37,7 +31,6 @@ export function createValidFormValues(overrides?: Partial<SessionFormValues>): S
     schoolType: 'Government school',
     state: 'Tamil Nadu',
     district: 'Cuddalore',
-    block: 'Panruti',
     pinCode: '607106',
     sessionMode: 'single',
     classes: [

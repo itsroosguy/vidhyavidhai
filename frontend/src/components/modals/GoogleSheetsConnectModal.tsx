@@ -1,12 +1,14 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  Database,
   Download,
   ExternalLink,
   Link2,
   Plus,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   Unlink,
 } from 'lucide-react';
@@ -17,7 +19,16 @@ import {
   parseGoogleSpreadsheetId,
 } from '../../config/defaults';
 import type { BackendApiClient } from '../../services/apiClient';
+import {
+  loadAppsScriptBridgeConfig,
+  loadDirectGoogleClientId,
+  saveDirectGoogleClientId,
+  validateAppsScriptWebAppUrl,
+  validateGoogleOAuthClientId,
+} from '../../services/authService';
+import { buildRelativeSpreadsheetTitle } from '../../services/googleSheetsDirectService';
 import type {
+  AppConfiguration,
   GoogleSheetsConnectionState,
   GoogleSpreadsheetSummary,
   UserProfile,
@@ -29,11 +40,16 @@ interface GoogleSheetsConnectModalProps {
   onClose: () => void;
   api: BackendApiClient;
   user: UserProfile;
+  config?: AppConfiguration;
+  isLiveBackend?: boolean;
+  needsDirectReauth?: boolean;
   connection: GoogleSheetsConnectionState | null;
   oauthFeedback?: { type: 'authorized' | 'error'; message: string } | null;
   onConnectionChanged: (next: GoogleSheetsConnectionState) => void;
+  onEnvironmentChanged?: () => void;
   onSynced?: () => Promise<void> | void;
   onDownloadInitializedWorkbook: () => Promise<void>;
+  onOpenSyncSetup?: () => void;
   onNotify: (type: 'success' | 'error' | 'warning', title: string, detail?: string) => void;
 }
 
@@ -42,17 +58,48 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
   onClose,
   api,
   user,
+  config,
+  isLiveBackend = false,
+  needsDirectReauth = false,
   connection,
   oauthFeedback = null,
   onConnectionChanged,
+  onEnvironmentChanged,
   onSynced,
   onDownloadInitializedWorkbook,
+  onOpenSyncSetup,
   onNotify,
 }) => {
+  const isSupabaseMode = api.mode === 'supabase';
   const [sourceMode, setSourceMode] = useState<'existing' | 'create'>('existing');
   const [sheetUrlOrId, setSheetUrlOrId] = useState(DEFAULT_TARGET_SPREADSHEET_URL);
   const [customSheetName, setCustomSheetName] = useState('');
-  const [newSheetTitle, setNewSheetTitle] = useState('Vidhya Vidhai · Career Tours Database');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookUrlTouched, setWebhookUrlTouched] = useState(false);
+  const [webhookUrlError, setWebhookUrlError] = useState('');
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookTestResult, setWebhookTestResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
+  const [previewDistricts, setPreviewDistricts] = useState<string[]>([]);
+  const relativeDefaultTitle = useMemo(
+    () =>
+      buildRelativeSpreadsheetTitle({
+        programmeName: 'Career Tours',
+        partnerName: config?.partnerName,
+        sessions: previewDistricts.map((d) => ({ district: d, startDate: '' })),
+      }),
+    [config?.partnerName, previewDistricts],
+  );
+  const [newSheetTitle, setNewSheetTitle] = useState(() =>
+    buildRelativeSpreadsheetTitle({
+      programmeName: 'Career Tours',
+      partnerName: config?.partnerName,
+    }),
+  );
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false);
+  const [directClientId, setDirectClientId] = useState(() => loadDirectGoogleClientId());
+  const [directClientError, setDirectClientError] = useState('');
   const [initializeSchema, setInitializeSchema] = useState(true);
 
   const [driveSpreadsheets, setDriveSpreadsheets] = useState<GoogleSpreadsheetSummary[]>([]);
@@ -72,6 +119,7 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
   const [liveStatusMessage, setLiveStatusMessage] = useState('');
 
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const webhookInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const keepConnectionBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -81,23 +129,40 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
   const urlInputId = useId();
   const urlHintId = useId();
   const urlErrorId = useId();
+  const webhookInputId = useId();
+  const webhookHintId = useId();
+  const webhookErrorId = useId();
   const customNameId = useId();
   const initCheckId = useId();
   const titleInputId = useId();
   const titleHintId = useId();
   const titleErrorId = useId();
+  const directClientInputId = useId();
+  const directClientErrId = useId();
 
   const isConnected = Boolean(connection?.connected && connection?.spreadsheetId);
+  const hasSavedBridge = Boolean(loadAppsScriptBridgeConfig());
   const oauthStartUrl = api.getSheetsOAuthStartUrl?.(connection?.connectedAccount || user.email) ?? null;
   const parsedPreviewId = parseGoogleSpreadsheetId(sheetUrlOrId);
+
+  useEffect(() => {
+    if (!titleManuallyEdited) {
+      setNewSheetTitle(relativeDefaultTitle);
+    }
+  }, [relativeDefaultTitle, titleManuallyEdited]);
 
   useEffect(() => {
     if (!open) {
       setDisconnectConfirming(false);
       setUrlError('');
       setTitleError('');
+      setDirectClientError('');
+      setWebhookUrlError('');
+      setWebhookUrlTouched(false);
+      setWebhookTestResult(null);
       setUrlTouched(false);
       setTitleTouched(false);
+      setTitleManuallyEdited(false);
       setSelectedDriveId('');
       setLiveStatusMessage('');
       return;
@@ -114,11 +179,17 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
 
     let cancelled = false;
     setLoadingDriveList(true);
-    void api
-      .listGoogleSpreadsheets()
-      .then((res) => {
-        if (!cancelled && res.ok && res.data) {
+    void Promise.all([
+      api.listGoogleSpreadsheets(),
+      api.getWorkspaceSyncPreview?.() ?? Promise.resolve(null),
+    ])
+      .then(([res, previewRes]) => {
+        if (cancelled) return;
+        if (res.ok && res.data) {
           setDriveSpreadsheets(res.data);
+        }
+        if (previewRes && previewRes.ok && previewRes.data) {
+          setPreviewDistricts(previewRes.data.districts);
         }
       })
       .finally(() => {
@@ -150,6 +221,61 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
     return '';
   };
 
+  const validateWebhookField = (val: string): string => {
+    const trimmed = val.trim();
+    if (!trimmed) return '';
+    const check = validateAppsScriptWebAppUrl(trimmed);
+    return check.valid
+      ? ''
+      : `Error: ${check.error || 'Enter a valid HTTPS Google Apps Script Web App (/exec) URL.'}`;
+  };
+
+  const handleTestWebhook = async () => {
+    const targetUrl = webhookUrl.trim();
+    if (!targetUrl) {
+      const msg = 'Error: Enter your Apps Script Web App (/exec) URL to test connectivity.';
+      setWebhookUrlTouched(true);
+      setWebhookUrlError(msg);
+      setLiveStatusMessage(msg);
+      webhookInputRef.current?.focus();
+      return;
+    }
+    const err = validateWebhookField(targetUrl);
+    setWebhookUrlTouched(true);
+    setWebhookUrlError(err);
+    if (err) {
+      setLiveStatusMessage(err);
+      webhookInputRef.current?.focus();
+      return;
+    }
+    if (!api.testSheetsWebhook) return;
+    setTestingWebhook(true);
+    setWebhookTestResult(null);
+    setLiveStatusMessage('Testing Apps Script Web App webhook via Supabase Edge Function…');
+    try {
+      const res = await api.testSheetsWebhook(
+        targetUrl,
+        parsedPreviewId || connection?.spreadsheetId || DEFAULT_TARGET_SPREADSHEET_ID,
+      );
+      if (!res.ok || !res.data) {
+        const msg = res.error || 'Apps Script webhook test failed.';
+        setWebhookTestResult({ ok: false, message: msg });
+        setLiveStatusMessage(`Error: ${msg}`);
+        onNotify('error', 'Webhook test failed', msg);
+        return;
+      }
+      setWebhookTestResult({ ok: res.data.reachable, message: res.data.message });
+      setLiveStatusMessage(res.data.message);
+      onNotify(
+        res.data.reachable ? 'success' : 'warning',
+        'Apps Script webhook tested',
+        res.data.message,
+      );
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
+
   const handleExistingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validateUrlField(sheetUrlOrId);
@@ -161,14 +287,54 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       return;
     }
 
+    if (isSupabaseMode && webhookUrl.trim()) {
+      const webhookErr = validateWebhookField(webhookUrl);
+      setWebhookUrlTouched(true);
+      setWebhookUrlError(webhookErr);
+      if (webhookErr) {
+        setLiveStatusMessage(webhookErr);
+        webhookInputRef.current?.focus();
+        return;
+      }
+    }
+
+    let resolvedDirectClientId: string | undefined;
+    if (!isSupabaseMode && directClientId.trim()) {
+      const check = validateGoogleOAuthClientId(directClientId);
+      if (!check.valid) {
+        setDirectClientError(check.error || 'Invalid Google OAuth Web Client ID.');
+        return;
+      }
+      resolvedDirectClientId = saveDirectGoogleClientId(check.normalized);
+    }
+
     setSubmitting(true);
     setLiveStatusMessage('Connecting Google Sheet and verifying structure…');
     try {
+      const useBridge = Boolean(
+        !isSupabaseMode &&
+          !resolvedDirectClientId &&
+          connection?.connectionProvider !== 'direct_browser' &&
+          (connection?.connectionProvider === 'apps_script' ||
+            connection?.authMethod === 'apps_script' ||
+            hasSavedBridge),
+      );
       const res = await api.connectGoogleSheet({
         spreadsheetUrlOrId: sheetUrlOrId.trim(),
         spreadsheetName: customSheetName.trim() || undefined,
         initializeSchema,
         googleAccount: connection?.connectedAccount || user.email,
+        ...(isSupabaseMode
+          ? {
+              ...(webhookUrl.trim() ? { appsScriptUrl: webhookUrl.trim() } : {}),
+            }
+          : resolvedDirectClientId
+            ? { directClientId: resolvedDirectClientId, forceDirectOAuth: true }
+            : connection?.connectionProvider === 'direct_browser'
+              ? { forceDirectOAuth: true }
+              : useBridge
+                ? { forceAppsScriptBridge: true }
+                : {}),
       });
       if (!res.ok || !res.data) {
         const msg = res.error || 'Unable to connect Google Spreadsheet.';
@@ -178,17 +344,44 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       }
 
       onConnectionChanged(res.data);
-      const syncRes = await api.syncAllToGoogleSheet();
+      const syncRes = isSupabaseMode
+        ? await api.syncAllToGoogleSheet(
+            webhookUrl.trim() ? { appsScriptUrl: webhookUrl.trim() } : undefined,
+          )
+        : res.data.connectionProvider === 'direct_browser'
+          ? { ok: true, error: undefined }
+          : await api.syncAllToGoogleSheet();
       if (syncRes.ok) {
         const latestConn = await api.getSheetsConnection();
-        if (latestConn.ok && latestConn.data) {
+        if (latestConn.ok && latestConn.data && latestConn.data.connected) {
           onConnectionChanged(latestConn.data);
         }
         await onSynced?.();
       }
-      const successMsg = `Connected "${res.data.spreadsheetName}" (${res.data.initializedTabs.length} tabs verified).`;
+      if (!isSupabaseMode && resolvedDirectClientId) {
+        onEnvironmentChanged?.();
+      }
+      const isLocalDeviceOnly =
+        !isSupabaseMode && !isLiveBackend && res.data.authMethod === 'local_sandbox';
+      const successMsg = isSupabaseMode
+        ? syncRes.ok
+          ? `Linked "${res.data.spreadsheetName}" in Supabase PostgreSQL and mirrored records to Google Sheets.`
+          : webhookUrl.trim()
+            ? `Saved "${res.data.spreadsheetName}" in Supabase, but Google Sheets webhook sync reported: ${syncRes.error || 'Check URL deployment.'}`
+            : `Linked "${res.data.spreadsheetName}" in Supabase PostgreSQL. Add and test an Apps Script /exec webhook URL when ready to mirror rows automatically.`
+        : isLocalDeviceOnly
+          ? `Saved "${res.data.spreadsheetName}" on this device (${res.data.initializedTabs.length} tabs). Activate Live Google Sync to write online.`
+          : `Connected "${res.data.spreadsheetName}" (${res.data.initializedTabs.length} tabs verified).`;
       setLiveStatusMessage(successMsg);
-      onNotify('success', 'Google Sheets connected', successMsg);
+      onNotify(
+        isSupabaseMode && !syncRes.ok && Boolean(webhookUrl.trim()) ? 'warning' : 'success',
+        isSupabaseMode
+          ? 'Google Sheets mirror settings saved'
+          : isLocalDeviceOnly
+            ? 'Target spreadsheet selected (Local Storage)'
+            : 'Google Sheets connected',
+        successMsg,
+      );
       onClose();
     } finally {
       setSubmitting(false);
@@ -206,12 +399,56 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       return;
     }
 
+    if (isSupabaseMode && webhookUrl.trim()) {
+      const webhookErr = validateWebhookField(webhookUrl);
+      setWebhookUrlTouched(true);
+      setWebhookUrlError(webhookErr);
+      if (webhookErr) {
+        setLiveStatusMessage(webhookErr);
+        webhookInputRef.current?.focus();
+        return;
+      }
+    }
+
+    let resolvedDirectClientId: string | undefined;
+    if (!isSupabaseMode && directClientId.trim()) {
+      const check = validateGoogleOAuthClientId(directClientId);
+      if (!check.valid) {
+        setDirectClientError(check.error || 'Invalid Google OAuth Web Client ID.');
+        return;
+      }
+      resolvedDirectClientId = saveDirectGoogleClientId(check.normalized);
+    }
+
     setSubmitting(true);
-    setLiveStatusMessage('Creating new Google Spreadsheet with 8 programme tabs…');
+    setLiveStatusMessage(
+      isSupabaseMode
+        ? 'Saving Google Sheets mirror label in Supabase PostgreSQL…'
+        : 'Creating new Google Spreadsheet with 8 core DB tabs + Summary & KPIs + Declarations…',
+    );
     try {
+      const useBridge = Boolean(
+        !isSupabaseMode &&
+          !resolvedDirectClientId &&
+          connection?.connectionProvider !== 'direct_browser' &&
+          (connection?.connectionProvider === 'apps_script' ||
+            connection?.authMethod === 'apps_script' ||
+            hasSavedBridge),
+      );
       const res = await api.createGoogleSheet({
         title: newSheetTitle.trim(),
         googleAccount: connection?.connectedAccount || user.email,
+        ...(isSupabaseMode
+          ? {
+              ...(webhookUrl.trim() ? { appsScriptUrl: webhookUrl.trim() } : {}),
+            }
+          : resolvedDirectClientId
+            ? { directClientId: resolvedDirectClientId, forceDirectOAuth: true }
+            : connection?.connectionProvider === 'direct_browser'
+              ? { forceDirectOAuth: true }
+              : useBridge
+                ? { forceAppsScriptBridge: true }
+                : {}),
       });
       if (!res.ok || !res.data) {
         const msg = res.error || 'Unable to create Google Spreadsheet.';
@@ -221,20 +458,43 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       }
 
       onConnectionChanged(res.data);
-      const syncRes = await api.syncAllToGoogleSheet();
+      const syncRes = isSupabaseMode
+        ? await api.syncAllToGoogleSheet(
+            webhookUrl.trim() ? { appsScriptUrl: webhookUrl.trim() } : undefined,
+          )
+        : res.data.connectionProvider === 'direct_browser'
+          ? { ok: true }
+          : await api.syncAllToGoogleSheet();
       if (syncRes.ok) {
         const latestConn = await api.getSheetsConnection();
-        if (latestConn.ok && latestConn.data) {
+        if (latestConn.ok && latestConn.data && latestConn.data.connected) {
           onConnectionChanged(latestConn.data);
         }
         await onSynced?.();
       }
+      if (!isSupabaseMode && resolvedDirectClientId) {
+        onEnvironmentChanged?.();
+      }
+      const isLocalDeviceOnly =
+        !isSupabaseMode && !isLiveBackend && res.data.authMethod === 'local_sandbox';
       setSourceMode('existing');
       setSheetUrlOrId(res.data.spreadsheetUrl || DEFAULT_TARGET_SPREADSHEET_URL);
       setCustomSheetName(res.data.spreadsheetName);
-      const successMsg = `Created and connected "${res.data.spreadsheetName}".`;
+      const successMsg = isSupabaseMode
+        ? `Linked "${res.data.spreadsheetName}" in Supabase PostgreSQL.`
+        : isLocalDeviceOnly
+          ? `Configured "${res.data.spreadsheetName}" on this device. Activate Live Google Sync to create it in Google Drive.`
+          : `Created and connected "${res.data.spreadsheetName}".`;
       setLiveStatusMessage(successMsg);
-      onNotify('success', 'Google Spreadsheet created & connected', successMsg);
+      onNotify(
+        'success',
+        isSupabaseMode
+          ? 'Google Sheets mirror linked'
+          : isLocalDeviceOnly
+            ? 'Target spreadsheet selected (Local Storage)'
+            : 'Google Spreadsheet created & connected',
+        successMsg,
+      );
       onClose();
     } finally {
       setSubmitting(false);
@@ -242,10 +502,49 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
   };
 
   const handleSyncNow = async () => {
+    if (isSupabaseMode && webhookUrl.trim()) {
+      const webhookErr = validateWebhookField(webhookUrl);
+      setWebhookUrlTouched(true);
+      setWebhookUrlError(webhookErr);
+      if (webhookErr) {
+        setLiveStatusMessage(webhookErr);
+        webhookInputRef.current?.focus();
+        return;
+      }
+    }
     setSyncing(true);
     setLiveStatusMessage('Synchronizing programme records to Google Sheets…');
     try {
-      const res = await api.syncAllToGoogleSheet();
+      let resolvedDirectClientId: string | undefined;
+      if (!isSupabaseMode && directClientId.trim()) {
+        const check = validateGoogleOAuthClientId(directClientId);
+        if (!check.valid) {
+          setDirectClientError(check.error || 'Invalid Google OAuth Web Client ID.');
+          return;
+        }
+        resolvedDirectClientId = saveDirectGoogleClientId(check.normalized);
+      }
+      const useBridge = Boolean(
+        !isSupabaseMode &&
+          !resolvedDirectClientId &&
+          connection?.connectionProvider !== 'direct_browser' &&
+          (connection?.connectionProvider === 'apps_script' ||
+            connection?.authMethod === 'apps_script' ||
+            hasSavedBridge),
+      );
+      const res = await api.syncAllToGoogleSheet(
+        isSupabaseMode
+          ? webhookUrl.trim()
+            ? { appsScriptUrl: webhookUrl.trim() }
+            : undefined
+          : resolvedDirectClientId
+            ? { directClientId: resolvedDirectClientId, forceDirectOAuth: true }
+            : connection?.connectionProvider === 'direct_browser'
+              ? { forceDirectOAuth: true }
+              : useBridge
+                ? { forceAppsScriptBridge: true }
+                : undefined,
+      );
       if (!res.ok || !res.data) {
         const msg = res.error || 'Synchronisation failed.';
         setLiveStatusMessage(`Error: ${msg}`);
@@ -254,10 +553,13 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
       }
 
       const refreshedConn = await api.getSheetsConnection();
-      if (refreshedConn.ok && refreshedConn.data) {
+      if (refreshedConn.ok && refreshedConn.data && refreshedConn.data.connected) {
         onConnectionChanged(refreshedConn.data);
       }
       await onSynced?.();
+      if (!isSupabaseMode && resolvedDirectClientId) {
+        onEnvironmentChanged?.();
+      }
       setLiveStatusMessage(res.data.message);
       onNotify('success', 'Google Sheets sync complete', res.data.message);
     } finally {
@@ -290,7 +592,9 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
     setDownloadingXlsx(true);
     try {
       await onDownloadInitializedWorkbook();
-      setLiveStatusMessage('Downloaded initialized 8-tab workbook (.xlsx) ready for Google Sheets import.');
+      setLiveStatusMessage(
+        'Downloaded initialized 10-tab workbook (.xlsx) ready for Google Sheets import.',
+      );
     } finally {
       setDownloadingXlsx(false);
     }
@@ -348,8 +652,14 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-0.5 min-w-0">
             <div className="text-xs font-medium uppercase tracking-wider text-[#243647] flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#137333]" aria-hidden="true" />
-              Step 1 · Google Account Authorization
+              {isSupabaseMode ? (
+                <Database className="w-4 h-4 text-[#047857]" aria-hidden="true" />
+              ) : (
+                <ShieldCheck className="w-4 h-4 text-[#137333]" aria-hidden="true" />
+              )}
+              {isSupabaseMode
+                ? 'Step 1 · Supabase PostgreSQL & Webhook Mirror'
+                : 'Step 1 · Google Account Authorization'}
             </div>
             <p className="text-sm text-[#0A1B2C]">
               Active administrator:{' '}
@@ -358,15 +668,19 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
               </span>
             </p>
             <p className="text-xs text-[#243647]">
-              {connection?.oauthConfigured && oauthStartUrl
-                ? 'OAuth 2.0 tokens are stored securely on the backend in encrypted HttpOnly cookies.'
-                : api.mode === 'apps_script'
-                  ? 'Authenticated via Google Identity Services & Google Apps Script Web App.'
-                  : 'Sandbox preview: stage connections here or download the initialized 8-tab workbook (.xlsx) to import directly into your Google Sheet.'}
+              {isSupabaseMode
+                ? 'Supabase PostgreSQL is your primary database. Link an existing Google Sheet and optionally provide an Apps Script Web App (/exec) URL to mirror rows via Edge Function google-sheets-sync.'
+                : connection?.oauthConfigured && oauthStartUrl
+                  ? 'OAuth 2.0 tokens are stored securely on the backend in encrypted HttpOnly cookies.'
+                  : api.mode === 'apps_script'
+                    ? 'Authenticated via Google Identity Services & Google Apps Script Web App.'
+                    : hasSavedBridge
+                      ? 'Authenticated via remembered Password & Apps Script Sync Bridge.'
+                      : 'Local Storage Mode: choose your target spreadsheet link or download the ready 10-tab workbook (.xlsx) here, then activate Live Sync to write team records directly online.'}
             </p>
           </div>
 
-          {oauthStartUrl && connection?.oauthConfigured && (
+          {oauthStartUrl && connection?.oauthConfigured && !isSupabaseMode ? (
             <button
               type="button"
               onClick={() => window.location.assign(oauthStartUrl)}
@@ -377,18 +691,99 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
                 ? 'Reconnect Google Account'
                 : 'Authorize with Google OAuth 2.0'}
             </button>
+          ) : (
+            !isSupabaseMode &&
+            !isLiveBackend &&
+            api.mode !== 'apps_script' &&
+            onOpenSyncSetup && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenSyncSetup();
+                }}
+                className="inline-flex items-center justify-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-[10px] bg-[#137333] hover:bg-[#0D652D] text-[#FFFFFF] text-xs font-medium border border-[#0D652D] cursor-pointer shrink-0"
+              >
+                <GoogleSheetsIcon className="w-3.5 h-3.5" variant="inverted" />
+                <span>Activate Live Sync</span>
+              </button>
+            )
           )}
         </div>
+
+        {!isSupabaseMode && !oauthStartUrl && api.mode !== 'apps_script' && (
+          <div className="pt-2 border-t border-[#DFD7C2] space-y-1.5">
+            <label
+              htmlFor={directClientInputId}
+              className="block text-xs font-medium text-[#0A1B2C]"
+            >
+              Direct Google Sign-In Web Client ID (optional — writes straight to live Google Sheets)
+            </label>
+            <input
+              id={directClientInputId}
+              name="modal_direct_google_client_id"
+              type="text"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={directClientId}
+              placeholder="1234567890-abcdef.apps.googleusercontent.com"
+              aria-invalid={directClientError ? 'true' : 'false'}
+              aria-describedby={directClientError ? directClientErrId : undefined}
+              onChange={(e) => {
+                setDirectClientId(e.target.value);
+                if (directClientError) {
+                  const check = validateGoogleOAuthClientId(e.target.value);
+                  setDirectClientError(check.valid || !e.target.value.trim() ? '' : check.error || '');
+                }
+              }}
+              className="ct-input text-xs font-mono"
+            />
+            {directClientError && (
+              <p id={directClientErrId} role="alert" className="text-xs text-[#BE123C]">
+                {directClientError}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Active Connection Management Summary when connected */}
       {isConnected && connection && (
-        <section className="p-4 rounded-xl bg-[#FFFFFF] border border-[#137333]/30 space-y-3">
+        <section
+          className={`p-4 rounded-xl bg-[#FFFFFF] border space-y-3 ${
+            isSupabaseMode ||
+            (!needsDirectReauth &&
+              (isLiveBackend ||
+                connection.authMethod === 'google_oauth' ||
+                (connection.authMethod === 'apps_script' && (isLiveBackend || hasSavedBridge))))
+              ? 'border-[#137333]/30'
+              : 'border-[#B45309]/35'
+          }`}
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-medium text-[#0A1B2C]">
-              <span aria-hidden="true" className="w-2 h-2 rounded-full bg-[#188038]" />
-              <CheckCircle2 className="w-4 h-4 text-[#137333]" aria-hidden="true" />
-              <span>Google Sheets Connected</span>
+              {isSupabaseMode ||
+              (!needsDirectReauth &&
+                (isLiveBackend ||
+                  connection.authMethod === 'google_oauth' ||
+                  (connection.authMethod === 'apps_script' && (isLiveBackend || hasSavedBridge)))) ? (
+                <>
+                  <span aria-hidden="true" className="w-2 h-2 rounded-full bg-[#188038]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#137333]" aria-hidden="true" />
+                  <span>Google Sheets Connected</span>
+                </>
+              ) : needsDirectReauth ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                  <span>Direct Google OAuth Re-authorization Needed</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-[#B45309]" aria-hidden="true" />
+                  <span>Target Sheet Selected (Local Storage)</span>
+                </>
+              )}
             </div>
             {connection.lastSyncedAt && (
               <span className="text-xs text-[#243647] ct-num">
@@ -463,7 +858,7 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
                 className="ct-btn-secondary text-xs min-h-[40px] px-3.5 py-1.5"
               >
                 <Download className="w-3.5 h-3.5 text-[#137333]" aria-hidden="true" />
-                <span>{downloadingXlsx ? 'Preparing…' : 'Export 8-Tab Sheet (.xlsx)'}</span>
+                <span>{downloadingXlsx ? 'Preparing…' : 'Export 10-Tab Sheet (.xlsx)'}</span>
               </button>
             </div>
 
@@ -695,6 +1090,95 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
               />
             </div>
 
+            {isSupabaseMode && (
+              <div className="p-3 rounded-xl bg-[#FAF8F2] border border-[#DFD7C2] space-y-2">
+                <label
+                  htmlFor={webhookInputId}
+                  className="block text-xs font-medium text-[#0A1B2C]"
+                >
+                  Apps Script Web App Webhook URL (/exec) — Optional
+                </label>
+                <p id={webhookHintId} className="text-[11px] text-[#243647]">
+                  Paste a deployed <code className="font-mono">https://script.google.com/macros/s/…/exec</code> URL
+                  to mirror rows through Edge Function <code className="font-mono">google-sheets-sync</code>, or
+                  leave blank to preserve an already stored webhook.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={webhookInputRef}
+                    id={webhookInputId}
+                    name="supabase_apps_script_webhook_url"
+                    type="url"
+                    value={webhookUrl}
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                    aria-invalid={webhookUrlError ? 'true' : 'false'}
+                    aria-describedby={
+                      webhookUrlError ? `${webhookHintId} ${webhookErrorId}` : webhookHintId
+                    }
+                    onChange={(e) => {
+                      const nextVal = e.target.value;
+                      setWebhookUrl(nextVal);
+                      setWebhookTestResult(null);
+                      if (webhookUrlError || webhookUrlTouched) {
+                        setWebhookUrlError(nextVal.trim() ? validateWebhookField(nextVal) : '');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!webhookUrl.trim()) {
+                        setWebhookUrlError('');
+                        return;
+                      }
+                      setWebhookUrlTouched(true);
+                      setWebhookUrlError(validateWebhookField(webhookUrl));
+                    }}
+                    className="ct-input text-xs font-mono flex-1 min-w-[220px]"
+                  />
+                  {api.testSheetsWebhook && (
+                    <button
+                      type="button"
+                      disabled={testingWebhook || submitting}
+                      onClick={() => void handleTestWebhook()}
+                      className="ct-btn-secondary text-xs min-h-[38px] px-3 py-1 shrink-0"
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${testingWebhook ? 'animate-spin' : ''}`}
+                        aria-hidden="true"
+                      />
+                      <span>{testingWebhook ? 'Testing…' : 'Test Webhook'}</span>
+                    </button>
+                  )}
+                </div>
+                {webhookUrlError && (
+                  <p
+                    id={webhookErrorId}
+                    className="text-xs text-[#BE123C] flex items-center gap-1.5"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{webhookUrlError}</span>
+                  </p>
+                )}
+                {webhookTestResult && (
+                  <div
+                    className={`p-2 rounded-lg border text-xs flex items-center gap-1.5 ${
+                      webhookTestResult.ok
+                        ? 'bg-[#ECFDF5] border-[#047857]/30 text-[#047857]'
+                        : 'bg-[#FFF1F2] border-[#BE123C]/35 text-[#BE123C]'
+                    }`}
+                  >
+                    {webhookTestResult.ok ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    )}
+                    <span>{webhookTestResult.message}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-start gap-2.5 pt-0.5">
               <input
                 id={initCheckId}
@@ -705,9 +1189,11 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
                 className="w-4 h-4 mt-0.5 accent-[#137333]"
               />
               <label htmlFor={initCheckId} className="text-xs text-[#243647] cursor-pointer">
-                Initialize all 8 official programme tabs (Sessions, Session Details, Facilitators,
-                Schools, Configuration, Admin Users, Audit Log, Sync Log) if missing without
-                overwriting existing rows.
+                Initialize all 8 official programme database tabs (Sessions, Session Details,
+                Facilitators, Schools, Configuration, Admin Users, Audit Log, Sync Log) plus{' '}
+                <strong>Summary &amp; KPIs</strong> (live formulas) and{' '}
+                <strong>Declarations</strong> (filters &amp; rules) without overwriting existing
+                rows.
               </label>
             </div>
 
@@ -744,12 +1230,44 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
           </form>
         ) : (
           <form onSubmit={(e) => void handleCreateSubmit(e)} noValidate className="space-y-3.5">
+            {isSupabaseMode && (
+              <div className="p-3 rounded-xl bg-[#E8F6FF]/80 border border-[#0284C7]/35 text-xs text-[#0A1B2C] space-y-2">
+                <p className="leading-relaxed">
+                  <strong>Supabase PostgreSQL stores all tables permanently.</strong> Creating brand-new
+                  Google Drive spreadsheets from scratch is only available via Google OAuth. To mirror
+                  rows to a Google Sheet, paste its link in{' '}
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode('existing')}
+                    className="underline font-medium text-[#006BB8] cursor-pointer"
+                  >
+                    Connect an existing spreadsheet
+                  </button>{' '}
+                  or supply an Apps Script Web App (/exec) URL below.
+                </p>
+              </div>
+            )}
             <div>
-              <label htmlFor={titleInputId} className="block text-xs font-medium text-[#0A1B2C] mb-1">
-                New Google Spreadsheet Name <span aria-hidden="true">*</span>
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <label htmlFor={titleInputId} className="text-xs font-medium text-[#0A1B2C]">
+                  New Google Spreadsheet Name <span aria-hidden="true">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTitleManuallyEdited(false);
+                    setNewSheetTitle(relativeDefaultTitle);
+                    setTitleError('');
+                  }}
+                  className="inline-flex items-center gap-1 text-xs text-[#137333] hover:underline cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" aria-hidden="true" />
+                  <span>Auto relative title</span>
+                </button>
+              </div>
               <p id={titleHintId} className="text-xs text-[#243647] mb-1.5">
-                Creates a new Google Spreadsheet formatted with all 8 Career Tours database tabs.
+                Creates a new Google Spreadsheet formatted with all 8 Career Tours database tabs
+                plus live <strong>Summary &amp; KPIs</strong> and <strong>Declarations</strong>.
               </p>
               <input
                 ref={titleInputRef}
@@ -763,6 +1281,7 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
                 aria-describedby={titleError ? `${titleHintId} ${titleErrorId}` : titleHintId}
                 onChange={(e) => {
                   const nextVal = e.target.value;
+                  setTitleManuallyEdited(true);
                   setNewSheetTitle(nextVal);
                   if (titleTouched || titleError) {
                     setTitleError(validateTitleField(nextVal));
@@ -781,6 +1300,79 @@ export const GoogleSheetsConnectModal: React.FC<GoogleSheetsConnectModalProps> =
                 </p>
               )}
             </div>
+
+            {isSupabaseMode && (
+              <div className="p-3 rounded-xl bg-[#FAF8F2] border border-[#DFD7C2] space-y-2">
+                <label
+                  htmlFor={webhookInputId}
+                  className="block text-xs font-medium text-[#0A1B2C]"
+                >
+                  Apps Script Web App Webhook URL (/exec) <span aria-hidden="true">*</span>
+                </label>
+                <p id={webhookHintId} className="text-[11px] text-[#243647]">
+                  Required when linking via this tab in Supabase mode (
+                  <code className="font-mono">https://script.google.com/macros/s/…/exec</code>).
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={webhookInputRef}
+                    id={webhookInputId}
+                    name="supabase_create_apps_script_webhook_url"
+                    type="url"
+                    required
+                    value={webhookUrl}
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                    aria-invalid={webhookUrlError ? 'true' : 'false'}
+                    aria-describedby={
+                      webhookUrlError ? `${webhookHintId} ${webhookErrorId}` : webhookHintId
+                    }
+                    onChange={(e) => {
+                      const nextVal = e.target.value;
+                      setWebhookUrl(nextVal);
+                      setWebhookTestResult(null);
+                      if (webhookUrlError || webhookUrlTouched) {
+                        setWebhookUrlError(nextVal.trim() ? validateWebhookField(nextVal) : '');
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!webhookUrl.trim()) {
+                        setWebhookUrlError('');
+                        return;
+                      }
+                      setWebhookUrlTouched(true);
+                      setWebhookUrlError(validateWebhookField(webhookUrl));
+                    }}
+                    className="ct-input text-xs font-mono flex-1 min-w-[220px]"
+                  />
+                  {api.testSheetsWebhook && (
+                    <button
+                      type="button"
+                      disabled={testingWebhook || submitting}
+                      onClick={() => void handleTestWebhook()}
+                      className="ct-btn-secondary text-xs min-h-[38px] px-3 py-1 shrink-0"
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${testingWebhook ? 'animate-spin' : ''}`}
+                        aria-hidden="true"
+                      />
+                      <span>{testingWebhook ? 'Testing…' : 'Test Webhook'}</span>
+                    </button>
+                  )}
+                </div>
+                {webhookUrlError && (
+                  <p
+                    id={webhookErrorId}
+                    className="text-xs text-[#BE123C] flex items-center gap-1.5"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>{webhookUrlError}</span>
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end pt-1">
               <button

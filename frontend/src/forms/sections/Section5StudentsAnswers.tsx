@@ -212,18 +212,27 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
               )}
 
               {/* Question A — CSAT */}
-              <fieldset className="ct-bento-well p-4 sm:p-5 min-w-0 w-full">
-                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0A1B2C]">
-                  <span className="inline-flex items-start gap-2 min-w-0">
+              <div
+                role="group"
+                aria-labelledby={`qa-heading-${idx}`}
+                className="ct-bento-well p-4 sm:p-5 min-w-0 w-full"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2.5 mb-3.5 pb-2.5 border-b border-[#DFD7C2]">
+                  <h3
+                    id={`qa-heading-${idx}`}
+                    className="inline-flex items-start gap-2 min-w-0 flex-1 text-sm sm:text-[15px] font-medium text-[#0A1B2C]"
+                  >
                     <Smile className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
-                    <span className="min-w-0 leading-snug">Question A: &quot;{QUESTION_A_PROMPT}&quot;</span>
-                  </span>
+                    <span className="min-w-0 leading-snug">
+                      Question A: &quot;{QUESTION_A_PROMPT}&quot;
+                    </span>
+                  </h3>
                   {metrics.questionATotal > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num shrink-0 whitespace-nowrap">
                       CSAT {formatScore2(metrics.csatAverage)}
                     </span>
                   )}
-                </legend>
+                </div>
 
                 <div className="flex flex-col gap-2">
                   {QUESTION_A_OPTIONS.map((opt) => {
@@ -238,20 +247,20 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     return (
                       <div
                         key={opt.score}
-                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
+                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 grid grid-cols-[minmax(0,1fr)_5rem] sm:grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 transition-colors"
                       >
-                        <label htmlFor={inputId} className="flex-1 min-w-0 cursor-pointer">
-                          <div className="flex items-center gap-3">
+                        <label htmlFor={inputId} className="min-w-0 cursor-pointer">
+                          <div className="flex items-center gap-2.5 sm:gap-3">
                             <span
                               className={`inline-flex items-center justify-center w-7 h-7 rounded-full border text-xs font-medium ct-num shrink-0 ${sStyle.pill}`}
                             >
                               {opt.score}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 text-sm text-[#0A1B2C]">
-                                <span className="truncate">{opt.label}</span>
+                              <div className="flex items-baseline justify-between gap-2 text-sm text-[#0A1B2C]">
+                                <span className="leading-snug">{opt.label}</span>
                                 {metrics.questionATotal > 0 && (
-                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0">
+                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0 whitespace-nowrap">
                                     {sharePct}%
                                   </span>
                                 )}
@@ -279,7 +288,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                           aria-label={`${classLabel} Question A score ${opt.score} (${opt.label}) count`}
                           value={row.questionA[key]}
                           onChange={(e) => onUpdateCount(idx, 'questionA', key, e.target.value)}
-                          className="ct-input w-20 sm:w-24 text-left font-medium ct-num shrink-0"
+                          className="ct-input w-full text-center sm:text-left font-medium ct-num"
                         />
                       </div>
                     );
@@ -341,21 +350,30 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     </span>
                   </p>
                 )}
-              </fieldset>
+              </div>
 
               {/* Question B — ITP */}
-              <fieldset className="ct-bento-well p-4 sm:p-5 min-w-0 w-full">
-                <legend className="w-full min-w-0 flex flex-wrap items-center justify-between gap-2 mb-3 text-sm sm:text-[15px] font-medium text-[#0A1B2C]">
-                  <span className="inline-flex items-start gap-2 min-w-0">
+              <div
+                role="group"
+                aria-labelledby={`qb-heading-${idx}`}
+                className="ct-bento-well p-4 sm:p-5 min-w-0 w-full"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2.5 mb-3.5 pb-2.5 border-b border-[#DFD7C2]">
+                  <h3
+                    id={`qb-heading-${idx}`}
+                    className="inline-flex items-start gap-2 min-w-0 flex-1 text-sm sm:text-[15px] font-medium text-[#0A1B2C]"
+                  >
                     <Compass className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
-                    <span className="min-w-0 leading-snug">Question B: &quot;{QUESTION_B_PROMPT}&quot;</span>
-                  </span>
+                    <span className="min-w-0 leading-snug">
+                      Question B: &quot;{QUESTION_B_PROMPT}&quot;
+                    </span>
+                  </h3>
                   {metrics.questionBTotal > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] ct-num shrink-0 whitespace-nowrap">
                       ITP {formatScore2(metrics.itpAverage)}
                     </span>
                   )}
-                </legend>
+                </div>
 
                 <div className="flex flex-col gap-2">
                   {QUESTION_B_OPTIONS.map((opt) => {
@@ -370,20 +388,20 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     return (
                       <div
                         key={opt.score}
-                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors"
+                        className="rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] hover:border-[#0284C7] focus-within:border-[#006BB8] px-3 sm:px-3.5 py-2.5 grid grid-cols-[minmax(0,1fr)_5rem] sm:grid-cols-[minmax(0,1fr)_6rem] items-center gap-3 transition-colors"
                       >
-                        <label htmlFor={inputId} className="flex-1 min-w-0 cursor-pointer">
-                          <div className="flex items-center gap-3">
+                        <label htmlFor={inputId} className="min-w-0 cursor-pointer">
+                          <div className="flex items-center gap-2.5 sm:gap-3">
                             <span
                               className={`inline-flex items-center justify-center w-7 h-7 rounded-full border text-xs font-medium ct-num shrink-0 ${sStyle.pill}`}
                             >
                               {opt.score}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 text-sm text-[#0A1B2C]">
-                                <span className="truncate">{opt.label}</span>
+                              <div className="flex items-baseline justify-between gap-2 text-sm text-[#0A1B2C]">
+                                <span className="leading-snug">{opt.label}</span>
                                 {metrics.questionBTotal > 0 && (
-                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0">
+                                  <span className="text-[11px] text-[#33475B] ct-num shrink-0 whitespace-nowrap">
                                     {sharePct}%
                                   </span>
                                 )}
@@ -411,7 +429,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                           aria-label={`${classLabel} Question B score ${opt.score} (${opt.label}) count`}
                           value={row.questionB[key]}
                           onChange={(e) => onUpdateCount(idx, 'questionB', key, e.target.value)}
-                          className="ct-input w-20 sm:w-24 text-left font-medium ct-num shrink-0"
+                          className="ct-input w-full text-center sm:text-left font-medium ct-num"
                         />
                       </div>
                     );
@@ -473,7 +491,7 @@ export const Section5StudentsAnswers: React.FC<Section5Props> = ({
                     </span>
                   </p>
                 )}
-              </fieldset>
+              </div>
 
               {/* Non-blocking warnings */}
               {(totalMismatch || lowCoverage) && !qaExceeded && !qbExceeded && (

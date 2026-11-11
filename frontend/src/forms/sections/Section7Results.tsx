@@ -3,6 +3,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Award,
+  Calculator,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -10,7 +11,6 @@ import {
   Hash,
   RotateCcw,
   Smile,
-  Sparkles,
 } from 'lucide-react';
 import { buildCalculationWorking, formatPct1, formatScore2 } from '../../calculations/metrics';
 import type {
@@ -36,6 +36,7 @@ interface Section7Props {
   validation: ValidationResult;
   config: AppConfiguration;
   isSuperAdmin?: boolean;
+  isSupabaseMode?: boolean;
   hasAttemptedSubmit: boolean;
   isSubmitting: boolean;
   isEditing: boolean;
@@ -60,6 +61,7 @@ export const Section7Results: React.FC<Section7Props> = ({
   validation,
   config,
   isSuperAdmin = false,
+  isSupabaseMode = false,
   hasAttemptedSubmit,
   isSubmitting,
   isEditing,
@@ -118,7 +120,7 @@ export const Section7Results: React.FC<Section7Props> = ({
             className={`ct-section-icon ${validation.valid ? 'ct-section-icon--complete' : ''}`}
             aria-hidden="true"
           >
-            <Sparkles className="w-4 h-4" />
+            <Calculator className="w-4 h-4" />
           </span>
           <div>
             <h2 id="sec7-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
@@ -132,63 +134,61 @@ export const Section7Results: React.FC<Section7Props> = ({
         </div>
       </div>
 
-      {/* Primary 3 metric scorecard tiles with live visual fill gauges */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-3.5">
-        <div className="rounded-xl p-4 bg-[#E8F6FF] border border-[#0284C7]/45 flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#006BB8]">
+      {/* Primary 3 metric scorecard tiles with subgrid-aligned values, fill gauges & captions */}
+      <div className="ct-kpi-grid-3 mb-4">
+        <div className="ct-kpi-card rounded-xl p-4 bg-[#E8F6FF] border border-[#0284C7]/45">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#006BB8] leading-snug">
               CSAT AVERAGE (ENJOYED)
             </span>
-            <Smile className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
+            <Smile className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
+          <div className="text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num leading-none self-end">
             {formatScore2(metrics.overallCsat)}
           </div>
-          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden">
+          <div aria-hidden="true" className="h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden self-center">
             <div
               className="h-full rounded-full bg-[#006BB8] transition-[width] duration-200"
               style={{ width: `${csatGaugePct}%` }}
             />
           </div>
-          {metrics.totalQuestionAResponses > 0 && (
-            <div className="mt-1.5 text-xs text-[#243647] ct-num">
-              {metrics.totalQuestionAResponses} responses · Pos{' '}
-              {formatPct1(metrics.questionASentiment.positivePct)}
-            </div>
-          )}
+          <div className="text-xs text-[#243647] ct-num">
+            {metrics.totalQuestionAResponses > 0
+              ? `${metrics.totalQuestionAResponses} responses · Pos ${formatPct1(metrics.questionASentiment.positivePct)}`
+              : 'No responses yet'}
+          </div>
         </div>
 
-        <div className="rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2] flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647]">
+        <div className="ct-kpi-card rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647] leading-snug">
               ITP AVERAGE (INTEREST)
             </span>
-            <Compass className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
+            <Compass className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
+          <div className="text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num leading-none self-end">
             {formatScore2(metrics.overallItp)}
           </div>
-          <div aria-hidden="true" className="mt-2.5 h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden">
+          <div aria-hidden="true" className="h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden self-center">
             <div
               className="h-full rounded-full bg-[#0A1B2C] transition-[width] duration-200"
               style={{ width: `${itpGaugePct}%` }}
             />
           </div>
-          {metrics.totalQuestionBResponses > 0 && (
-            <div className="mt-1.5 text-xs text-[#243647] ct-num">
-              {metrics.totalQuestionBResponses} responses · Pos{' '}
-              {formatPct1(metrics.questionBSentiment.positivePct)}
-            </div>
-          )}
+          <div className="text-xs text-[#243647] ct-num">
+            {metrics.totalQuestionBResponses > 0
+              ? `${metrics.totalQuestionBResponses} responses · Pos ${formatPct1(metrics.questionBSentiment.positivePct)}`
+              : 'No responses yet'}
+          </div>
         </div>
 
-        <div className="rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2] flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647]">
+        <div className="ct-kpi-card rounded-xl p-4 bg-[#F5F2E9] border border-[#DFD7C2]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[11px] font-medium tracking-wider uppercase text-[#243647] leading-snug">
               TEACHER SCORE (NPS)
             </span>
             <Award
-              className={`w-4 h-4 ${
+              className={`w-4 h-4 shrink-0 mt-0.5 ${
                 metrics.teacherNps === null
                   ? 'text-[#33475B]'
                   : metrics.teacherNps > 0
@@ -200,14 +200,30 @@ export const Section7Results: React.FC<Section7Props> = ({
               aria-hidden="true"
             />
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num">
+          <div className="text-2xl sm:text-3xl font-semibold text-[#0A1B2C] ct-num leading-none self-end">
             {metrics.teacherNps !== null
               ? metrics.teacherNps > 0
                 ? '+100'
                 : String(metrics.teacherNps)
               : '—'}
           </div>
-          <div className="mt-2.5 text-xs text-[#243647] ct-num">
+          <div aria-hidden="true" className="h-1.5 rounded-full bg-[#DFD7C2] overflow-hidden self-center">
+            <div
+              className="h-full rounded-full transition-[width,background-color] duration-200"
+              style={{
+                width: metrics.teacherNps !== null ? '100%' : '0%',
+                backgroundColor:
+                  metrics.teacherNps === null
+                    ? '#DFD7C2'
+                    : metrics.teacherNps > 0
+                      ? '#047857'
+                      : metrics.teacherNps === 0
+                        ? '#B45309'
+                        : '#BE123C',
+              }}
+            />
+          </div>
+          <div className="text-xs text-[#243647] ct-num">
             {metrics.teacherClassification
               ? `${metrics.teacherClassification}${metrics.teacherScoreExact !== null ? ` (${metrics.teacherScoreExact}/10)` : ''}`
               : 'Not entered'}
@@ -217,24 +233,24 @@ export const Section7Results: React.FC<Section7Props> = ({
 
       {/* Response & attendance tallies strip */}
       {(metrics.totalStudentsPresent > 0 || actualResponses > 0) && (
-        <div className="ct-bento-well grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4 p-3.5 text-xs ct-num">
-          <div>
+        <div className="ct-bento-well grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4 p-3 text-xs ct-num">
+          <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
             <div className="text-[#33475B] uppercase text-[10px] font-medium">Students Present</div>
-            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">
+            <div className="text-base font-medium text-[#0A1B2C]">
               {metrics.totalStudentsPresent}
             </div>
           </div>
-          <div>
+          <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
             <div className="text-[#33475B] uppercase text-[10px] font-medium">Expected Responses</div>
-            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">{expectedResponses}</div>
+            <div className="text-base font-medium text-[#0A1B2C]">{expectedResponses}</div>
           </div>
-          <div>
+          <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
             <div className="text-[#33475B] uppercase text-[10px] font-medium">Actual Responses</div>
-            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">{actualResponses}</div>
+            <div className="text-base font-medium text-[#0A1B2C]">{actualResponses}</div>
           </div>
-          <div>
+          <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
             <div className="text-[#33475B] uppercase text-[10px] font-medium">Unanswered</div>
-            <div className="text-base font-medium text-[#0A1B2C] mt-0.5">
+            <div className="text-base font-medium text-[#0A1B2C]">
               {unansweredResponses}
             </div>
           </div>
@@ -272,7 +288,7 @@ export const Section7Results: React.FC<Section7Props> = ({
 
         {(savedResult || sessionIdPrefix) && (
           <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] shrink-0">
-            {savedResult ? 'Assigned' : 'Preview'}
+            {savedResult ? 'Assigned' : 'Auto on save'}
           </span>
         )}
       </div>
@@ -294,26 +310,53 @@ export const Section7Results: React.FC<Section7Props> = ({
         </button>
 
         {showAutoFilled && (
-          <dl className="mt-2.5 p-3.5 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-[#243647] font-mono ct-num">
-            <div>Month: {monthName}</div>
-            <div>Session length: {formatDurationHuman(durationMins)}</div>
-            <div>Feedback from: {config.reportingDefaults.feedbackFrom}</div>
-            <div>Data source: {config.reportingDefaults.dataSource}</div>
-            <div>Submission date: {todayFormatted}</div>
-            <div>Educator ID: {config.reportingDefaults.educatorId} (the guide asks for none)</div>
-            <div>
-              Video ID:{' '}
-              <span className={videoInfo.isConfigured ? 'text-[#006BB8]' : 'text-[#92400E]'}>
-                {videoInfo.videoId || '—'}
-              </span>
+          <dl className="mt-2.5 p-3 rounded-xl bg-[#F5F2E9] border border-[#DFD7C2] grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-[#243647] ct-num">
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Month</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">{monthName}</dd>
             </div>
-            <div>
-              {isSuperAdmin ? 'Rows in the Excel sheet' : 'Class breakdown rows'}:{' '}
-              {values.classes.length} (one for each grade and section)
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Session length</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">{formatDurationHuman(durationMins)}</dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Feedback from</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">{config.reportingDefaults.feedbackFrom}</dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Data source</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">{config.reportingDefaults.dataSource}</dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Submission date</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">{todayFormatted}</dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Educator ID</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">
+                {config.reportingDefaults.educatorId} (the guide asks for none)
+              </dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Video ID</dt>
+              <dd className={`font-mono font-medium break-words ${videoInfo.isConfigured ? 'text-[#006BB8]' : 'text-[#92400E]'}`}>
+                {videoInfo.videoId || '—'}
+              </dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">
+                {isSuperAdmin ? 'Rows in the Excel sheet' : 'Class breakdown rows'}
+              </dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">
+                {values.classes.length} (one for each grade and section)
+              </dd>
             </div>
             {isSuperAdmin && config.partnerName && (
-              <div className="sm:col-span-2">
-                School year: {config.schoolYear} · Partner: {config.partnerName}
+              <div className="sm:col-span-2 rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+                <dt className="text-[11px] text-[#33475B]">Programme cycle &amp; Partner</dt>
+                <dd className="font-mono font-medium text-[#0A1B2C]">
+                  School year: {config.schoolYear} · Partner: {config.partnerName}
+                </dd>
               </div>
             )}
           </dl>
@@ -411,13 +454,24 @@ export const Section7Results: React.FC<Section7Props> = ({
                 {savedResult.syncStatus && (
                   <span className="ml-2 text-xs text-[#243647]">
                     (
-                    {savedResult.syncStatus === 'SYNCED'
-                      ? isSuperAdmin
-                        ? 'Synced to Google Sheets'
-                        : 'Saved to your records'
-                      : savedResult.syncStatus === 'LOCAL_SANDBOX'
-                        ? 'Local Sandbox'
-                        : savedResult.syncStatus}
+                    {isSupabaseMode
+                      ? !isSuperAdmin
+                        ? 'Saved to your records'
+                        : savedResult.syncStatus === 'SYNCED'
+                          ? 'Saved in Supabase + Sheets Synced'
+                          : savedResult.syncStatus === 'PENDING_RETRY' ||
+                              savedResult.syncStatus === 'FAILED'
+                            ? 'Saved in Supabase · Sheets sync pending'
+                            : 'Saved in Supabase PostgreSQL'
+                      : savedResult.syncStatus === 'SYNCED'
+                        ? isSuperAdmin
+                          ? 'Synced to Google Sheets'
+                          : 'Saved to your records'
+                        : savedResult.syncStatus === 'LOCAL_SANDBOX'
+                          ? isSuperAdmin
+                            ? 'Saved on this device · sync pending'
+                            : 'Saved on this device'
+                          : savedResult.syncStatus}
                     )
                   </span>
                 )}

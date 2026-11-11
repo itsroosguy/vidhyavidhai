@@ -47,15 +47,15 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
       data-complete={isComplete ? 'true' : 'false'}
       className="ct-form-section p-5 sm:p-6"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-        <div className="flex items-start gap-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <span
             className={`ct-section-icon ${isComplete ? 'ct-section-icon--complete' : ''}`}
             aria-hidden="true"
           >
             <Users className="w-4 h-4" />
           </span>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 id="sec4-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the class
@@ -73,8 +73,8 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] ct-num">
-          <GraduationCap className="w-3.5 h-3.5 text-[#006BB8]" aria-hidden="true" />
+        <span className="self-start shrink-0 inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] ct-num whitespace-nowrap">
+          <GraduationCap className="w-3.5 h-3.5 text-[#006BB8] shrink-0" aria-hidden="true" />
           {sessionMode === 'combined'
             ? `Combined · ${classes.length} groups`
             : 'Single class'}
@@ -183,15 +183,20 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+              <div className="ct-field-grid-3">
                 {/* Grade */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-grade-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
-                    Which class (grade) is it?
-                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                      *
-                    </span>
-                  </label>
+                <div className="ct-field-col">
+                  <div className="ct-field-label">
+                    <label htmlFor={`class-grade-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
+                      Which class (grade) is{' '}
+                      <span className="whitespace-nowrap">
+                        it?
+                        <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                          *
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                   <select
                     id={`class-grade-${idx}`}
                     required
@@ -209,21 +214,27 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                       </option>
                     ))}
                   </select>
-                  {gradeErr && (
-                    <p id={`class-grade-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
-                      {gradeErr}
-                    </p>
-                  )}
+                  <div className="ct-field-meta">
+                    {gradeErr && (
+                      <p id={`class-grade-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
+                        {gradeErr}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Section */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-section-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
-                    Section
-                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                      *
-                    </span>
-                  </label>
+                <div className="ct-field-col">
+                  <div className="ct-field-label">
+                    <label htmlFor={`class-section-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
+                      <span className="whitespace-nowrap">
+                        Section
+                        <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                          *
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                   <select
                     id={`class-section-${idx}`}
                     required
@@ -243,24 +254,31 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                       </option>
                     ))}
                   </select>
-                  <p id={`class-section-${idx}-hint`} className="text-xs text-[#33475B]">
-                    If the class has no sections, choose "No section".
-                  </p>
-                  {secErr && (
-                    <p id={`class-section-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
-                      {secErr}
+                  <div className="ct-field-meta">
+                    <p id={`class-section-${idx}-hint`} className="text-xs text-[#33475B]">
+                      If the class has no sections, choose "No section".
                     </p>
-                  )}
+                    {secErr && (
+                      <p id={`class-section-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
+                        {secErr}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Students present */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`class-present-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
-                    How many students were present?
-                    <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                      *
-                    </span>
-                  </label>
+                <div className="ct-field-col">
+                  <div className="ct-field-label">
+                    <label htmlFor={`class-present-${idx}`} className="text-sm font-medium text-[#0A1B2C]">
+                      How many students were{' '}
+                      <span className="whitespace-nowrap">
+                        present?
+                        <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                          *
+                        </span>
+                      </span>
+                    </label>
+                  </div>
                   <input
                     id={`class-present-${idx}`}
                     type="text"
@@ -277,11 +295,13 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
                     data-error={`class-present-${idx}-error`}
                     className="ct-input ct-num"
                   />
-                  {presentErr && (
-                    <p id={`class-present-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
-                      {presentErr}
-                    </p>
-                  )}
+                  <div className="ct-field-meta">
+                    {presentErr && (
+                      <p id={`class-present-${idx}-error`} className="text-xs text-[#BE123C] font-medium">
+                        {presentErr}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -307,33 +327,33 @@ export const Section4AboutClass: React.FC<Section4Props> = ({
             </span>
           </div>
 
-          <div className="ct-bento-well p-3.5 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs ct-num">
-            <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
-              <Users className="w-4 h-4 text-[#006BB8] shrink-0" aria-hidden="true" />
-              <div>
-                <div className="text-[#243647]">Combined Classes</div>
-                <div className="text-base font-semibold text-[#0A1B2C]">{metrics.totalClasses}</div>
+          <div className="ct-bento-well p-3 grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs ct-num">
+            <div className="col-span-2 sm:col-span-1 rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
+              <div className="text-[#243647] inline-flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#006BB8] shrink-0" aria-hidden="true" />
+                <span>Combined Classes</span>
               </div>
+              <div className="text-base font-semibold text-[#0A1B2C]">{metrics.totalClasses}</div>
             </div>
-            <div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
               <div className="text-[#243647]">Total Students</div>
               <div className="text-base font-semibold text-[#0A1B2C]">
                 {metrics.totalStudentsPresent}
               </div>
             </div>
-            <div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
               <div className="text-[#243647]">Q-A Responses</div>
               <div className="text-base font-semibold text-[#0A1B2C]">
                 {metrics.totalQuestionAResponses}
               </div>
             </div>
-            <div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
               <div className="text-[#243647]">Pooled CSAT</div>
               <div className="text-base font-semibold text-[#006BB8]">
                 {formatScore2(metrics.overallCsat)}
               </div>
             </div>
-            <div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col justify-between gap-1">
               <div className="text-[#243647]">Pooled ITP</div>
               <div className="text-base font-semibold text-[#0A1B2C]">
                 {formatScore2(metrics.overallItp)}

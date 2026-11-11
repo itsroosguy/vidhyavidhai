@@ -5,6 +5,7 @@ import type {
   SyncLogEntry,
   SyncOutboxItem,
 } from '../types/domain';
+import { mirrorKeyToIndexedDb } from './durableStorage';
 
 const OUTBOX_STORAGE_PREFIX = 'career_tours_sync_outbox_v1_';
 const SYNC_EVENTS_STORAGE_PREFIX = 'career_tours_sync_events_v1_';
@@ -42,13 +43,17 @@ export function loadSyncOutbox(userEmail: string): SyncOutboxItem[] {
 
 export function saveSyncOutbox(userEmail: string, items: SyncOutboxItem[]): void {
   if (!userEmail) return;
+  const key = safeOutboxKey(userEmail);
   const storage = getSafeStorage();
   if (!storage) return;
   try {
     if (items.length === 0) {
-      storage.removeItem(safeOutboxKey(userEmail));
+      storage.removeItem(key);
+      void mirrorKeyToIndexedDb(key, null);
     } else {
-      storage.setItem(safeOutboxKey(userEmail), JSON.stringify(items));
+      const serialized = JSON.stringify(items);
+      storage.setItem(key, serialized);
+      void mirrorKeyToIndexedDb(key, serialized);
     }
   } catch {
     // Ignore storage quota errors
@@ -96,11 +101,14 @@ export function loadLocalSyncEvents(userEmail: string): SyncLogEntry[] {
 
 export function appendLocalSyncEvent(userEmail: string, event: SyncLogEntry): SyncLogEntry[] {
   if (!userEmail) return [];
+  const key = safeEventsKey(userEmail);
   const storage = getSafeStorage();
   const next = [event, ...loadLocalSyncEvents(userEmail)].slice(0, MAX_LOCAL_SYNC_EVENTS);
   if (storage) {
     try {
-      storage.setItem(safeEventsKey(userEmail), JSON.stringify(next));
+      const serialized = JSON.stringify(next);
+      storage.setItem(key, serialized);
+      void mirrorKeyToIndexedDb(key, serialized);
     } catch {
       // Ignore storage quota errors
     }

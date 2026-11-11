@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, Download, FileSpreadsheet } from 'lucide-react';
+import { AlertTriangle, Download, FileSpreadsheet, Info } from 'lucide-react';
 import {
+  generateExportCsvString,
   generateExportWorkbookBuffer,
+  triggerCsvDownload,
   triggerXlsxDownload,
 } from '../../services/exportService';
 import type { AppConfiguration, SessionRecord } from '../../types/domain';
@@ -46,8 +48,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   const effectiveMode =
     schemaMode === 'official_63' && hasOfficial63 ? 'official_63' : 'standard';
 
-  const handleDownload = async () => {
-    if (sessions.length === 0) return;
+  const handleDownloadXlsx = async () => {
     setExporting(true);
     try {
       const out = await generateExportWorkbookBuffer(sessions, config, effectiveMode);
@@ -60,13 +61,31 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     }
   };
 
+  const handleDownloadCsv = () => {
+    setExporting(true);
+    try {
+      const out = generateExportCsvString(sessions, config, effectiveMode);
+      const fname = `${defaultFilenamePrefix}_${new Date().toISOString().slice(0, 10)}.csv`;
+      triggerCsvDownload(out.csv, fname);
+      onExportComplete(
+        out.rowCount,
+        out.columnCount,
+        out.usedOfficial63Schema,
+        `${effectiveMode}:csv`,
+      );
+      onClose();
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <GlassModal
       open={open}
       onClose={onClose}
       size="md"
-      eyebrow="Spreadsheet Export"
-      title="Export Programme Report (.xlsx)"
+      eyebrow="Spreadsheet & CSV Export"
+      title="Export Programme Report (.xlsx / .csv)"
       subtitle="Expanded rows emit one line per grade and section for combined classes, matching monitoring requirements."
       headerBadge={
         <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] ct-num">
@@ -80,12 +99,25 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
           </button>
           <button
             type="button"
-            disabled={exporting || sessions.length === 0}
-            onClick={() => void handleDownload()}
+            disabled={exporting}
+            onClick={handleDownloadCsv}
+            className="ct-btn-secondary text-sm"
+          >
+            <Download className="w-4 h-4" aria-hidden="true" />
+            {exporting ? 'Preparing...' : 'Download .csv'}
+          </button>
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => void handleDownloadXlsx()}
             className="ct-btn-primary text-sm"
           >
             <Download className="w-4 h-4" aria-hidden="true" />
-            {exporting ? 'Generating .xlsx...' : 'Download .xlsx Workbook'}
+            {exporting
+              ? 'Generating .xlsx...'
+              : sessions.length === 0
+                ? 'Download Schema-Ready Workbook (.xlsx)'
+                : 'Download .xlsx Workbook'}
           </button>
         </>
       }
@@ -180,6 +212,18 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
           </div>
         </label>
       </fieldset>
+
+      {sessions.length === 0 && (
+        <div className="p-3 rounded-lg bg-[#E8F6FF] border border-[#0284C7]/40 text-xs text-[#0A1B2C] flex items-start gap-2">
+          <Info className="w-4 h-4 text-[#006BB8] shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            0 sessions currently match this filter. Downloading now produces a structured
+            schema-ready workbook (AutoFilters, dropdown validations, plain-text UDISE/PIN
+            formats, 0-evaluated <strong>Summary &amp; KPIs</strong> formulas, and full{' '}
+            <strong>Declarations</strong>).
+          </div>
+        </div>
+      )}
 
       {(!hasOfficial63 || !config.partnerName.trim()) && (
         <div className="p-3 rounded-lg bg-[#FFFBEB] border border-[#B45309]/40 text-xs text-[#92400E] flex items-start gap-2">

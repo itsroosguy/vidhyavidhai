@@ -88,6 +88,57 @@ function ctShortUuid_() {
 }
 
 /**
+ * Returns the 1-based row index of the last populated row by inspecting a key column
+ * (default col 1), ignoring trailing blank rows that only have borders, row banding, or dropdowns.
+ */
+function ctFindLastPopulatedRow_(sheet, optKeyCol) {
+  if (!sheet) return 1;
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return 1;
+  var colIdx = Math.max(1, Number(optKeyCol) || 1);
+  var colVals = sheet.getRange(1, colIdx, lastRow, 1).getValues();
+  for (var i = colVals.length - 1; i >= 1; i--) {
+    var raw = colVals[i][0];
+    if (String(raw === null || raw === undefined ? '' : raw).trim() !== '') {
+      return i + 1;
+    }
+  }
+  return 1;
+}
+
+/**
+ * Acquires the Apps Script document lock with bounded jittered retries to prevent
+ * concurrent multi-device facilitator submissions from failing on transient lock contention.
+ */
+function ctAcquireScriptLockWithRetry_(optWaitMs, optMaxAttempts) {
+  var lock = LockService.getScriptLock();
+  var perAttemptWait = Math.max(5000, Number(optWaitMs) || 20000);
+  var attempts = Math.max(1, Math.min(Number(optMaxAttempts) || 3, 5));
+  var lastErr = null;
+  for (var a = 0; a < attempts; a++) {
+    try {
+      lock.waitLock(perAttemptWait);
+      return lock;
+    } catch (err) {
+      lastErr = err;
+      if (
+        a < attempts - 1 &&
+        typeof Utilities !== 'undefined' &&
+        typeof Utilities.sleep === 'function'
+      ) {
+        Utilities.sleep(250 + Math.floor(Math.random() * 250));
+      }
+    }
+  }
+  throw ctApiError_(
+    'SERVICE_BUSY',
+    'The programme database is temporarily busy saving another submission. Please try again in a moment. (' +
+      (lastErr && lastErr.message ? lastErr.message : 'Lock timeout') +
+      ')'
+  );
+}
+
+/**
  * Appends a single audit log row (append-only, never modifies prior history).
  */
 function ctAppendAuditLog_(actor, action, entityType, entityId, previousSummary, newSummary, result) {
@@ -107,7 +158,7 @@ function ctAppendAuditLog_(actor, action, entityType, entityId, previousSummary,
       String(newSummary || '').slice(0, 2000),
       String(result || 'SUCCESS')
     ];
-    var nextRow = Math.max(2, sheet.getLastRow() + 1);
+    var nextRow = Math.max(2, ctFindLastPopulatedRow_(sheet, 1) + 1);
     var range = sheet.getRange(nextRow, 1, 1, row.length);
     range.setNumberFormat('@');
     range.setValues([row]);
@@ -189,7 +240,7 @@ function ctAppendSyncLog_(actor, clientSubmissionKey, sessionRecordId, sessionId
       String(status || 'SYNCED'),
       String(errorMessage || '').slice(0, 1000)
     ];
-    var nextRow = Math.max(2, sheet.getLastRow() + 1);
+    var nextRow = Math.max(2, ctFindLastPopulatedRow_(sheet, 1) + 1);
     var range = sheet.getRange(nextRow, 1, 1, row.length);
     range.setValues([row]);
   } catch (err) {

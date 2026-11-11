@@ -48,15 +48,15 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
       data-complete={isComplete ? 'true' : 'false'}
       className="ct-form-section p-5 sm:p-6"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-        <div className="flex items-start gap-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
           <span
             className={`ct-section-icon ${isComplete ? 'ct-section-icon--complete' : ''}`}
             aria-hidden="true"
           >
             <Clapperboard className="w-4 h-4" />
           </span>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 id="sec2-heading" className="text-lg sm:text-[1.125rem] font-medium text-[#0A1B2C]">
                 About the session
@@ -74,16 +74,16 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs ct-num">
+        <div className="flex flex-wrap sm:justify-end items-center gap-2 text-xs ct-num shrink-0">
           {durationMins !== null && durationMins > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] font-medium">
-              <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E8F6FF] border border-[#0284C7]/45 text-[#006BB8] font-medium whitespace-nowrap">
+              <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               {formatDurationHuman(durationMins)}
             </span>
           )}
           {selectedTour && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A1B2C] border border-[#0A1B2C] text-[#FAF8F2]">
-              <Globe className="w-3.5 h-3.5 text-[#1EA7FF]" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0A1B2C] border border-[#0A1B2C] text-[#FAF8F2] whitespace-nowrap">
+              <Globe className="w-3.5 h-3.5 text-[#1EA7FF] shrink-0" aria-hidden="true" />
               {videoInfo.isConfigured ? videoInfo.videoId : 'Select language'}
             </span>
           )}
@@ -91,121 +91,152 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
       </div>
 
       {/* Bento Well 1 — Media & Auto Metadata */}
-      <div className="ct-bento-well p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start mb-4">
-        {/* Career Tour / Video */}
-        <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="tourId" className="text-sm font-medium text-[#0A1B2C]">
-            Which video did you show?
-            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-              *
-            </span>
-          </label>
-          <select
-            id="tourId"
-            name="tourId"
-            required
-            value={values.tourId}
-            onChange={(e) => onUpdate('tourId', e.target.value)}
-            aria-invalid={Boolean(errorMap.tourId)}
-            aria-describedby={errorMap.tourId ? 'tourId-error' : undefined}
-            data-error="tourId-error"
-            className="ct-input ct-select"
-          >
-            <option value="">Choose...</option>
-            {activeTours.map((tour) => (
-              <option key={tour.tourId} value={tour.tourId}>
-                {tour.tourName}
-              </option>
-            ))}
-          </select>
-          {errorMap.tourId && (
-            <p id="tourId-error" className="text-xs text-[#BE123C] font-medium">
-              {errorMap.tourId}
-            </p>
-          )}
+      <div className="ct-bento-well p-4 flex flex-col gap-4 mb-4">
+        <div className="ct-field-grid-2">
+          {/* Career Tour / Video */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="tourId" className="text-sm font-medium text-[#0A1B2C]">
+                Which video did you{' '}
+                <span className="whitespace-nowrap">
+                  show?
+                  <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+              </label>
+            </div>
+            <select
+              id="tourId"
+              name="tourId"
+              required
+              value={values.tourId}
+              onChange={(e) => onUpdate('tourId', e.target.value)}
+              aria-invalid={Boolean(errorMap.tourId)}
+              aria-describedby={errorMap.tourId ? 'tourId-error' : undefined}
+              data-error="tourId-error"
+              className="ct-input ct-select"
+            >
+              <option value="">Choose...</option>
+              {activeTours.map((tour) => (
+                <option key={tour.tourId} value={tour.tourId}>
+                  {tour.tourName}
+                </option>
+              ))}
+            </select>
+            <div className="ct-field-meta">
+              {errorMap.tourId && (
+                <p id="tourId-error" className="text-xs text-[#BE123C] font-medium">
+                  {errorMap.tourId}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="language" className="text-sm font-medium text-[#0A1B2C]">
+                In which{' '}
+                <span className="whitespace-nowrap">
+                  language?
+                  <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+              </label>
+            </div>
+            <select
+              id="language"
+              name="language"
+              required
+              value={values.language}
+              onChange={(e) => onUpdate('language', e.target.value)}
+              aria-invalid={Boolean(errorMap.language)}
+              aria-describedby={errorMap.language ? 'language-error' : undefined}
+              data-error="language-error"
+              className="ct-input ct-select"
+            >
+              <option value="">Choose...</option>
+              {config.languageOptions.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+            <div className="ct-field-meta">
+              {errorMap.language && (
+                <p id="language-error" className="text-xs text-[#BE123C] font-medium">
+                  {errorMap.language}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Language */}
-        <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="language" className="text-sm font-medium text-[#0A1B2C]">
-            In which language?
-            <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-              *
-            </span>
-          </label>
-          <select
-            id="language"
-            name="language"
-            required
-            value={values.language}
-            onChange={(e) => onUpdate('language', e.target.value)}
-            aria-invalid={Boolean(errorMap.language)}
-            aria-describedby={errorMap.language ? 'language-error' : undefined}
-            data-error="language-error"
-            className="ct-input ct-select"
-          >
-            <option value="">Choose...</option>
-            {config.languageOptions.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang}
-              </option>
-            ))}
-          </select>
-          {errorMap.language && (
-            <p id="language-error" className="text-xs text-[#BE123C] font-medium">
-              {errorMap.language}
-            </p>
-          )}
-        </div>
+        <div className="ct-field-grid-2">
+          {/* Month (auto-filled) */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="reportingMonth" className="text-sm font-medium text-[#0A1B2C]">
+                Month
+              </label>
+            </div>
+            <input
+              id="reportingMonth"
+              type="text"
+              readOnly
+              value={reportingMonth}
+              aria-describedby="reportingMonth-hint"
+              className="ct-input"
+            />
+            <div className="ct-field-meta">
+              <p id="reportingMonth-hint" className="text-xs text-[#33475B]">
+                Filled from the start date.
+              </p>
+            </div>
+          </div>
 
-        {/* Month (auto-filled) */}
-        <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="reportingMonth" className="text-sm font-medium text-[#0A1B2C]">
-            Month
-          </label>
-          <input
-            id="reportingMonth"
-            type="text"
-            readOnly
-            value={reportingMonth}
-            aria-describedby="reportingMonth-hint"
-            className="ct-input"
-          />
-          <p id="reportingMonth-hint" className="text-xs text-[#33475B]">
-            Filled from the start date.
-          </p>
-        </div>
-
-        {/* Date of submission */}
-        <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <label htmlFor="submissionDate" className="text-sm font-medium text-[#0A1B2C]">
-            Date of submission
-          </label>
-          <input
-            id="submissionDate"
-            type="text"
-            readOnly
-            value={submissionDateFormatted}
-            aria-describedby="submissionDate-hint"
-            className="ct-input ct-num"
-          />
-          <p id="submissionDate-hint" className="text-xs text-[#33475B]">
-            Today's date, filled automatically.
-          </p>
+          {/* Date of submission */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="submissionDate" className="text-sm font-medium text-[#0A1B2C]">
+                Date of submission
+              </label>
+            </div>
+            <input
+              id="submissionDate"
+              type="text"
+              readOnly
+              value={submissionDateFormatted}
+              aria-describedby="submissionDate-hint"
+              className="ct-input ct-num"
+            />
+            <div className="ct-field-meta">
+              <p id="submissionDate-hint" className="text-xs text-[#33475B]">
+                Today's date, filled automatically.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bento Well 2 — Balanced 2-Column Start & End Timeline with Full-Width Calculated Duration */}
-      <div className="ct-bento-well p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        {/* Start Node */}
-        <div className="flex flex-col gap-3 min-w-0">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="startDate" className="text-sm font-medium text-[#0A1B2C]">
-              Date the session started
-              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                *
-              </span>
-            </label>
+      {/* Bento Well 2 — Subgrid-Locked Date Row + Time Row with Full-Width Calculated Duration */}
+      <div className="ct-bento-well p-4 flex flex-col gap-4">
+        <div className="ct-field-grid-2">
+          {/* Date the session started */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="startDate" className="text-sm font-medium text-[#0A1B2C]">
+                Date the session{' '}
+                <span className="whitespace-nowrap">
+                  started
+                  <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+              </label>
+            </div>
             <input
               id="startDate"
               name="startDate"
@@ -219,32 +250,28 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
               data-error="startDate-error"
               className="ct-input ct-num"
             />
-            {errorMap.startDate && (
-              <p id="startDate-error" className="text-xs text-[#BE123C] font-medium">
-                {errorMap.startDate}
-              </p>
-            )}
+            <div className="ct-field-meta">
+              {errorMap.startDate && (
+                <p id="startDate-error" className="text-xs text-[#BE123C] font-medium">
+                  {errorMap.startDate}
+                </p>
+              )}
+            </div>
           </div>
 
-          <AnalogueTimePicker
-            id="startTime"
-            label="What time did it start?"
-            value={values.startTime}
-            onChange={(t) => onUpdate('startTime', t)}
-            required
-            errorMessage={errorMap.startTime}
-          />
-        </div>
-
-        {/* End Node */}
-        <div className="flex flex-col gap-3 min-w-0">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="endDate" className="text-sm font-medium text-[#0A1B2C]">
-              Date the session ended
-              <span className="ml-1 text-[#006BB8]" aria-hidden="true">
-                *
-              </span>
-            </label>
+          {/* Date the session ended */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="endDate" className="text-sm font-medium text-[#0A1B2C]">
+                Date the session{' '}
+                <span className="whitespace-nowrap">
+                  ended
+                  <span className="ml-1 text-[#006BB8]" aria-hidden="true">
+                    *
+                  </span>
+                </span>
+              </label>
+            </div>
             <input
               id="endDate"
               name="endDate"
@@ -259,12 +286,25 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
               data-error="endDate-error"
               className="ct-input ct-num"
             />
-            {errorMap.endDate && (
-              <p id="endDate-error" className="text-xs text-[#BE123C] font-medium">
-                {errorMap.endDate}
-              </p>
-            )}
+            <div className="ct-field-meta">
+              {errorMap.endDate && (
+                <p id="endDate-error" className="text-xs text-[#BE123C] font-medium">
+                  {errorMap.endDate}
+                </p>
+              )}
+            </div>
           </div>
+        </div>
+
+        <div className="ct-field-grid-2">
+          <AnalogueTimePicker
+            id="startTime"
+            label="What time did it start?"
+            value={values.startTime}
+            onChange={(t) => onUpdate('startTime', t)}
+            required
+            errorMessage={errorMap.startTime}
+          />
 
           <AnalogueTimePicker
             id="endTime"
@@ -277,7 +317,7 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
         </div>
 
         {/* Full-Width Calculated Session Duration Footer */}
-        <div className="md:col-span-2 pt-3 border-t border-[#DFD7C2] flex flex-wrap items-center justify-between gap-2.5">
+        <div className="pt-3 border-t border-[#DFD7C2] flex flex-wrap items-center justify-between gap-2.5">
           <span className="text-xs font-medium text-[#33475B]">
             Calculated session length
           </span>

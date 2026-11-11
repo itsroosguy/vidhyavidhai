@@ -10,7 +10,7 @@ The Career Tours Classroom Data Entry & Feedback Management System uses a centra
 
 Running `initializeDatabase()` in [SetupDatabase.gs](../apps-script/SetupDatabase.gs) creates and formats all eight tabs idempotently without clearing existing data rows.
 
-### 1.1 `Sessions` (42 Columns — Session Header)
+### 1.1 `Sessions` (41 Columns — Session Header)
 
 One row per submitted classroom session (`single` or `combined`). Columns formatted with plain-text `@` number format preserve leading zeroes, ISO dates, and timestamps without spreadsheet auto-conversion.
 
@@ -40,24 +40,23 @@ One row per submitted classroom session (`single` or `combined`). Columns format
 | 22 | `school_type` | String | Approved category from `Configuration` |
 | 23 | `state` | String | Configured state (`Tamil Nadu`) |
 | 24 | `district` | String | Strictly one of `Cuddalore`, `Nagapattinam`, `Sivaganga` |
-| 25 | `block` | String | Approved block belonging to the selected district |
-| 26 | `pin_code` | Text (`@`) | Exactly 6 numeric digits; leading zeroes preserved |
-| 27 | `session_type` | String | `single` or `combined` |
-| 28 | `total_classes` | Number | `1` for single class; `2..10` for combined |
-| 29 | `total_students_present` | Number | Sum of `students_present` across all detail rows |
-| 30 | `total_qa_responses` | Number | Pooled count of Question A responses |
-| 31 | `total_qb_responses` | Number | Pooled count of Question B responses |
-| 32 | `overall_csat` | Number (2 dp) / Blank | Pooled session CSAT: `sum(QA weighted) / sum(QA responses)` |
-| 33 | `overall_itp` | Number (2 dp) / Blank | Pooled session ITP: `sum(QB weighted) / sum(QB responses)` |
-| 34 | `teacher_score` | Number (`0..10`) / Blank | Exact teacher score if recorded |
-| 35 | `teacher_classification` | String | `Promoter`, `Passive`, or `Detractor` |
-| 36 | `teacher_nps` | Number | `100`, `0`, or `-100` |
-| 37 | `submission_status` | Text (`@`) | `PENDING`, `COMMITTED`, or `CORRECTED` |
-| 38 | `created_at` | Text (`@`) | ISO creation timestamp |
-| 39 | `updated_at` | Text (`@`) | ISO last-modified timestamp |
-| 40 | `created_by` | String | Email of creator |
-| 41 | `updated_by` | String | Email of last editor |
-| 42 | `archived` | Text (`@`) | `'true'` or `'false'` (soft delete) |
+| 25 | `pin_code` | Text (`@`) | Exactly 6 numeric digits; leading zeroes preserved |
+| 26 | `session_type` | String | `single` or `combined` |
+| 27 | `total_classes` | Number | `1` for single class; `2..10` for combined |
+| 28 | `total_students_present` | Number | Sum of `students_present` across all detail rows |
+| 29 | `total_qa_responses` | Number | Pooled count of Question A responses |
+| 30 | `total_qb_responses` | Number | Pooled count of Question B responses |
+| 31 | `overall_csat` | Number (2 dp) / Blank | Pooled session CSAT: `sum(QA weighted) / sum(QA responses)` |
+| 32 | `overall_itp` | Number (2 dp) / Blank | Pooled session ITP: `sum(QB weighted) / sum(QB responses)` |
+| 33 | `teacher_score` | Number (`0..10`) / Blank | Exact teacher score if recorded |
+| 34 | `teacher_classification` | String | `Promoter`, `Passive`, or `Detractor` |
+| 35 | `teacher_nps` | Number | `100`, `0`, or `-100` |
+| 36 | `submission_status` | Text (`@`) | `PENDING`, `COMMITTED`, or `CORRECTED` |
+| 37 | `created_at` | Text (`@`) | ISO creation timestamp |
+| 38 | `updated_at` | Text (`@`) | ISO last-modified timestamp |
+| 39 | `created_by` | String | Email of creator |
+| 40 | `updated_by` | String | Email of last editor |
+| 41 | `archived` | Text (`@`) | `'true'` or `'false'` (soft delete) |
 
 ---
 
@@ -105,7 +104,7 @@ Identical schema managed by [`ctHandleManageUser_`](../apps-script/Admin.gs) wit
 
 ---
 
-### 1.4 `Schools` (11 Columns — School Master)
+### 1.4 `Schools` (10 Columns — School Master)
 
 Populated safely via [`ctUpsertSchoolWithoutOverwrite_`](../apps-script/Schools.gs) and queried for auto-fill by UDISE code.
 
@@ -117,10 +116,9 @@ Populated safely via [`ctUpsertSchoolWithoutOverwrite_`](../apps-script/Schools.
 | 4 | `school_type` | String | School category |
 | 5 | `state` | String | State name (`Tamil Nadu`) |
 | 6 | `district` | String | Approved district name |
-| 7 | `block` | String | Approved block name |
-| 8 | `pin_code` | Text (`@`) | 6-digit PIN code with leading zeroes preserved |
-| 9 | `active` | Text (`@`) | `'true'` or `'false'` |
-| 10–11 | `created_at`, `updated_at` | String | ISO timestamps |
+| 7 | `pin_code` | Text (`@`) | 6-digit PIN code with leading zeroes preserved |
+| 8 | `active` | Text (`@`) | `'true'` or `'false'` |
+| 9–10 | `created_at`, `updated_at` | String | ISO timestamps |
 
 **Conflict Protection:** If a facilitator submits a session using an existing 11-digit UDISE code with a different school name, the existing `Schools` master record is **preserved** (never overwritten silently) and a warning is returned for admin review.
 
@@ -132,7 +130,7 @@ Backed by `CacheService.getScriptCache()` (5-minute TTL, invalidated on admin wr
 
 | Col # | Header | Format | Description |
 |---:|---|---|---|
-| 1 | `config_key` | Text (`@`) | Setting key (`allowed_districts`, `district_blocks`, `tours`, `partner_name`, `export_template_63`, etc.) |
+| 1 | `config_key` | Text (`@`) | Setting key (`allowed_districts`, `tours`, `partner_name`, `export_template_63`, etc.) |
 | 2 | `config_value_json` | Text (`@`) | JSON-encoded value |
 | 3 | `updated_at` | Text (`@`) | ISO timestamp |
 | 4 | `updated_by` | Text (`@`) | Email of administrator / `SYSTEM_INIT` |
@@ -141,7 +139,7 @@ Backed by `CacheService.getScriptCache()` (5-minute TTL, invalidated on admin wr
 
 ### 1.6 `Audit Log` (10 Columns — Append-Only Immutable History)
 
-Every authentication denial, RBAC denial, create/update/archive session, block import, config mutation, user change, and export event is appended via [`ctAppendAuditLog_`](../apps-script/Audit.gs).
+Every authentication denial, RBAC denial, create/update/archive session, config mutation, user change, and export event is appended via [`ctAppendAuditLog_`](../apps-script/Audit.gs).
 
 | Col # | Header | Format | Description |
 |---:|---|---|---|
@@ -149,7 +147,7 @@ Every authentication denial, RBAC denial, create/update/archive session, block i
 | 2 | `timestamp` | Text (`@`) | ISO-8601 timestamp |
 | 3 | `user_id` | Text (`@`) | Acting user ID or `UNREGISTERED` |
 | 4 | `user_email` | Text (`@`) | Verified user email |
-| 5 | `action` | Text (`@`) | e.g., `CREATE_SESSION`, `UPDATE_SESSION`, `ADMIN_CORRECT_SESSION`, `ARCHIVE_SESSION`, `EXPORT_XLSX`, `RBAC_DENIED`, `AUTH_DENIED`, `UPDATE_CONFIG`, `IMPORT_BLOCKS`, `CREATE_USER`, `UPDATE_USER` |
+| 5 | `action` | Text (`@`) | e.g., `CREATE_SESSION`, `UPDATE_SESSION`, `ADMIN_CORRECT_SESSION`, `ARCHIVE_SESSION`, `EXPORT_XLSX`, `RBAC_DENIED`, `AUTH_DENIED`, `UPDATE_CONFIG`, `CREATE_USER`, `UPDATE_USER` |
 | 6 | `entity_type` | Text (`@`) | `Session`, `Configuration`, `User`, `Export`, `Auth`, `Security` |
 | 7 | `entity_id` | Text (`@`) | Affected record ID or key |
 | 8 | `previous_summary` | Text (`@`) | Prior summary (capped at 2,000 chars) |
@@ -194,7 +192,7 @@ Tracks backend sync attempts (`createSession`, `updateSession`, and duplicate-ke
 
 1. **Phase 1:** Append master row to `Sessions` with `submission_status = 'PENDING'`.
 2. **Phase 2:** Append `1..10` child rows to `Session Details` and call `SpreadsheetApp.flush()`.
-3. **Phase 3:** Promote `submission_status` cell (Column 37) from `'PENDING'` to `'COMMITTED'`.
+3. **Phase 3:** Promote `submission_status` cell (Column 36) from `'PENDING'` to `'COMMITTED'`.
 
 All normal query endpoints (`getMySessions`, `getAdminSessions`, `getDashboardSummary`) ignore rows with `submission_status === 'PENDING'`. If an Apps Script execution times out mid-write, an administrator can open the Apps Script Editor and run `recoverPendingSessions()` ([Sessions.gs](../apps-script/Sessions.gs#L848-L871)), which promotes complete pending rows and lists any incomplete orphans for inspection.
 

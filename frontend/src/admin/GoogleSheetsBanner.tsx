@@ -1,13 +1,20 @@
 import React, { useId } from 'react';
 import { AlertTriangle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { loadAppsScriptBridgeConfig } from '../services/authService';
 import type { GoogleSheetsConnectionState } from '../types/domain';
 
 interface GoogleSheetsBannerProps {
   connection: GoogleSheetsConnectionState | null;
   loading?: boolean;
+  isLiveBackend?: boolean;
+  isSupabaseMode?: boolean;
+  needsDirectReauth?: boolean;
+  authorizing?: boolean;
   userEmail: string;
   onConnectClick: () => void;
   onManageClick: () => void;
+  onActivateLiveClick?: () => void;
+  onAuthorizeNow?: () => void;
 }
 
 /**
@@ -36,14 +43,114 @@ export const GoogleSheetsIcon: React.FC<{
 export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
   connection,
   loading = false,
+  isLiveBackend = false,
+  isSupabaseMode = false,
+  needsDirectReauth = false,
+  authorizing = false,
   userEmail,
   onConnectClick,
   onManageClick,
+  onActivateLiveClick,
+  onAuthorizeNow,
 }) => {
   const headingId = useId();
-  const isConnected = Boolean(connection?.connected && connection?.spreadsheetId);
+  const hasSelectedSheet = Boolean(connection?.connected && connection?.spreadsheetId);
+  const hasSavedBridge = Boolean(loadAppsScriptBridgeConfig());
+  const isLiveVerified = Boolean(
+    !needsDirectReauth &&
+      hasSelectedSheet &&
+      connection &&
+      (isSupabaseMode ||
+        isLiveBackend ||
+        connection.authMethod === 'google_oauth' ||
+        (connection.authMethod === 'apps_script' && (isLiveBackend || hasSavedBridge))),
+  );
 
-  if (isConnected && connection) {
+  if (hasSelectedSheet && connection && needsDirectReauth) {
+    const accountLabel = connection.connectedAccount || userEmail;
+    const sheetTitle = connection.spreadsheetName || 'Linked Google Sheet';
+
+    return (
+      <section
+        role="region"
+        aria-labelledby={headingId}
+        className="mb-5 p-4 sm:px-5 sm:py-4 rounded-xl bg-[#FFFFFF] border border-[#B45309]/40 shadow-[0_6px_22px_rgba(10,27,44,0.05)] text-[#0A1B2C]"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-lg bg-[#FFFBEB] border border-[#B45309]/25 inline-flex items-center justify-center shrink-0">
+              <GoogleSheetsIcon className="w-5 h-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0" aria-hidden="true" />
+                <h2
+                  id={headingId}
+                  className="text-sm sm:text-base font-medium text-[#0A1B2C] leading-snug"
+                >
+                  Re-authorize Google Account (Session Reloaded)
+                </h2>
+              </div>
+
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-[#243647]">
+                <span className="truncate max-w-full">
+                  Account: <span className="font-medium text-[#0A1B2C]">{accountLabel}</span>
+                </span>
+                <span aria-hidden="true" className="text-[#8E8674] hidden sm:inline">
+                  ·
+                </span>
+                <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+                  <span className="shrink-0">Spreadsheet:</span>
+                  {connection.spreadsheetUrl ? (
+                    <a
+                      href={connection.spreadsheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-[#006BB8] hover:underline underline-offset-2 truncate max-w-[230px] sm:max-w-[360px]"
+                    >
+                      <span className="truncate">{sheetTitle}</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span className="font-medium text-[#0A1B2C] truncate">{sheetTitle}</span>
+                  )}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[#78350F] leading-relaxed">
+                For security, Direct Browser OAuth access tokens remain strictly in browser memory
+                and clear when reloaded. Re-authorize once to push pending entries and resume live
+                sync.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onAuthorizeNow && (
+              <button
+                type="button"
+                disabled={authorizing}
+                onClick={onAuthorizeNow}
+                className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-4 py-1.5 rounded-[10px] bg-[#137333] hover:bg-[#0D652D] text-[#FFFFFF] text-xs sm:text-sm font-medium border border-[#0D652D] shadow-[0_2px_8px_rgba(19,115,51,0.22)] cursor-pointer disabled:opacity-55"
+              >
+                <GoogleSheetsIcon className="w-4 h-4 shrink-0" variant="inverted" />
+                <span>{authorizing ? 'Authorizing…' : 'Authorize & Push Pending'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onManageClick}
+              className="ct-btn-secondary text-xs sm:text-sm min-h-[42px] px-3.5 py-1.5"
+            >
+              Manage Connection
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (hasSelectedSheet && connection && isLiveVerified) {
     const accountLabel = connection.connectedAccount || userEmail;
     const sheetTitle = connection.spreadsheetName || 'Connected Google Sheet';
 
@@ -79,7 +186,7 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
 
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-[#243647]">
                 <span className="truncate max-w-full">
-                  Google account:{' '}
+                  {isSupabaseMode ? 'Primary DB: Supabase PostgreSQL · Account: ' : 'Google account: '}
                   <span className="font-medium text-[#0A1B2C]">{accountLabel}</span>
                 </span>
                 <span aria-hidden="true" className="text-[#8E8674] hidden sm:inline">
@@ -127,6 +234,88 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
     );
   }
 
+  if (hasSelectedSheet && connection) {
+    const accountLabel = connection.connectedAccount || userEmail;
+    const sheetTitle = connection.spreadsheetName || 'Selected Target Spreadsheet';
+
+    return (
+      <section
+        role="region"
+        aria-labelledby={headingId}
+        className="mb-5 p-4 sm:px-5 sm:py-4 rounded-xl bg-[#FFFFFF] border border-[#B45309]/35 shadow-[0_6px_22px_rgba(10,27,44,0.05)] text-[#0A1B2C]"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-lg bg-[#FFFBEB] border border-[#B45309]/25 inline-flex items-center justify-center shrink-0">
+              <GoogleSheetsIcon className="w-5 h-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0" aria-hidden="true" />
+                <h2
+                  id={headingId}
+                  className="text-sm sm:text-base font-medium text-[#0A1B2C] leading-snug"
+                >
+                  Target Sheet Selected (Local Storage)
+                </h2>
+              </div>
+
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-[#243647]">
+                <span className="truncate max-w-full">
+                  Account: <span className="font-medium text-[#0A1B2C]">{accountLabel}</span>
+                </span>
+                <span aria-hidden="true" className="text-[#8E8674] hidden sm:inline">
+                  ·
+                </span>
+                <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+                  <span className="shrink-0">Spreadsheet:</span>
+                  {connection.spreadsheetUrl ? (
+                    <a
+                      href={connection.spreadsheetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-[#006BB8] hover:underline underline-offset-2 truncate max-w-[230px] sm:max-w-[360px]"
+                    >
+                      <span className="truncate">{sheetTitle}</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span className="font-medium text-[#0A1B2C] truncate">{sheetTitle}</span>
+                  )}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[#78350F] leading-relaxed">
+                Saved on this device only — team submissions are not saving online into Google Sheets
+                yet. Activate Live Sync to store all data in Google Sheets.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onActivateLiveClick && (
+              <button
+                type="button"
+                onClick={onActivateLiveClick}
+                className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-4 py-1.5 rounded-[10px] bg-[#137333] hover:bg-[#0D652D] text-[#FFFFFF] text-xs sm:text-sm font-medium border border-[#0D652D] shadow-[0_2px_8px_rgba(19,115,51,0.22)] cursor-pointer"
+              >
+                <GoogleSheetsIcon className="w-4 h-4 shrink-0" variant="inverted" />
+                <span>Activate Live Sync</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onManageClick}
+              className="ct-btn-secondary text-xs sm:text-sm min-h-[42px] px-3.5 py-1.5"
+            >
+              Manage Connection
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       role="region"
@@ -143,11 +332,14 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
               id={headingId}
               className="text-sm sm:text-base font-medium text-[#0A1B2C] leading-snug"
             >
-              Connect Your Google Sheet
+              {isSupabaseMode
+                ? 'Supabase PostgreSQL Active · Optional Google Sheets Mirror'
+                : 'Connect Your Google Sheet'}
             </h2>
             <p className="text-xs sm:text-sm text-[#243647] mt-0.5 leading-relaxed">
-              Connect your Google Sheet to securely store, manage and access all programme data in
-              one place.
+              {isSupabaseMode
+                ? 'All programme records save permanently in Supabase PostgreSQL. Optionally link a Google Sheet and Apps Script Web App webhook to mirror records to Google Sheets.'
+                : 'Connect your Google Sheet to securely store, manage and access all programme data in one place.'}
             </p>
           </div>
         </div>

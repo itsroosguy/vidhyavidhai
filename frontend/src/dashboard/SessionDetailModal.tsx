@@ -7,15 +7,21 @@ import { formatISODateToDDMMYYYY, formatTime24To12 } from '../utils/temporal';
 interface SessionDetailModalProps {
   session: SessionRecord | null;
   isSuperAdmin?: boolean;
+  isSupabaseMode?: boolean;
   onClose: () => void;
   onEdit?: (session: SessionRecord) => void;
+  onRestore?: (session: SessionRecord) => void;
+  onDelete?: (session: SessionRecord) => void;
 }
 
 export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   session,
   isSuperAdmin = false,
+  isSupabaseMode = false,
   onClose,
   onEdit,
+  onRestore,
+  onDelete,
 }) => {
   const missingQa = session
     ? Math.max(0, session.totalStudentsPresent - session.totalQuestionAResponses)
@@ -41,13 +47,47 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       headerBadge={
         isSuperAdmin && session?.syncStatus ? (
           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F2E9] border border-[#C7BEA7] text-[#243647]">
-            {session.syncStatus === 'SYNCED' ? 'Google Sheets Synced' : session.syncStatus}
+            {isSupabaseMode
+              ? session.syncStatus === 'SYNCED'
+                ? 'Database + Sheets Synced'
+                : session.syncStatus === 'PENDING_RETRY' || session.syncStatus === 'FAILED'
+                  ? `Database Saved · Sheets ${session.syncStatus}`
+                  : 'Saved in Database'
+              : session.syncStatus === 'SYNCED'
+                ? 'Google Sheets Synced'
+                : session.syncStatus}
           </span>
         ) : undefined
       }
       closeLabel="Close session details"
       footer={
         <>
+          {isSuperAdmin && session && onDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                const target = session;
+                onClose();
+                onDelete(target);
+              }}
+              className="ct-btn-danger text-sm mr-auto"
+            >
+              Delete permanently
+            </button>
+          )}
+          {isSuperAdmin && session?.archived && onRestore && (
+            <button
+              type="button"
+              onClick={() => {
+                const target = session;
+                onClose();
+                onRestore(target);
+              }}
+              className="ct-btn-secondary text-sm"
+            >
+              Restore session
+            </button>
+          )}
           {onEdit && session && !session.archived && (
             <button
               type="button"
@@ -114,7 +154,7 @@ export const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             <div>
               <span className="text-[#243647]">Location:</span>{' '}
               <span className="font-medium text-[#0A1B2C]">
-                {[session.block, session.district, session.state].filter(Boolean).join(', ')}
+                {[session.district, session.state].filter(Boolean).join(', ')}
               </span>
             </div>
             <div>

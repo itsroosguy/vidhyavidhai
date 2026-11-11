@@ -11,10 +11,9 @@ This guide covers end-to-end initial provisioning across **Google Cloud Console 
 - **Node.js** `>= 20` and **npm** (verified in this workspace with Node `v26.8.2` / npm `11.19.1`)
 - A **Google Account** with permission to create Google Sheets, Apps Script projects, and Google Cloud OAuth 2.0 Web Client IDs
 - Official programme reference inputs (to be uploaded/entered by the Super Administrator after first sign-in):
-  1. Official **District–Block master list** (`.csv` or `.xlsx`) strictly for `Cuddalore`, `Nagapattinam`, and `Sivaganga`
-  2. Official **63-column reporting Excel template** (`.xlsx`)
-  3. **Partner Name** string for reporting exports
-  4. **Video ID(s)** for *Robotics Fulfillment Center* (and any non-Tamil languages for *Amazon Music: Careers Behind the Beats*)
+  1. Official **63-column reporting Excel template** (`.xlsx`)
+  2. **Partner Name** string for reporting exports
+  3. **Video ID(s)** for *Robotics Fulfillment Center* (and any non-Tamil languages for *Amazon Music: Careers Behind the Beats*)
 
 ---
 
@@ -117,9 +116,8 @@ npm run dev
 
 ## 6. Post-Setup Super Administrator Onboarding Checklist
 
-Sign in with Google using an allowlisted Super Administrator account (`brinthajayaprakash888@gmail.com` or `karunya@vidhyavidhai.org`). You will land automatically on **`/admin/overview`**. Complete these four mandatory steps before onboarding facilitators:
+Sign in with Google using an allowlisted Super Administrator account (`brinthajayaprakash888@gmail.com` or `karunya@vidhyavidhai.org`). You will land automatically on **`/admin/overview`**. Complete these three mandatory steps before onboarding facilitators:
 
-1. **District–Block Master Data (`Admin Console → Settings`):** Upload `.csv` or `.xlsx` (`District, Block, Active`) or paste CSV rows for `Cuddalore`, `Nagapattinam`, and `Sivaganga`, preview validation, and click **Apply Valid Import**.
-2. **Partner Name & Tour Video IDs (`Admin Console → Settings`):** Set **Partner Name**, verify `School Year`, select language(s) in **Career Tour Inventory & Configured Video IDs** to enter Video IDs (such as for *Robotics Fulfillment Center*), and set facilitator delete policy (`allowFacilitatorDeleteOwn`; Facilitator `.xlsx` export stays disabled permanently).
-3. **Official 63-Column Reporting Template (`Admin Console → Settings`):** Upload your official `.xlsx` template, verify each header `#1..#63` mapping to flattened export fields (plus constants/blanks where applicable), and click **Save System Configuration**.
-4. **Facilitator Approval Policy & Directory (`Admin Console → User Management`):** Choose your **Google Sign-In Approval Policy** (`manual_allowlist` default or `auto_approve`), pre-approve Facilitator Google email addresses, and approve or deny pending Google Sign-In requests from the Pending Queue. Admin privileges remain strictly locked to the two protected `SUPER_ADMIN` accounts.
+1. **Partner Name & Tour Video IDs (`Admin Console → Settings`):** Set **Partner Name**, verify `School Year`, select language(s) in **Career Tour Inventory & Configured Video IDs** to enter Video IDs (such as for *Robotics Fulfillment Center*), and set facilitator delete policy (`allowFacilitatorDeleteOwn`; Facilitator `.xlsx` export stays disabled permanently).
+2. **Official 63-Column Reporting Template (`Admin Console → Settings`):** Upload your official `.xlsx` template, verify each header `#1..#63` mapping to flattened export fields (plus constants/blanks where applicable), and click **Save System Configuration**.
+3. **Facilitator Approval Policy & Directory (`Admin Console → User Management`):** Choose your **Google Sign-In Approval Policy** (`manual_allowlist` default or `auto_approve`), pre-approve Facilitator Google email addresses, and approve or deny pending Google Sign-In requests from the Pending Queue. Admin privileges remain strictly locked to the two protected `SUPER_ADMIN` accounts.

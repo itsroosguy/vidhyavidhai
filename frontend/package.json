@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
