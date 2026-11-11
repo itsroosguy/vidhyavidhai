@@ -56,6 +56,7 @@ interface AuthGateProps {
   routeKind?: AuthViewKind;
   isLiveBackend: boolean;
   isSupabaseMode?: boolean;
+  supabaseGoogleOAuthEnabled?: boolean;
   googleClientId: string;
   isTeamIntakeConnected?: boolean;
   teamIntakeLabel?: string;
@@ -72,7 +73,9 @@ interface AuthGateProps {
     fullName: string,
     email: string,
     password: string,
-  ) => Promise<EmailSignInOutcome & { requiresEmailConfirmation?: boolean }>;
+  ) => Promise<
+    EmailSignInOutcome & { requiresEmailConfirmation?: boolean; statusMessage?: string }
+  >;
   onSupabaseForgotPassword?: (email: string) => Promise<{ ok: boolean; error?: string }>;
   onSupabaseUpdatePassword?: (newPassword: string) => Promise<{ ok: boolean; error?: string }>;
   onSignOutNoticeAccount?: () => Promise<void> | void;
@@ -132,6 +135,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   routeKind = 'login',
   isLiveBackend,
   isSupabaseMode = false,
+  supabaseGoogleOAuthEnabled = false,
   googleClientId,
   isTeamIntakeConnected = false,
   teamIntakeLabel,
@@ -616,7 +620,10 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         scheduleLiveAnnouncement(`Sign up failed: ${msg}`, 500);
         return;
       }
-      if (outcome.requiresEmailConfirmation) {
+      if (outcome.statusMessage) {
+        setSignupStatusMessage(outcome.statusMessage);
+        scheduleLiveAnnouncement(outcome.statusMessage);
+      } else if (outcome.requiresEmailConfirmation) {
         setSignupStatusMessage(
           `Account created for ${cleanEmail}. Check your inbox to confirm your email address, then sign in.`,
         );
@@ -1494,33 +1501,50 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                 </ol>
               </div>
             ) : isSupabaseMode ? (
-              <div className="flex flex-col gap-4">
-                <button
-                  type="button"
-                  disabled={googleOAuthBusy}
-                  onClick={() => {
-                    if (!onSupabaseGoogleOAuth) return;
-                    setGoogleOAuthBusy(true);
-                    void onSupabaseGoogleOAuth().finally(() => {
-                      setGoogleOAuthBusy(false);
-                    });
-                  }}
-                  className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#0A1B2C] hover:bg-[#132C45] disabled:opacity-60 border border-[#0A1B2C] text-[#FAF8F2] text-sm font-medium shadow-[0_10px_24px_rgba(10,27,44,0.22)] inline-flex items-center justify-center gap-2.5 cursor-pointer transition-colors"
-                >
-                  {googleOAuthBusy ? (
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <GoogleEmblem className="w-4 h-4 bg-white rounded-full p-0.5" />
-                  )}
-                  <span>Continue with Google</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </button>
+              supabaseGoogleOAuthEnabled ? (
+                <div className="flex flex-col gap-4">
+                  <button
+                    type="button"
+                    disabled={googleOAuthBusy}
+                    onClick={() => {
+                      if (!onSupabaseGoogleOAuth) return;
+                      setGoogleOAuthBusy(true);
+                      void onSupabaseGoogleOAuth().finally(() => {
+                        setGoogleOAuthBusy(false);
+                      });
+                    }}
+                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#0A1B2C] hover:bg-[#132C45] disabled:opacity-60 border border-[#0A1B2C] text-[#FAF8F2] text-sm font-medium shadow-[0_10px_24px_rgba(10,27,44,0.22)] inline-flex items-center justify-center gap-2.5 cursor-pointer transition-colors"
+                  >
+                    {googleOAuthBusy ? (
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <GoogleEmblem className="w-4 h-4 bg-white rounded-full p-0.5" />
+                    )}
+                    <span>Continue with Google</span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
 
-                <div className="rounded-xl px-3.5 py-2.5 bg-[#F5F2E9] border border-[#DFD7C2] text-xs leading-relaxed text-[#243647]">
-                  <span className="font-medium text-[#0A1B2C]">Verified Workspace Access:</span>{' '}
-                  You will be signed in securely with your Google account via Supabase Auth.
+                  <div className="rounded-xl px-3.5 py-2.5 bg-[#F5F2E9] border border-[#DFD7C2] text-xs leading-relaxed text-[#243647]">
+                    <span className="font-medium text-[#0A1B2C]">Verified Workspace Access:</span>{' '}
+                    You will be signed in securely with your Google account via Supabase Auth.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-xl px-3.5 py-3 bg-[#FFFBEB] border border-[#B45309]/40 text-xs leading-relaxed text-[#92400E]">
+                    Google SSO is not enabled on this workspace yet. Please sign in or create your
+                    facilitator account with your email and password.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login', true)}
+                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#0A1B2C] hover:bg-[#132C45] border border-[#0A1B2C] text-[#FAF8F2] text-sm font-medium inline-flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <span>Sign in with Email &amp; Password</span>
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              )
             ) : isLiveBackend ? (
               <div className="flex flex-col gap-4">
                 {recentAccounts.length > 0 && (
@@ -1905,10 +1929,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                 </h2>
                 <p className="text-xs sm:text-[13px] text-[#243647] leading-relaxed">
                   {isSupabaseMode && supabasePanelMode === 'sign_up'
-                    ? 'Register with your Vidhya Vidhai email to request classroom entry access.'
+                    ? 'Register with your email to access Classroom Data Entry (pre-approved emails activate immediately).'
                     : isSupabaseMode && supabasePanelMode === 'forgot_password'
-                      ? 'Enter your email address and we will send a secure password reset link.'
-                      : 'Authenticate securely with Google SSO or continue with your authorized Vidhya Vidhai email.'}
+                      ? 'Enter your email address to request a password reset link, or ask a Super Admin to set a temporary password.'
+                      : isSupabaseMode && !supabaseGoogleOAuthEnabled
+                        ? 'Sign in with your Vidhya Vidhai portal email and password, or create a facilitator account below.'
+                        : 'Authenticate securely with Google SSO or continue with your authorized Vidhya Vidhai email.'}
                 </p>
               </div>
 
@@ -1995,7 +2021,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                       Email <span aria-hidden="true">*</span>
                     </label>
                     <span id="signup-email-hint" className="text-xs text-[#33475B]">
-                      Format: name@vidhyavidhai.org
+                      Format: name@vidhyavidhai.org or name@gmail.com
                     </span>
                     <div className="relative">
                       <Mail
@@ -2203,7 +2229,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                       Email <span aria-hidden="true">*</span>
                     </label>
                     <span id="forgot-email-hint" className="text-xs text-[#33475B]">
-                      Format: name@vidhyavidhai.org
+                      Format: name@vidhyavidhai.org or name@gmail.com
                     </span>
                     <div className="relative">
                       <Mail
@@ -2290,6 +2316,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     <span>Send Reset Link</span>
                     <ArrowRight className="w-4 h-4" aria-hidden="true" />
                   </button>
+
+                  <p className="text-xs text-[#33475B] leading-relaxed">
+                    Need immediate access? Ask a Super Administrator (Brintha or Karunya) to set a
+                    temporary password for your email in{' '}
+                    <strong className="font-medium text-[#0A1B2C]">Admin Console → User Management</strong>.
+                  </p>
 
                   <div className="pt-2 border-t border-dotted border-[#C7BEA7] flex items-center justify-between text-xs">
                     <span className="text-[#243647]">Remembered your password?</span>
@@ -2379,33 +2411,37 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                     </div>
                   )}
 
-                  {/* Primary Google Sign-In CTA -> redirects cleanly to dedicated /auth/google experience or Supabase Google OAuth */}
-                  <button
-                    type="button"
-                    disabled={googleOAuthBusy}
-                    onClick={openDedicatedGoogleAuth}
-                    className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#FFFFFF] hover:bg-[#F5F2E9] disabled:opacity-60 border border-[#5F7082] hover:border-[#0284C7] text-[#0A1B2C] text-sm font-medium inline-flex items-center justify-between gap-3 ct-interactive-tile shadow-xs cursor-pointer transition-colors"
-                  >
-                    <span className="inline-flex items-center gap-2.5">
-                      {googleOAuthBusy ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-[#006BB8]" aria-hidden="true" />
-                      ) : (
-                        <GoogleEmblem className="w-4 h-4" />
-                      )}
-                      <span>Continue with Google</span>
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-[#006BB8] shrink-0" aria-hidden="true" />
-                  </button>
+                  {(!isSupabaseMode || supabaseGoogleOAuthEnabled) && (
+                    <>
+                      {/* Primary Google Sign-In CTA -> redirects cleanly to dedicated /auth/google experience or Supabase Google OAuth */}
+                      <button
+                        type="button"
+                        disabled={googleOAuthBusy}
+                        onClick={openDedicatedGoogleAuth}
+                        className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-[#FFFFFF] hover:bg-[#F5F2E9] disabled:opacity-60 border border-[#5F7082] hover:border-[#0284C7] text-[#0A1B2C] text-sm font-medium inline-flex items-center justify-between gap-3 ct-interactive-tile shadow-xs cursor-pointer transition-colors"
+                      >
+                        <span className="inline-flex items-center gap-2.5">
+                          {googleOAuthBusy ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-[#006BB8]" aria-hidden="true" />
+                          ) : (
+                            <GoogleEmblem className="w-4 h-4" />
+                          )}
+                          <span>Continue with Google</span>
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-[#006BB8] shrink-0" aria-hidden="true" />
+                      </button>
 
-                  <div className="relative flex items-center gap-3">
-                    <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
-                    <span className="text-xs text-[#33475B] shrink-0">
-                      {isSupabaseMode
-                        ? 'Or sign in with email & password'
-                        : 'Or continue with workspace email'}
-                    </span>
-                    <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
-                  </div>
+                      <div className="relative flex items-center gap-3">
+                        <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
+                        <span className="text-xs text-[#33475B] shrink-0">
+                          {isSupabaseMode
+                            ? 'Or sign in with email & password'
+                            : 'Or continue with workspace email'}
+                        </span>
+                        <div className="flex-1 border-t border-dotted border-[#C7BEA7]" aria-hidden="true" />
+                      </div>
+                    </>
+                  )}
 
                   <form
                     method="post"
@@ -2418,7 +2454,9 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                         Email <span aria-hidden="true">*</span>
                       </label>
                       <span id="workspace-email-hint" className="text-xs text-[#33475B]">
-                        Format: name@vidhyavidhai.org
+                        {isSupabaseMode
+                          ? 'Format: name@vidhyavidhai.org or name@gmail.com'
+                          : 'Format: name@vidhyavidhai.org'}
                       </span>
                       <div className="relative">
                         <Mail
@@ -2609,10 +2647,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                             onClick={() => {
                               setSignupServerError(null);
                               setSignupStatusMessage(null);
+                              if (EMAIL_PATTERN.test(workspaceEmail.trim())) {
+                                setSignupEmail(workspaceEmail.trim());
+                              }
                               setSupabasePanelMode('sign_up');
                               authCardHeadingRef.current?.focus();
                             }}
-                            className="font-medium text-[#006BB8] hover:underline cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-[#E8F6FF] hover:bg-[#DCEFFE] border border-[#0284C7]/45 text-[#006BB8] font-medium cursor-pointer transition-colors"
                           >
                             Create Facilitator account
                           </button>

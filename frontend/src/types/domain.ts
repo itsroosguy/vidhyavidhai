@@ -331,8 +331,32 @@ export interface ManagedUser {
   role: UserRole;
   active: boolean;
   status?: UserApprovalStatus;
+  emailConfirmed?: boolean;
+  hasLoginAccount?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProvisionFacilitatorResult {
+  user: ManagedUser;
+  created: boolean;
+}
+
+export interface BulkProvisionItemResult {
+  email: string;
+  name: string;
+  ok: boolean;
+  created?: boolean;
+  error?: string;
+}
+
+export interface BulkProvisionFacilitatorsResult {
+  totalCount: number;
+  createdCount: number;
+  updatedCount: number;
+  failedCount: number;
+  results: BulkProvisionItemResult[];
+  users: ManagedUser[];
 }
 
 export interface AuditLogEntry {

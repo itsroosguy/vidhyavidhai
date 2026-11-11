@@ -4,14 +4,17 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Copy,
   Edit3,
   Eye,
   EyeOff,
   KeyRound,
   Lock,
   ShieldCheck,
+  Sparkles,
   Trash2,
   UserPlus,
+  Users,
   X,
   XCircle,
 } from 'lucide-react';
@@ -20,10 +23,84 @@ import { INITIAL_SUPER_ADMINS, isAllowlistedSuperAdmin } from '../config/accessC
 import type { BackendApiClient } from '../services/apiClient';
 import type {
   AppConfiguration,
+  BulkProvisionFacilitatorsResult,
   FacilitatorApprovalMode,
   ManagedUser,
   UserProfile,
 } from '../types/domain';
+
+const FACILITATOR_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function parseBulkFacilitatorLines(rawText: string): {
+  entries: Array<{ name: string; email: string }>;
+  invalidLines: string[];
+} {
+  const seen = new Set<string>();
+  const entries: Array<{ name: string; email: string }> = [];
+  const invalidLines: string[] = [];
+
+  for (const rawLine of rawText.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    let candidateName = '';
+    let candidateEmail = '';
+
+    const angleMatch = line.match(/^(.*?)<([^<>]+)>$/);
+    if (angleMatch) {
+      candidateName = (angleMatch[1] ?? '').replace(/[,;|\t]+$/, '').trim();
+      candidateEmail = (angleMatch[2] ?? '').trim().toLowerCase();
+    } else {
+      const parts = line
+        .split(/[,;\t|]+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (parts.length === 1) {
+        candidateEmail = parts[0]!.toLowerCase();
+      } else if (parts.length >= 2) {
+        const emailIdx = parts.findIndex((p) => FACILITATOR_EMAIL_REGEX.test(p));
+        if (emailIdx >= 0) {
+          candidateEmail = parts[emailIdx]!.toLowerCase();
+          candidateName = parts.filter((_, idx) => idx !== emailIdx).join(' ').trim();
+        } else {
+          candidateName = parts[0]!;
+          candidateEmail = parts[1]!.toLowerCase();
+        }
+      }
+    }
+
+    if (!FACILITATOR_EMAIL_REGEX.test(candidateEmail)) {
+      invalidLines.push(line);
+      continue;
+    }
+
+    if (!seen.has(candidateEmail)) {
+      seen.add(candidateEmail);
+      entries.push({
+        name: candidateName,
+        email: candidateEmail,
+      });
+    }
+  }
+
+  return { entries, invalidLines };
+}
+
+function generateTemporaryPassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const all = `${upper}${lower}${digits}`;
+  const pick = (pool: string): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const arr = new Uint32Array(1);
+      crypto.getRandomValues(arr);
+      return pool[arr[0]! % pool.length]!;
+    }
+    return pool[Math.floor(Math.random() * pool.length)]!;
+  };
+  return `Vidhai@${pick(upper)}${pick(digits)}${pick(lower)}${pick(digits)}${pick(all)}`;
+}
 
 interface UserAccessManagerProps {
   api: BackendApiClient;
@@ -45,7 +122,24 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [initialPassword, setInitialPassword] = useState('');
+  const [showInitialPassword, setShowInitialPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [bulkPanelOpen, setBulkPanelOpen] = useState(true);
+  const [bulkLines, setBulkLines] = useState('');
+  const [bulkPassword, setBulkPassword] = useState('');
+  const [showBulkPassword, setShowBulkPassword] = useState(false);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkProvisionFacilitatorsResult | null>(null);
+  const [lastProvisionSummary, setLastProvisionSummary] = useState<string | null>(null);
+
+  const [passwordTarget, setPasswordTarget] = useState<ManagedUser | null>(null);
+  const [targetPassword, setTargetPassword] = useState('');
+  const [showTargetPassword, setShowTargetPassword] = useState(false);
+  const [savingTargetPassword, setSavingTargetPassword] = useState(false);
+  const [confirmingEmail, setConfirmingEmail] = useState<string | null>(null);
+
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ManagedUser | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -120,8 +214,39 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
 
   const handleAddFacilitator = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedPassword = initialPassword.trim();
+    if (trimmedPassword && trimmedPassword.length < 8) {
+      onNotify('warning', 'Password must be at least 8 characters');
+      return;
+    }
     setSaving(true);
     try {
+      if (trimmedPassword && typeof api.provisionFacilitatorAccount === 'function') {
+        const res = await api.provisionFacilitatorAccount({
+          name,
+          email,
+          password: trimmedPassword,
+          status: 'APPROVED',
+        });
+        if (res.ok) {
+          onNotify(
+            'success',
+            res.data?.created ? 'Facilitator login created' : 'Facilitator login updated',
+            `${email.trim().toLowerCase()} can sign in immediately (no confirmation email needed).`,
+          );
+          setLastProvisionSummary(
+            `Portal: ${typeof window !== 'undefined' ? window.location.origin : 'https://vidhyavidhai.roosstudiox.com'}\nEmail: ${email.trim().toLowerCase()}\nTemporary Password: ${trimmedPassword}`,
+          );
+          setName('');
+          setEmail('');
+          setInitialPassword('');
+          await loadUsers();
+        } else {
+          onNotify('error', 'Failed to create facilitator login', res.error);
+        }
+        return;
+      }
+
       const res = await api.manageUser({
         name,
         email,
@@ -139,6 +264,120 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBulkProvision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof api.bulkProvisionFacilitators !== 'function') return;
+    const { entries, invalidLines } = parseBulkFacilitatorLines(bulkLines);
+    if (invalidLines.length > 0) {
+      onNotify(
+        'warning',
+        'Check email lines before creating logins',
+        `Unrecognized email line: ${invalidLines[0]}`,
+      );
+      return;
+    }
+    if (entries.length === 0 || entries.length > 60) {
+      onNotify(
+        'warning',
+        entries.length === 0
+          ? 'Paste at least 1 facilitator email'
+          : 'Maximum 60 facilitators per batch',
+      );
+      return;
+    }
+    if (bulkPassword.length < 8) {
+      onNotify('warning', 'Temporary password must be at least 8 characters');
+      return;
+    }
+
+    setBulkSubmitting(true);
+    setBulkResult(null);
+    try {
+      const res = await api.bulkProvisionFacilitators({
+        users: entries,
+        sharedPassword: bulkPassword,
+      });
+      if (res.ok && res.data) {
+        setBulkResult(res.data);
+        const readyEmails = res.data.results
+          .filter((r) => r.ok)
+          .map((r) => r.email)
+          .join(', ');
+        if (readyEmails) {
+          setLastProvisionSummary(
+            `Portal: ${typeof window !== 'undefined' ? window.location.origin : 'https://vidhyavidhai.roosstudiox.com'}\nApproved Emails: ${readyEmails}\nTemporary Password: ${bulkPassword}`,
+          );
+        }
+        onNotify(
+          res.data.failedCount > 0 ? 'warning' : 'success',
+          `Provisioned ${res.data.createdCount + res.data.updatedCount} of ${res.data.totalCount} login(s)`,
+          res.data.failedCount > 0
+            ? `${res.data.failedCount} failed — check result details below.`
+            : 'All listed facilitators can sign in immediately without waiting for email links.',
+        );
+        if (res.data.failedCount === 0) {
+          setBulkLines('');
+        }
+        await loadUsers();
+      } else {
+        onNotify('error', 'Bulk provisioning failed', res.error);
+      }
+    } finally {
+      setBulkSubmitting(false);
+    }
+  };
+
+  const handleSaveTargetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordTarget || typeof api.provisionFacilitatorAccount !== 'function') return;
+    if (targetPassword.length < 8) {
+      onNotify('warning', 'Password must be at least 8 characters');
+      return;
+    }
+    setSavingTargetPassword(true);
+    try {
+      const res = await api.provisionFacilitatorAccount({
+        name: passwordTarget.name,
+        email: passwordTarget.email,
+        password: targetPassword,
+        status: 'APPROVED',
+      });
+      if (res.ok) {
+        onNotify(
+          'success',
+          'Password saved & facilitator approved',
+          `${passwordTarget.email} can sign in immediately.`,
+        );
+        setLastProvisionSummary(
+          `Portal: ${typeof window !== 'undefined' ? window.location.origin : 'https://vidhyavidhai.roosstudiox.com'}\nEmail: ${passwordTarget.email}\nPassword: ${targetPassword}`,
+        );
+        setPasswordTarget(null);
+        setTargetPassword('');
+        await loadUsers();
+      } else {
+        onNotify('error', 'Failed to set password', res.error);
+      }
+    } finally {
+      setSavingTargetPassword(false);
+    }
+  };
+
+  const handleConfirmEmail = async (u: ManagedUser) => {
+    if (typeof api.confirmFacilitatorEmail !== 'function') return;
+    setConfirmingEmail(u.email);
+    try {
+      const res = await api.confirmFacilitatorEmail(u.email);
+      if (res.ok) {
+        onNotify('success', 'Email confirmed & approved', `${u.email} can now sign in.`);
+        await loadUsers();
+      } else {
+        onNotify('error', 'Unable to confirm email', res.error);
+      }
+    } finally {
+      setConfirmingEmail(null);
     }
   };
 
@@ -713,19 +952,54 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                 className="p-3.5 rounded-xl bg-[#FFFFFF] border border-[#DFD7C2] flex flex-wrap items-center justify-between gap-3 text-xs"
               >
                 <div>
-                  <div className="font-medium text-[#0A1B2C]">{u.name}</div>
+                  <div className="font-medium text-[#0A1B2C] flex flex-wrap items-center gap-2">
+                    <span>{u.name}</span>
+                    {isSupabaseMode && u.hasLoginAccount && u.emailConfirmed === false && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#FFFBEB] border border-[#B45309]/40 text-[#92400E]">
+                        Email Unconfirmed
+                      </span>
+                    )}
+                  </div>
                   <div className="font-mono text-[#243647]">{u.email}</div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!isSuperAdmin}
-                    onClick={() => void handleSetStatus(u, 'APPROVED')}
-                    className="ct-btn-primary text-xs min-h-[36px] px-3 py-1"
-                  >
-                    <Check className="w-3.5 h-3.5" aria-hidden="true" />
-                    Approve Facilitator
-                  </button>
+                  {typeof api.confirmFacilitatorEmail === 'function' &&
+                  u.hasLoginAccount &&
+                  u.emailConfirmed === false ? (
+                    <button
+                      type="button"
+                      disabled={!isSuperAdmin || confirmingEmail === u.email}
+                      onClick={() => void handleConfirmEmail(u)}
+                      className="ct-btn-primary text-xs min-h-[36px] px-3 py-1"
+                    >
+                      <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                      {confirmingEmail === u.email ? 'Confirming...' : 'Confirm & Approve'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={!isSuperAdmin}
+                      onClick={() => void handleSetStatus(u, 'APPROVED')}
+                      className="ct-btn-primary text-xs min-h-[36px] px-3 py-1"
+                    >
+                      <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                      Approve Facilitator
+                    </button>
+                  )}
+                  {typeof api.provisionFacilitatorAccount === 'function' && (
+                    <button
+                      type="button"
+                      disabled={!isSuperAdmin}
+                      onClick={() => {
+                        setPasswordTarget(u);
+                        setTargetPassword(generateTemporaryPassword());
+                      }}
+                      className="ct-btn-secondary text-xs min-h-[36px] px-3 py-1"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+                      Set Password
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={!isSuperAdmin}
@@ -754,17 +1028,36 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
 
       {/* 4. Facilitator Allowlist & Pre-Approval Table */}
       <section className="ct-card p-5 sm:p-6">
-        <h3 className="text-base sm:text-lg font-medium text-[#0A1B2C] mb-1">
-          Facilitator Directory &amp; Pre-Approval ({directoryUsers.length})
-        </h3>
-        <p className="text-xs sm:text-sm text-[#243647] mb-4 leading-relaxed">
-          Pre-approve a Google email for direct Facilitator access, or deactivate/deny accounts at
-          any time. Facilitators only access Classroom Data Entry and their own submissions.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-base sm:text-lg font-medium text-[#0A1B2C] mb-1">
+              Facilitator Directory &amp; Pre-Approval ({directoryUsers.length})
+            </h3>
+            <p className="text-xs sm:text-sm text-[#243647] leading-relaxed">
+              {isSupabaseMode
+                ? 'Create ready-to-use facilitator logins directly (bypasses confirmation emails & rate limits), or pre-approve emails and approve pending requests.'
+                : 'Pre-approve a Google email for direct Facilitator access, or deactivate/deny accounts at any time. Facilitators only access Classroom Data Entry and their own submissions.'}
+            </p>
+          </div>
+          {typeof api.bulkProvisionFacilitators === 'function' && (
+            <button
+              type="button"
+              onClick={() => setBulkPanelOpen((v) => !v)}
+              className="ct-btn-secondary text-xs shrink-0"
+            >
+              <Users className="w-4 h-4" aria-hidden="true" />
+              <span>{bulkPanelOpen ? 'Hide Bulk Add' : 'Bulk Add Facilitators (Up to 60)'}</span>
+            </button>
+          )}
+        </div>
 
         <form
           onSubmit={(e) => void handleAddFacilitator(e)}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5"
+          className={`grid grid-cols-1 ${
+            typeof api.provisionFacilitatorAccount === 'function'
+              ? 'md:grid-cols-4'
+              : 'sm:grid-cols-3'
+          } gap-3 mb-5`}
         >
           <input
             type="text"
@@ -781,21 +1074,248 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="Google email address"
+            placeholder={isSupabaseMode ? 'Email address (Gmail or workspace)' : 'Google email address'}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="ct-input text-sm"
             aria-label="New facilitator Google email"
           />
+          {typeof api.provisionFacilitatorAccount === 'function' && (
+            <div className="flex items-stretch gap-1.5">
+              <input
+                type={showInitialPassword ? 'text' : 'password'}
+                minLength={8}
+                placeholder="Password (optional, min 8 chars)"
+                value={initialPassword}
+                onChange={(e) => setInitialPassword(e.target.value)}
+                className="ct-input text-sm flex-1 min-w-0"
+                aria-label="New facilitator initial password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowInitialPassword((v) => !v)}
+                aria-label={showInitialPassword ? 'Hide initial password' : 'Show initial password'}
+                className="px-2.5 rounded-xl bg-[#F5F2E9] border border-[#C7BEA7] text-[#0A1B2C] inline-flex items-center justify-center cursor-pointer"
+              >
+                {showInitialPassword ? (
+                  <EyeOff className="w-4 h-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          )}
           <button
             type="submit"
             disabled={!isSuperAdmin || saving}
             className="ct-btn-primary text-sm"
           >
             <UserPlus className="w-4 h-4" aria-hidden="true" />
-            Add / Approve Facilitator
+            {saving
+              ? 'Saving...'
+              : initialPassword.trim()
+                ? 'Create Login & Approve'
+                : 'Add / Approve Facilitator'}
           </button>
         </form>
+
+        {typeof api.bulkProvisionFacilitators === 'function' && bulkPanelOpen && (
+          <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-[#F5F2E9] border border-[#0284C7]/40">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#006BB8]" aria-hidden="true" />
+                <h4 className="text-sm font-medium text-[#0A1B2C]">
+                  Quick Bulk Add — Create Ready-to-Use Logins (Up to 60 People)
+                </h4>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] border border-[#047857]/35 text-[#047857]">
+                No Confirmation Email Needed
+              </span>
+            </div>
+            <p className="text-xs text-[#243647] mb-3 leading-relaxed">
+              Paste one person per line (<code className="font-mono">Full Name, email@gmail.com</code>{' '}
+              or <code className="font-mono">email@gmail.com</code>) and choose a shared temporary
+              password. All accounts are marked Email Confirmed + Approved immediately.
+            </p>
+            <form onSubmit={(e) => void handleBulkProvision(e)} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+              <div className="lg:col-span-7">
+                <label htmlFor="bulk-facilitators-input" className="sr-only">
+                  Facilitator emails and names (one per line)
+                </label>
+                <textarea
+                  id="bulk-facilitators-input"
+                  rows={4}
+                  value={bulkLines}
+                  onChange={(e) => setBulkLines(e.target.value)}
+                  placeholder={'Firthous Farveen J, rajafarrajafar3@gmail.com\nPraveen Raj, praveenrajtamilarasu@gmail.com'}
+                  className="ct-input text-xs font-mono w-full min-h-[104px] bg-[#FFFFFF]"
+                />
+              </div>
+              <div className="lg:col-span-5 flex flex-col justify-between gap-2.5">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="bulk-shared-password" className="text-xs font-medium text-[#0A1B2C]">
+                    Shared Temporary Password (min 8 chars) *
+                  </label>
+                  <div className="flex items-stretch gap-1.5">
+                    <input
+                      id="bulk-shared-password"
+                      type={showBulkPassword ? 'text' : 'password'}
+                      minLength={8}
+                      value={bulkPassword}
+                      onChange={(e) => setBulkPassword(e.target.value)}
+                      placeholder="e.g. Vidhai@2026"
+                      className="ct-input text-sm flex-1 min-w-0 bg-[#FFFFFF]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPassword((v) => !v)}
+                      aria-label={showBulkPassword ? 'Hide bulk password' : 'Show bulk password'}
+                      className="px-2.5 rounded-xl bg-[#FFFFFF] border border-[#C7BEA7] text-[#0A1B2C] inline-flex items-center justify-center cursor-pointer"
+                    >
+                      {showBulkPassword ? (
+                        <EyeOff className="w-4 h-4" aria-hidden="true" />
+                      ) : (
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkPassword(generateTemporaryPassword());
+                      setShowBulkPassword(true);
+                    }}
+                    className="self-start text-[11px] font-medium text-[#006BB8] hover:underline cursor-pointer"
+                  >
+                    Generate strong password automatically
+                  </button>
+                </div>
+                <button
+                  type="submit"
+                  disabled={!isSuperAdmin || bulkSubmitting}
+                  className="ct-btn-primary text-sm w-full"
+                >
+                  <UserPlus className="w-4 h-4" aria-hidden="true" />
+                  <span>{bulkSubmitting ? 'Creating Logins...' : 'Create / Update All Logins Now'}</span>
+                </button>
+              </div>
+            </form>
+
+            {bulkResult && (
+              <div className="mt-3 p-3 rounded-xl bg-[#FFFFFF] border border-[#DFD7C2] text-xs space-y-1.5">
+                <div className="font-medium text-[#0A1B2C]">
+                  Batch Summary: {bulkResult.createdCount} created · {bulkResult.updatedCount} updated
+                  {bulkResult.failedCount > 0 ? ` · ${bulkResult.failedCount} failed` : ''}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {bulkResult.results.map((r) => (
+                    <span
+                      key={r.email}
+                      className={`px-2 py-0.5 rounded-full border ${
+                        r.ok
+                          ? 'bg-[#ECFDF5] border-[#047857]/35 text-[#047857]'
+                          : 'bg-[#FFF1F2] border-[#BE123C]/40 text-[#BE123C]'
+                      }`}
+                    >
+                      {r.email}
+                      {r.ok ? (r.created ? ' (created)' : ' (updated)') : ` (${r.error || 'failed'})`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {lastProvisionSummary && (
+          <div className="mb-5 p-3.5 rounded-xl bg-[#ECFDF5] border border-[#047857]/35 flex flex-wrap items-center justify-between gap-3 text-xs text-[#047857]">
+            <pre className="whitespace-pre-wrap font-mono text-[11px] text-[#0A1B2C] flex-1 min-w-[220px]">
+              {lastProvisionSummary}
+            </pre>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    void navigator.clipboard.writeText(lastProvisionSummary).then(() => {
+                      onNotify('success', 'Credentials copied to clipboard');
+                    });
+                  }
+                }}
+                className="ct-btn-secondary text-xs min-h-[34px] px-3 py-1"
+              >
+                <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+                Copy Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setLastProvisionSummary(null)}
+                aria-label="Dismiss credentials banner"
+                className="p-1.5 rounded-lg text-[#243647] hover:bg-[#FFFFFF] cursor-pointer"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {passwordTarget && typeof api.provisionFacilitatorAccount === 'function' && (
+          <form
+            onSubmit={(e) => void handleSaveTargetPassword(e)}
+            className="mb-5 p-4 rounded-xl bg-[#E8F6FF] border border-[#0284C7] flex flex-wrap items-end gap-3 text-xs"
+          >
+            <div className="flex-1 min-w-[220px]">
+              <div className="font-medium text-[#0A1B2C] mb-1">
+                Set / Reset Login Password for{' '}
+                <span className="font-mono">{passwordTarget.email}</span>
+              </div>
+              <div className="flex items-stretch gap-1.5">
+                <input
+                  type={showTargetPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={targetPassword}
+                  onChange={(e) => setTargetPassword(e.target.value)}
+                  placeholder="Enter new password (min 8 chars)"
+                  className="ct-input text-sm flex-1 min-w-0 bg-[#FFFFFF]"
+                  aria-label={`New password for ${passwordTarget.email}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowTargetPassword((v) => !v)}
+                  aria-label={showTargetPassword ? 'Hide password' : 'Show password'}
+                  className="px-2.5 rounded-xl bg-[#FFFFFF] border border-[#5F7082] text-[#0A1B2C] inline-flex items-center justify-center cursor-pointer"
+                >
+                  {showTargetPassword ? (
+                    <EyeOff className="w-4 h-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={savingTargetPassword}
+                className="ct-btn-primary text-xs min-h-[40px]"
+              >
+                <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+                {savingTargetPassword ? 'Saving...' : 'Save Password & Approve'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPasswordTarget(null);
+                  setTargetPassword('');
+                }}
+                className="ct-btn-secondary text-xs min-h-[40px]"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
         <div
           tabIndex={0}
@@ -881,12 +1401,51 @@ export const UserAccessManager: React.FC<UserAccessManagerProps> = ({
                     <td className="p-3 font-mono text-[#243647]">{u.email}</td>
                     <td className="p-3 uppercase font-medium text-[#243647]">FACILITATOR</td>
                     <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full font-medium border ${badgeClass}`}>
-                        {status}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded-full font-medium border ${badgeClass}`}>
+                          {status}
+                        </span>
+                        {isSupabaseMode && u.hasLoginAccount && u.emailConfirmed === false && (
+                          <span className="px-2 py-0.5 rounded-full font-medium border bg-[#FFFBEB] border-[#B45309]/40 text-[#92400E]">
+                            UNCONFIRMED
+                          </span>
+                        )}
+                        {isSupabaseMode && u.hasLoginAccount === false && (
+                          <span className="px-2 py-0.5 rounded-full font-medium border bg-[#F5F2E9] border-[#C7BEA7] text-[#33475B]">
+                            NO PASSWORD YET
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex flex-wrap items-center gap-2">
+                        {typeof api.confirmFacilitatorEmail === 'function' &&
+                          u.hasLoginAccount &&
+                          u.emailConfirmed === false && (
+                            <button
+                              type="button"
+                              disabled={!isSuperAdmin || confirmingEmail === u.email}
+                              onClick={() => void handleConfirmEmail(u)}
+                              className="ct-btn-primary text-xs min-h-[34px] px-3 py-1"
+                            >
+                              {confirmingEmail === u.email ? 'Confirming...' : 'Confirm & Approve'}
+                            </button>
+                          )}
+                        {typeof api.provisionFacilitatorAccount === 'function' && (
+                          <button
+                            type="button"
+                            disabled={!isSuperAdmin}
+                            onClick={() => {
+                              setPasswordTarget(u);
+                              setTargetPassword(generateTemporaryPassword());
+                              setShowTargetPassword(true);
+                            }}
+                            className="ct-btn-secondary text-xs min-h-[34px] px-3 py-1"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" aria-hidden="true" />
+                            Set Password
+                          </button>
+                        )}
                         {status !== 'APPROVED' || !u.active ? (
                           <button
                             type="button"

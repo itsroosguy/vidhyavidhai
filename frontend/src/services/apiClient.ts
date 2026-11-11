@@ -12,6 +12,7 @@ import type {
   ApiResponse,
   AppConfiguration,
   AuditLogEntry,
+  BulkProvisionFacilitatorsResult,
   DashboardAnalytics,
   DatabaseBackupPackage,
   DatabaseHealthReport,
@@ -20,6 +21,7 @@ import type {
   ImportSessionsResult,
   ManagedUser,
   PaginatedResult,
+  ProvisionFacilitatorResult,
   SchoolRecord,
   SessionDetailRecord,
   SessionFormValues,
@@ -170,6 +172,17 @@ export interface BackendApiClient {
     status?: UserApprovalStatus;
   }): Promise<ApiResponse<ManagedUser>>;
   deleteUser(userIdOrEmail: string): Promise<ApiResponse<{ deleted: boolean; email: string }>>;
+  provisionFacilitatorAccount?(input: {
+    name?: string;
+    email: string;
+    password: string;
+    status?: 'APPROVED' | 'DENIED';
+  }): Promise<ApiResponse<ProvisionFacilitatorResult>>;
+  bulkProvisionFacilitators?(input: {
+    users: Array<{ name?: string; email: string }>;
+    sharedPassword: string;
+  }): Promise<ApiResponse<BulkProvisionFacilitatorsResult>>;
+  confirmFacilitatorEmail?(email: string): Promise<ApiResponse<{ user: ManagedUser }>>;
   authenticateSandboxEmail?(
     email: string,
     name?: string,

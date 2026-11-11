@@ -51,7 +51,12 @@ import {
   hasDirectSheetsAccessToken,
   subscribeDirectTokenState,
 } from './services/googleSheetsDirectService';
-import { getSupabaseClient, isSupabaseConfigured } from './services/supabaseClient';
+import {
+  extractEdgeFunctionErrorMessage,
+  getSupabaseClient,
+  isSupabaseConfigured,
+  isSupabaseGoogleOAuthEnabled,
+} from './services/supabaseClient';
 import {
   ACTIVE_SANDBOX_SESSION_PROOF_KEY,
   clearActiveSandboxSessionProof,
@@ -783,6 +788,21 @@ export function App() {
         password: passwordInput,
       });
       if (error) {
+        const lower = error.message.toLowerCase();
+        if (lower.includes('invalid login credentials')) {
+          return {
+            ok: false,
+            error:
+              'Incorrect email or password, or your account has not been created yet. New facilitators can click "Create Facilitator account" below or ask a Super Administrator to set your login in User Management.',
+          };
+        }
+        if (lower.includes('email not confirmed')) {
+          return {
+            ok: false,
+            error:
+              'This email address is awaiting confirmation. Ask a Super Administrator to click "Confirm & Approve" or "Set Password" for your email in User Management (no confirmation link needed).',
+          };
+        }
         return { ok: false, error: error.message };
       }
       return await resolveCurrentSupabaseSession({ forceNavigateDefault: true });
@@ -795,25 +815,91 @@ export function App() {
       fullName: string,
       emailInput: string,
       passwordInput: string,
-    ): Promise<EmailSignInOutcome & { requiresEmailConfirmation?: boolean }> => {
+    ): Promise<EmailSignInOutcome & { requiresEmailConfirmation?: boolean; statusMessage?: string }> => {
       if (!isSupabaseMode) {
         return { ok: false, error: 'Supabase Auth is not enabled.' };
       }
       setOauthError(null);
       const supabase = getSupabaseClient();
+      const cleanName = fullName.trim();
+      const cleanEmail = emailInput.trim().toLowerCase();
+
+      // Primary path: bypass Supabase's strict 2/hr built-in email confirmation rate limit
+      // while enforcing server-side Pre-Approval vs Pending Admin Queue gating.
+      if (supabase.functions?.invoke) {
+        try {
+          const { data, error } = await supabase.functions.invoke('facilitator-self-register', {
+            body: {
+              fullName: cleanName,
+              email: cleanEmail,
+              password: passwordInput,
+            },
+          });
+
+          if (error) {
+            const msg = await extractEdgeFunctionErrorMessage(
+              error,
+              'Unable to create facilitator account.',
+            );
+            return { ok: false, error: msg };
+          }
+
+          const payload = (data && typeof data === 'object' ? data : null) as
+            | {
+                ok?: boolean;
+                error?: string;
+                data?: { approvedImmediately?: boolean; message?: string };
+              }
+            | null;
+
+          if (!payload || payload.ok === false) {
+            return {
+              ok: false,
+              error: payload?.error || 'Unable to create facilitator account.',
+            };
+          }
+
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password: passwordInput,
+          });
+
+          if (!signInErr) {
+            return await resolveCurrentSupabaseSession({ forceNavigateDefault: true });
+          }
+
+          return {
+            ok: true,
+            statusMessage:
+              payload.data?.message ||
+              'Account created. Return to Sign In with your email and password.',
+          };
+        } catch {
+          // Transport error reaching Edge Function; fall through to standard Auth signup.
+        }
+      }
+
       const emailRedirectTo =
         typeof window !== 'undefined'
           ? `${window.location.origin}${withBasePath('/')}`
           : undefined;
       const { data, error } = await supabase.auth.signUp({
-        email: emailInput.trim().toLowerCase(),
+        email: cleanEmail,
         password: passwordInput,
         options: {
-          data: { full_name: fullName.trim() },
+          data: { full_name: cleanName },
           emailRedirectTo,
         },
       });
       if (error) {
+        const lower = error.message.toLowerCase();
+        if (lower.includes('rate limit')) {
+          return {
+            ok: false,
+            error:
+              'Signup emails are rate-limited right now. Ask a Super Administrator to create or pre-approve your login directly in User Management.',
+          };
+        }
         return { ok: false, error: error.message };
       }
       if (!data.session) {
@@ -839,6 +925,14 @@ export function App() {
         { redirectTo },
       );
       if (error) {
+        const lower = error.message.toLowerCase();
+        if (lower.includes('rate limit')) {
+          return {
+            ok: false,
+            error:
+              'Password reset emails are temporarily rate-limited. Ask a Super Administrator (Brintha or Karunya) to set a temporary password for you in User Management.',
+          };
+        }
         return { ok: false, error: error.message };
       }
       return { ok: true };
@@ -1505,6 +1599,7 @@ export function App() {
           routeKind={authRouteKind}
           isLiveBackend={env.isLiveBackendConfigured}
           isSupabaseMode={isSupabaseMode}
+          supabaseGoogleOAuthEnabled={isSupabaseGoogleOAuthEnabled()}
           googleClientId={env.googleClientId}
           isTeamIntakeConnected={env.isLiveBackendConfigured || isTeamIntakeActive}
           teamIntakeLabel={teamIntakeConfig?.label}

@@ -34,6 +34,29 @@ export function isSupabaseConfigured(): boolean {
   return getSupabaseConfig().configured;
 }
 
+export function isSupabaseGoogleOAuthEnabled(): boolean {
+  return (
+    readTrimmedEnv(import.meta.env.VITE_SUPABASE_GOOGLE_OAUTH_ENABLED).toLowerCase() === 'true'
+  );
+}
+
+export async function extractEdgeFunctionErrorMessage(
+  error: unknown,
+  fallback: string,
+): Promise<string> {
+  if (!error || typeof error !== 'object') return fallback;
+  const errObj = error as { context?: Response; message?: string };
+  if (errObj.context && typeof errObj.context.json === 'function') {
+    const errJson = (await errObj.context
+      .clone()
+      .json()
+      .catch(() => null)) as { error?: string; message?: string } | null;
+    const parsed = errJson?.error || errJson?.message;
+    if (parsed && parsed.trim()) return parsed.trim();
+  }
+  return errObj.message?.trim() || fallback;
+}
+
 export function getSupabaseClient(): SupabaseClient<Database> {
   const cfg = getSupabaseConfig();
   if (!cfg.configured) {

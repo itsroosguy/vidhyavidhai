@@ -12,6 +12,7 @@ import type {
   ApiResponse,
   AppConfiguration,
   AuditLogEntry,
+  BulkProvisionFacilitatorsResult,
   DashboardAnalytics,
   DatabaseBackupPackage,
   DatabaseHealthReport,
@@ -20,6 +21,7 @@ import type {
   ImportSessionsResult,
   ManagedUser,
   PaginatedResult,
+  ProvisionFacilitatorResult,
   SchoolRecord,
   SessionDetailRecord,
   SessionFormValues,
@@ -43,7 +45,10 @@ import {
   normalizeImportSessionsResult,
   parseSessionTransferOrBackupPayload,
 } from './durableStorage';
-import { getSupabaseClient } from './supabaseClient';
+import {
+  extractEdgeFunctionErrorMessage,
+  getSupabaseClient,
+} from './supabaseClient';
 
 type FormSubmissionDbRow = Database['public']['Tables']['form_submissions']['Row'];
 type FormSubmissionClassDbRow = Database['public']['Tables']['form_submission_classes']['Row'];
@@ -534,8 +539,10 @@ export class SupabaseApiClient implements BackendApiClient {
     return auth;
   }
 
-  private async invokeSheetsEdgeFunction<T>(
+  private async invokeEdgeFunction<T>(
+    functionName: string,
     body: Record<string, unknown>,
+    fallbackLabel: string,
   ): Promise<ApiResponse<T>> {
     if (!this.client.functions?.invoke) {
       return {
@@ -546,23 +553,19 @@ export class SupabaseApiClient implements BackendApiClient {
     }
 
     try {
-      const { data, error } = await this.client.functions.invoke('google-sheets-sync', {
+      const { data, error } = await this.client.functions.invoke(functionName, {
         body,
       });
 
       if (error) {
-        const ctx = (error as { context?: Response }).context;
-        let parsedError = '';
-        if (ctx && typeof ctx.json === 'function') {
-          const errJson = (await ctx.clone().json().catch(() => null)) as
-            | { error?: string; message?: string }
-            | null;
-          parsedError = errJson?.error || errJson?.message || '';
-        }
+        const message = await extractEdgeFunctionErrorMessage(
+          error,
+          `${fallbackLabel} failed.`,
+        );
         return {
           ok: false,
           code: 'EDGE_FUNCTION_ERROR',
-          error: parsedError || error.message || 'Google Sheets sync function failed.',
+          error: message,
         };
       }
 
@@ -574,7 +577,7 @@ export class SupabaseApiClient implements BackendApiClient {
         return {
           ok: false,
           code: 'EMPTY_RESPONSE',
-          error: 'Empty response from Google Sheets sync function.',
+          error: `Empty response from ${fallbackLabel}.`,
         };
       }
 
@@ -582,7 +585,7 @@ export class SupabaseApiClient implements BackendApiClient {
         return {
           ok: false,
           code: 'EDGE_FUNCTION_REJECTED',
-          error: payload.error || 'Google Sheets sync rejected.',
+          error: payload.error || `${fallbackLabel} rejected.`,
         };
       }
 
@@ -594,9 +597,19 @@ export class SupabaseApiClient implements BackendApiClient {
       return {
         ok: false,
         code: 'NETWORK_ERROR',
-        error: err instanceof Error ? err.message : 'Failed to invoke Google Sheets sync function.',
+        error: err instanceof Error ? err.message : `Failed to invoke ${fallbackLabel}.`,
       };
     }
+  }
+
+  private async invokeSheetsEdgeFunction<T>(
+    body: Record<string, unknown>,
+  ): Promise<ApiResponse<T>> {
+    return this.invokeEdgeFunction<T>(
+      'google-sheets-sync',
+      body,
+      'Google Sheets sync function',
+    );
   }
 
   private triggerBackgroundSessionSync(sessionRecordId: string): void {
@@ -1349,6 +1362,63 @@ export class SupabaseApiClient implements BackendApiClient {
     }
 
     return { ok: true, data: { deleted: true, email: deletedProfile[0]!.email } };
+  }
+
+  async provisionFacilitatorAccount(input: {
+    name?: string;
+    email: string;
+    password: string;
+    status?: 'APPROVED' | 'DENIED';
+  }): Promise<ApiResponse<ProvisionFacilitatorResult>> {
+    const adminCheck = await this.ensureSuperAdmin();
+    if (!adminCheck.ok) return adminCheck.response;
+
+    return this.invokeEdgeFunction<ProvisionFacilitatorResult>(
+      'facilitator-auth-admin',
+      {
+        action: 'provision_user',
+        name: input.name ?? '',
+        email: normalizeEmail(input.email),
+        password: input.password,
+        status: input.status ?? 'APPROVED',
+      },
+      'Facilitator account provisioning',
+    );
+  }
+
+  async bulkProvisionFacilitators(input: {
+    users: Array<{ name?: string; email: string }>;
+    sharedPassword: string;
+  }): Promise<ApiResponse<BulkProvisionFacilitatorsResult>> {
+    const adminCheck = await this.ensureSuperAdmin();
+    if (!adminCheck.ok) return adminCheck.response;
+
+    return this.invokeEdgeFunction<BulkProvisionFacilitatorsResult>(
+      'facilitator-auth-admin',
+      {
+        action: 'bulk_provision_users',
+        users: input.users.map((u) => ({
+          name: (u.name ?? '').trim(),
+          email: normalizeEmail(u.email),
+        })),
+        sharedPassword: input.sharedPassword,
+      },
+      'Bulk facilitator provisioning',
+    );
+  }
+
+  async confirmFacilitatorEmail(email: string): Promise<ApiResponse<{ user: ManagedUser }>> {
+    const adminCheck = await this.ensureSuperAdmin();
+    if (!adminCheck.ok) return adminCheck.response;
+
+    return this.invokeEdgeFunction<{ user: ManagedUser }>(
+      'facilitator-auth-admin',
+      {
+        action: 'confirm_user',
+        email: normalizeEmail(email),
+      },
+      'Facilitator email confirmation',
+    );
   }
 
   async getAuditLogs(
