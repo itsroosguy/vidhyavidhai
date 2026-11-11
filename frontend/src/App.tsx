@@ -54,6 +54,7 @@ import {
 import {
   extractEdgeFunctionErrorMessage,
   getSupabaseClient,
+  getSupabaseConfig,
   isSupabaseConfigured,
   isSupabaseGoogleOAuthEnabled,
 } from './services/supabaseClient';
@@ -249,6 +250,37 @@ export function App() {
     [authEnvVersion, handleLiveSessionExpired, refreshLiveIdToken],
   );
   const isSupabaseMode = api.mode === 'supabase' && isSupabaseConfigured();
+  const [liveSupabaseGoogleEnabled, setLiveSupabaseGoogleEnabled] = useState<boolean>(() =>
+    isSupabaseGoogleOAuthEnabled(),
+  );
+
+  useEffect(() => {
+    if (!isSupabaseMode) {
+      setLiveSupabaseGoogleEnabled(false);
+      return;
+    }
+    const cfg = getSupabaseConfig();
+    if (!cfg.configured) {
+      setLiveSupabaseGoogleEnabled(false);
+      return;
+    }
+    let active = true;
+    void fetch(`${cfg.url}/auth/v1/settings`, {
+      headers: { apikey: cfg.publishableKey },
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { external?: { google?: boolean } };
+      })
+      .then((settings) => {
+        if (!active || !settings) return;
+        setLiveSupabaseGoogleEnabled(Boolean(settings.external?.google));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [isSupabaseMode]);
 
   useEffect(() => {
     return subscribeDirectTokenState(() => {
@@ -764,6 +796,27 @@ export function App() {
     if (!isSupabaseMode) return;
     setOauthError(null);
     setAuthNotice(null);
+    const cfg = getSupabaseConfig();
+    if (cfg.configured) {
+      try {
+        const res = await fetch(`${cfg.url}/auth/v1/settings`, {
+          headers: { apikey: cfg.publishableKey },
+        });
+        if (res.ok) {
+          const settings = (await res.json()) as { external?: { google?: boolean } };
+          if (!settings.external?.google) {
+            setLiveSupabaseGoogleEnabled(false);
+            setOauthError(
+              'Google Sign-In is not yet enabled on the authentication server. Sign in with your registered email and password below.',
+            );
+            return;
+          }
+          setLiveSupabaseGoogleEnabled(true);
+        }
+      } catch {
+        // Proceed to Supabase OAuth request if settings preflight cannot be reached.
+      }
+    }
     const supabase = getSupabaseClient();
     const redirectTo =
       typeof window !== 'undefined' ? `${window.location.origin}${withBasePath('/')}` : undefined;
@@ -826,86 +879,70 @@ export function App() {
 
       // Primary path: bypass Supabase's strict 2/hr built-in email confirmation rate limit
       // while enforcing server-side Pre-Approval vs Pending Admin Queue gating.
-      if (supabase.functions?.invoke) {
-        try {
-          const { data, error } = await supabase.functions.invoke('facilitator-self-register', {
-            body: {
-              fullName: cleanName,
-              email: cleanEmail,
-              password: passwordInput,
-            },
-          });
+      if (!supabase.functions?.invoke) {
+        return {
+          ok: false,
+          error:
+            'Account registration service is unavailable right now. Ask a Super Administrator to create your account in User Management.',
+        };
+      }
 
-          if (error) {
-            const msg = await extractEdgeFunctionErrorMessage(
-              error,
-              'Unable to create facilitator account.',
-            );
-            return { ok: false, error: msg };
-          }
-
-          const payload = (data && typeof data === 'object' ? data : null) as
-            | {
-                ok?: boolean;
-                error?: string;
-                data?: { approvedImmediately?: boolean; message?: string };
-              }
-            | null;
-
-          if (!payload || payload.ok === false) {
-            return {
-              ok: false,
-              error: payload?.error || 'Unable to create facilitator account.',
-            };
-          }
-
-          const { error: signInErr } = await supabase.auth.signInWithPassword({
+      try {
+        const { data, error } = await supabase.functions.invoke('facilitator-self-register', {
+          body: {
+            fullName: cleanName,
             email: cleanEmail,
             password: passwordInput,
-          });
+          },
+        });
 
-          if (!signInErr) {
-            return await resolveCurrentSupabaseSession({ forceNavigateDefault: true });
-          }
-
-          return {
-            ok: true,
-            statusMessage:
-              payload.data?.message ||
-              'Account created. Return to Sign In with your email and password.',
-          };
-        } catch {
-          // Transport error reaching Edge Function; fall through to standard Auth signup.
+        if (error) {
+          const msg = await extractEdgeFunctionErrorMessage(
+            error,
+            'Unable to create facilitator account.',
+          );
+          return { ok: false, error: msg };
         }
-      }
 
-      const emailRedirectTo =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}${withBasePath('/')}`
-          : undefined;
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: passwordInput,
-        options: {
-          data: { full_name: cleanName },
-          emailRedirectTo,
-        },
-      });
-      if (error) {
-        const lower = error.message.toLowerCase();
-        if (lower.includes('rate limit')) {
+        const payload = (data && typeof data === 'object' ? data : null) as
+          | {
+              ok?: boolean;
+              error?: string;
+              data?: { approvedImmediately?: boolean; message?: string };
+            }
+          | null;
+
+        if (!payload || payload.ok === false) {
           return {
             ok: false,
-            error:
-              'Signup emails are rate-limited right now. Ask a Super Administrator to create or pre-approve your login directly in User Management.',
+            error: payload?.error || 'Unable to create facilitator account.',
           };
         }
-        return { ok: false, error: error.message };
+
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: passwordInput,
+        });
+
+        if (!signInErr) {
+          return await resolveCurrentSupabaseSession({ forceNavigateDefault: true });
+        }
+
+        return {
+          ok: true,
+          statusMessage:
+            payload.data?.message ||
+            'Account created. Return to Sign In with your email and password.',
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          error:
+            err instanceof Error && err.message
+              ? err.message
+              : 'Unable to reach registration service. Please check your connection and try again.',
+        };
       }
-      if (!data.session) {
-        return { ok: true, requiresEmailConfirmation: true };
-      }
-      return await resolveCurrentSupabaseSession({ forceNavigateDefault: true });
     },
     [isSupabaseMode, resolveCurrentSupabaseSession],
   );
@@ -1259,14 +1296,17 @@ export function App() {
 
   const handleSignOut = useCallback(async () => {
     if (isSupabaseMode) {
+      supabaseResolveSeqRef.current += 1;
+      supabaseAuthUidRef.current = null;
+      setPasswordRecoveryMode(false);
+      setUser(null);
+      setConfig(DEFAULT_APP_CONFIGURATION);
+      setOauthSheetsConn(null);
       try {
         await getSupabaseClient().auth.signOut({ scope: 'local' });
       } catch {
         // Proceed clearing local UI state even if network sign-out fails.
       }
-      supabaseAuthUidRef.current = null;
-      setPasswordRecoveryMode(false);
-      setConfig(DEFAULT_APP_CONFIGURATION);
     }
     idTokenRef.current = undefined;
     sandboxActorIdRef.current = '';
@@ -1599,7 +1639,7 @@ export function App() {
           routeKind={authRouteKind}
           isLiveBackend={env.isLiveBackendConfigured}
           isSupabaseMode={isSupabaseMode}
-          supabaseGoogleOAuthEnabled={isSupabaseGoogleOAuthEnabled()}
+          supabaseGoogleOAuthEnabled={liveSupabaseGoogleEnabled}
           googleClientId={env.googleClientId}
           isTeamIntakeConnected={env.isLiveBackendConfigured || isTeamIntakeActive}
           teamIntakeLabel={teamIntakeConfig?.label}

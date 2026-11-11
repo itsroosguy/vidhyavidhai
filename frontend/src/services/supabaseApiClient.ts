@@ -539,6 +539,27 @@ export class SupabaseApiClient implements BackendApiClient {
     return auth;
   }
 
+  private async getFreshAccessToken(): Promise<string | null> {
+    try {
+      const { data: sessionData } = await this.client.auth.getSession();
+      let session = sessionData?.session ?? null;
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (
+        session?.expires_at &&
+        session.expires_at - nowSec < 60 &&
+        typeof this.client.auth.refreshSession === 'function'
+      ) {
+        const { data: refreshed } = await this.client.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          session = refreshed.session;
+        }
+      }
+      return session?.access_token ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private async invokeEdgeFunction<T>(
     functionName: string,
     body: Record<string, unknown>,
@@ -552,9 +573,21 @@ export class SupabaseApiClient implements BackendApiClient {
       };
     }
 
+    const accessToken = await this.getFreshAccessToken();
+    if (!accessToken) {
+      return {
+        ok: false,
+        code: 'UNAUTHENTICATED',
+        error: 'Your session expired. Sign in again and retry.',
+      };
+    }
+
     try {
       const { data, error } = await this.client.functions.invoke(functionName, {
         body,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       if (error) {
@@ -614,9 +647,15 @@ export class SupabaseApiClient implements BackendApiClient {
 
   private triggerBackgroundSessionSync(sessionRecordId: string): void {
     if (!sessionRecordId || !this.client.functions?.invoke) return;
-    void this.client.functions
-      .invoke('google-sheets-sync', {
-        body: { action: 'sync_session', sessionRecordId },
+    void this.getFreshAccessToken()
+      .then((accessToken) => {
+        if (!accessToken || !this.client.functions?.invoke) return;
+        return this.client.functions.invoke('google-sheets-sync', {
+          body: { action: 'sync_session', sessionRecordId },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
       })
       .catch(() => undefined);
   }
@@ -1344,24 +1383,15 @@ export class SupabaseApiClient implements BackendApiClient {
       return { ok: true, data: { deleted: true, email: deletedPre[0]!.email } };
     }
 
-    let delQuery = this.client.from('profiles').delete();
-    if (matched?.userId) {
-      delQuery = delQuery.eq('user_code', matched.userId);
-    } else if (targetInput.includes('@')) {
-      delQuery = delQuery.eq('email', targetEmail);
-    } else {
-      delQuery = delQuery.eq('user_code', targetInput);
-    }
-
-    const { data: deletedProfile, error: profErr } = await delQuery.select('email');
-    if (profErr) {
-      return this.mapSupabaseError(profErr, 'Failed to delete user profile.');
-    }
-    if (!deletedProfile || deletedProfile.length === 0) {
-      return { ok: false, code: 'NOT_FOUND', error: 'User profile not found.' };
-    }
-
-    return { ok: true, data: { deleted: true, email: deletedProfile[0]!.email } };
+    return this.invokeEdgeFunction<{ deleted: boolean; email: string }>(
+      'facilitator-auth-admin',
+      {
+        action: 'delete_user',
+        userId: matched?.userId ?? (targetInput.includes('@') ? '' : targetInput),
+        email: targetEmail,
+      },
+      'Delete facilitator account',
+    );
   }
 
   async provisionFacilitatorAccount(input: {

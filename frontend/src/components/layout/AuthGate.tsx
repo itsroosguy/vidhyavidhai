@@ -584,6 +584,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
   const handleSupabaseSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (signupSubmitting) return;
     setSignupSubmitted(true);
     setSignupServerError(null);
     setSignupStatusMessage(null);
@@ -610,7 +611,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
       signupPasswordRef.current?.focus();
       return;
     }
-    if (!onSupabaseSignUp) return;
+    if (!onSupabaseSignUp || signupSubmitting) return;
     setSignupSubmitting(true);
     try {
       const outcome = await onSupabaseSignUp(cleanName, cleanEmail, signupPassword);

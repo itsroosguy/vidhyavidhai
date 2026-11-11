@@ -191,6 +191,7 @@ function makeDbSubmissionRow(overrides: {
 
 interface MockSupabaseOptions {
   authUserId: string;
+  sessionAccessToken?: string | null;
   profile: {
     userId: string;
     name: string;
@@ -208,6 +209,7 @@ interface MockSupabaseOptions {
 function createMockSupabaseClient(opts: MockSupabaseOptions) {
   const eqCalls: Array<{ table: string; col: string; val: unknown }> = [];
   const rpcCalls: Array<{ fn: string; args?: Record<string, unknown> }> = [];
+  const functionCalls: Array<{ fn: string; options?: Record<string, unknown> }> = [];
   const cfg = createTestConfig();
 
   const makeQueryChain = (table: string) => {
@@ -248,10 +250,13 @@ function createMockSupabaseClient(opts: MockSupabaseOptions) {
     auth: {
       getSession: async () => ({
         data: {
-          session: {
-            access_token: 'mock-jwt',
-            user: { id: opts.authUserId, email: opts.profile.email },
-          },
+          session:
+            opts.sessionAccessToken === null
+              ? null
+              : {
+                  access_token: opts.sessionAccessToken ?? 'mock-jwt',
+                  user: { id: opts.authUserId, email: opts.profile.email },
+                },
         },
         error: null,
       }),
@@ -271,7 +276,25 @@ function createMockSupabaseClient(opts: MockSupabaseOptions) {
     },
     from: (table: string) => makeQueryChain(table),
     functions: {
-      invoke: async () => ({ data: { ok: true }, error: null }),
+      invoke: async (fn: string, options?: Record<string, unknown>) => {
+        functionCalls.push({ fn, options });
+        if (fn === 'facilitator-auth-admin') {
+          const body = (options?.body ?? {}) as Record<string, unknown>;
+          if (body.action === 'delete_user') {
+            return {
+              data: {
+                ok: true,
+                data: {
+                  deleted: true,
+                  email: String(body.email ?? ''),
+                },
+              },
+              error: null,
+            };
+          }
+        }
+        return { data: { ok: true }, error: null };
+      },
     },
   };
 
@@ -279,8 +302,103 @@ function createMockSupabaseClient(opts: MockSupabaseOptions) {
     client: client as unknown as SupabaseClient<Database>,
     eqCalls,
     rpcCalls,
+    functionCalls,
   };
 }
+
+describe('SupabaseApiClient Edge Function Auth & Delete Routing', () => {
+  it('injects explicit Bearer access_token on Edge Function invocations and blocks unauthenticated calls', async () => {
+    const authed = createMockSupabaseClient({
+      authUserId: 'uid-admin',
+      sessionAccessToken: 'live-admin-jwt-123',
+      profile: {
+        userId: 'SA_BRINTHA',
+        name: 'Brintha',
+        email: 'brinthajayaprakash888@gmail.com',
+        role: 'super_admin',
+        active: true,
+        status: 'APPROVED',
+      },
+    });
+    const authedApi = new SupabaseApiClient(authed.client);
+    const provisionRes = await authedApi.provisionFacilitatorAccount({
+      name: 'Pilot Facilitator',
+      email: 'pilot@example.org',
+      password: 'Password123',
+    });
+    expect(provisionRes.ok).toBe(true);
+    expect(authed.functionCalls).toHaveLength(1);
+    expect(authed.functionCalls[0]?.fn).toBe('facilitator-auth-admin');
+    expect(authed.functionCalls[0]?.options?.headers).toEqual({
+      Authorization: 'Bearer live-admin-jwt-123',
+    });
+
+    const unauth = createMockSupabaseClient({
+      authUserId: 'uid-admin',
+      sessionAccessToken: null,
+      profile: {
+        userId: 'SA_BRINTHA',
+        name: 'Brintha',
+        email: 'brinthajayaprakash888@gmail.com',
+        role: 'super_admin',
+        active: true,
+        status: 'APPROVED',
+      },
+    });
+    const unauthApi = new SupabaseApiClient(unauth.client);
+    const blockedRes = await unauthApi.provisionFacilitatorAccount({
+      name: 'Pilot Facilitator',
+      email: 'pilot@example.org',
+      password: 'Password123',
+    });
+    expect(blockedRes.ok).toBe(false);
+    expect(blockedRes.code).toBe('UNAUTHENTICATED');
+    expect(unauth.functionCalls).toHaveLength(0);
+  });
+
+  it('routes non-preapproval user deletions through facilitator-auth-admin delete_user with Bearer JWT', async () => {
+    const targetUser = {
+      userId: 'USR_PILOT01',
+      name: 'Pilot User',
+      email: 'pilot@example.org',
+      role: 'facilitator',
+      active: false,
+      status: 'PENDING',
+    };
+    const mock = createMockSupabaseClient({
+      authUserId: 'uid-admin',
+      sessionAccessToken: 'admin-jwt-del',
+      profile: {
+        userId: 'SA_KARUNYA',
+        name: 'Karunya',
+        email: 'karunya@vidhyavidhai.org',
+        role: 'super_admin',
+        active: true,
+        status: 'APPROVED',
+      },
+      rpcOverrides: {
+        list_managed_directory: async () => ({
+          data: [targetUser],
+          error: null,
+        }),
+      },
+    });
+    const api = new SupabaseApiClient(mock.client);
+    const res = await api.deleteUser('USR_PILOT01');
+    expect(res.ok).toBe(true);
+    expect(res.data).toEqual({ deleted: true, email: 'pilot@example.org' });
+    expect(mock.functionCalls).toHaveLength(1);
+    expect(mock.functionCalls[0]?.fn).toBe('facilitator-auth-admin');
+    expect(mock.functionCalls[0]?.options?.headers).toEqual({
+      Authorization: 'Bearer admin-jwt-del',
+    });
+    expect(mock.functionCalls[0]?.options?.body).toEqual({
+      action: 'delete_user',
+      userId: 'USR_PILOT01',
+      email: 'pilot@example.org',
+    });
+  });
+});
 
 describe('RFC-4180 CSV Export & Formula Sanitization', () => {
   it('neutralizes formula injection while preserving finite negative numbers and RFC-4180 quoting', () => {

@@ -253,35 +253,37 @@ function mapProfileRowToFacilitator(row: Record<string, unknown>) {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
-  }
+  try {
+    if (req.method !== "POST") {
+      return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
+    }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const authHeader = req.headers.get("Authorization") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-    return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
-  }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
+    }
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return jsonResponse({ ok: false, error: "Missing Authorization Bearer token" }, 401);
-  }
+    if (!authHeader.toLowerCase().startsWith("bearer ")) {
+      return jsonResponse({ ok: false, error: "Missing Authorization Bearer token" }, 401);
+    }
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.slice(7).trim();
+    if (!token || token.startsWith("sb_") || token.split(".").length !== 3) {
+      return jsonResponse({ ok: false, error: "Invalid user session token" }, 401);
+    }
 
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData.user) {
-    return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
-  }
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
+    if (userErr || !userData.user) {
+      return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
+    }
 
   const authUser = userData.user;
   const { data: profile, error: profileErr } = await serviceClient
@@ -654,4 +656,8 @@ Deno.serve(async (req: Request) => {
   }
 
   return jsonResponse({ ok: false, error: `Unsupported action: ${action}` }, 400);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unexpected Google Sheets sync error";
+    return jsonResponse({ ok: false, error: message }, 500);
+  }
 });

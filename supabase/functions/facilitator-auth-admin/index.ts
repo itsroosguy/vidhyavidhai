@@ -280,35 +280,37 @@ async function provisionSingleFacilitator(params: ProvisionParams) {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
-  }
+  try {
+    if (req.method !== "POST") {
+      return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
+    }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const authHeader = req.headers.get("Authorization") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-    return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
-  }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
+    }
 
-  if (!authHeader.startsWith("Bearer ")) {
-    return jsonResponse({ ok: false, error: "Missing Authorization Bearer token" }, 401);
-  }
+    if (!authHeader.toLowerCase().startsWith("bearer ")) {
+      return jsonResponse({ ok: false, error: "Missing Authorization Bearer token" }, 401);
+    }
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.slice(7).trim();
+    if (!token || token.startsWith("sb_") || token.split(".").length !== 3) {
+      return jsonResponse({ ok: false, error: "Invalid user session token" }, 401);
+    }
 
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
-  }
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
+    }
 
   const caller = userData.user;
   const { data: callerProfile, error: callerProfileErr } = await serviceClient
@@ -583,5 +585,123 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (action === "delete_user") {
+    const rawUserId = String(body.userId ?? "").trim();
+    const rawEmail = normalizeEmail(body.email);
+
+    let existingProfile: { id: string; email: string; user_code: string } | null = null;
+    if (rawUserId && !rawUserId.startsWith("PRE_") && !rawUserId.startsWith("AUTH_")) {
+      const { data } = await serviceClient
+        .from("profiles")
+        .select("id, email, user_code")
+        .eq("user_code", rawUserId)
+        .maybeSingle();
+      if (data) existingProfile = data as { id: string; email: string; user_code: string };
+    }
+    if (!existingProfile && EMAIL_PATTERN.test(rawEmail)) {
+      const { data } = await serviceClient
+        .from("profiles")
+        .select("id, email, user_code")
+        .eq("email", rawEmail)
+        .maybeSingle();
+      if (data) existingProfile = data as { id: string; email: string; user_code: string };
+    }
+
+    let authUser: User | null = null;
+    if (existingProfile?.id) {
+      const { data } = await serviceClient.auth.admin.getUserById(existingProfile.id);
+      if (data?.user) authUser = data.user;
+    } else if (EMAIL_PATTERN.test(rawEmail)) {
+      authUser = await findAuthUserByEmail(serviceClient, rawEmail);
+    }
+
+    const targetEmail = normalizeEmail(existingProfile?.email ?? authUser?.email ?? rawEmail);
+    if (!targetEmail) {
+      return jsonResponse({ ok: false, error: "Valid target user ID or email is required." }, 400);
+    }
+    if (SUPER_ADMIN_ALLOWLIST.has(targetEmail)) {
+      return jsonResponse(
+        { ok: false, error: "Allowlisted Super Administrators cannot be removed." },
+        403,
+      );
+    }
+
+    const targetUid = existingProfile?.id ?? authUser?.id ?? null;
+    if (targetUid) {
+      const { data: hasSubmission } = await serviceClient
+        .from("form_submissions")
+        .select("id")
+        .eq("user_id", targetUid)
+        .limit(1)
+        .maybeSingle();
+
+      if (hasSubmission) {
+        return jsonResponse(
+          {
+            ok: false,
+            error:
+              "Facilitator has recorded classroom sessions. Deny or deactivate access instead of deleting to preserve history.",
+          },
+          409,
+        );
+      }
+    }
+
+    const { data: deletedPre } = await serviceClient
+      .from("facilitator_preapprovals")
+      .delete()
+      .eq("email", targetEmail)
+      .select("email");
+
+    let deletedProfile = false;
+    if (existingProfile?.id) {
+      const { error: delProfErr } = await serviceClient
+        .from("profiles")
+        .delete()
+        .eq("id", existingProfile.id);
+      if (delProfErr) {
+        return jsonResponse({ ok: false, error: delProfErr.message }, 409);
+      }
+      deletedProfile = true;
+    }
+
+    let deletedAuth = false;
+    if (authUser?.id) {
+      const { error: delAuthErr } = await serviceClient.auth.admin.deleteUser(authUser.id);
+      if (delAuthErr) {
+        return jsonResponse({ ok: false, error: delAuthErr.message }, 500);
+      }
+      deletedAuth = true;
+    }
+
+    if (!deletedProfile && !deletedAuth && (!deletedPre || deletedPre.length === 0)) {
+      return jsonResponse({ ok: false, error: "User account not found." }, 404);
+    }
+
+    await serviceClient.from("submission_audit_logs").insert({
+      audit_code: `AUD_${crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`,
+      performed_by: caller.id,
+      actor_email: actorEmail,
+      action: "DELETE_USER",
+      entity_type: "User",
+      entity_id: targetEmail,
+      previous_summary: "",
+      new_summary: `deletedProfile=${deletedProfile} deletedAuth=${deletedAuth}`,
+      result: "SUCCESS",
+    });
+
+    return jsonResponse({
+      ok: true,
+      data: {
+        deleted: true,
+        email: targetEmail,
+      },
+    });
+  }
+
   return jsonResponse({ ok: false, error: `Unsupported action: ${action}` }, 400);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unexpected admin provisioning error";
+    return jsonResponse({ ok: false, error: message }, 500);
+  }
 });

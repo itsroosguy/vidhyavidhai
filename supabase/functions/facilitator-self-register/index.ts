@@ -40,19 +40,20 @@ function isStrongPassword(password: string): boolean {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
-  }
+  try {
+    if (req.method !== "POST") {
+      return jsonResponse({ ok: false, error: "Method not allowed" }, 405);
+    }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
-  }
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
+    }
 
   let body: Record<string, unknown> = {};
   try {
@@ -171,7 +172,7 @@ Deno.serve(async (req: Request) => {
           ok: false,
           code: "ALREADY_REGISTERED",
           error:
-            "An account with this email is already registered (possibly awaiting email confirmation). Ask your Super Administrator to click 'Confirm & Approve' or 'Set Password' in User Management.",
+            "An account with this email already exists. Return to Sign In, or ask your Super Administrator to click 'Confirm & Approve' or 'Set Password' in User Management.",
         },
         409,
       );
@@ -188,8 +189,12 @@ Deno.serve(async (req: Request) => {
       approvedImmediately: isPreapprovedApproved,
       status: isPreapprovedApproved ? "APPROVED" : "PENDING",
       message: isPreapprovedApproved
-        ? "Account created using Super Administrator pre-approval. Signing you in..."
-        : "Account created without needing a confirmation email. Your request is now waiting in the Super Administrator Pending Approval Queue.",
+        ? "Account created using Super Administrator pre-approval (no email confirmation needed). Signing you in..."
+        : "Account created in the Super Administrator approval queue (no confirmation email needed). Ask Brintha or Karunya to approve your account in User Management.",
     },
   });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unexpected registration error";
+    return jsonResponse({ ok: false, error: message }, 500);
+  }
 });

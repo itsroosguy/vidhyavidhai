@@ -17,4 +17,10 @@ additional_redirect_urls = [
 ]
 
 [functions.google-sheets-sync]
-verify_jwt = true
+verify_jwt = false
+
+[functions.facilitator-auth-admin]
+verify_jwt = false
+
+[functions.facilitator-self-register]
+verify_jwt = false
