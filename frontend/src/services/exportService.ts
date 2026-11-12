@@ -410,6 +410,117 @@ function enhanceTableWorksheet(
   }
 }
 
+const PLAIN_TEXT_EXPORT_KEYS = new Set([
+  'udise_code',
+  'pin_code',
+  'start_time',
+  'end_time',
+  'start_date',
+  'end_date',
+  'submission_date',
+]);
+
+function isPlainTextExportField(sourceKey: string, format?: string, numFmt?: string): boolean {
+  return (
+    numFmt === '@' ||
+    format === 'text' ||
+    format === 'date_ddmmyyyy' ||
+    PLAIN_TEXT_EXPORT_KEYS.has(sourceKey)
+  );
+}
+
+/**
+ * Normalizes classroom start/end times to 24-hour HH:MM plain text in Asia/Kolkata.
+ * Handles HH:MM, HH:MM:SS, 12-hour AM/PM strings, Date objects, and 1899-12-30 ISO values.
+ */
+export function normalizeExportTimeText(raw: unknown): string {
+  if (raw === undefined || raw === null) return '';
+
+  if (raw instanceof Date) {
+    if (Number.isNaN(raw.getTime())) return '';
+    return formatDateToKolkataHHMM(raw);
+  }
+
+  const trimmed = String(raw).trim();
+  if (!trimmed) return '';
+
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (match24) {
+    const h = Number(match24[1]);
+    const m = Number(match24[2]);
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+  }
+
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+  if (match12) {
+    let h = Number(match12[1]);
+    const m = Number(match12[2]);
+    const period = match12[3]!.toUpperCase();
+    if (h >= 1 && h <= 12 && m >= 0 && m <= 59) {
+      if (period === 'AM') {
+        if (h === 12) h = 0;
+      } else if (h < 12) {
+        h += 12;
+      }
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateToKolkataHHMM(parsed);
+    }
+  }
+
+  return trimmed;
+}
+
+function formatDateToKolkataHHMM(d: Date): string {
+  // Excel/Google Sheets legacy 1899-12-30 time-serial timestamps sit before
+  // 1906 IST standardization; Intl applies Madras LMT (+05:21:10) and shifts
+  // times by 9 minutes. Apply fixed modern IST (+05:30) for pre-1945 epochs.
+  if (d.getUTCFullYear() < 1945) {
+    const ist = new Date(d.getTime() + 330 * 60_000);
+    const hour = String(ist.getUTCHours()).padStart(2, '0');
+    const minute = String(ist.getUTCMinutes()).padStart(2, '0');
+    return `${hour}:${minute}`;
+  }
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d);
+  const rawHour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const hour = rawHour === '24' ? '00' : rawHour.padStart(2, '0');
+  const minute = (parts.find((p) => p.type === 'minute')?.value ?? '00').padStart(2, '0');
+  return `${hour}:${minute}`;
+}
+
+function formatExportCellValueForCsv(
+  sourceKey: string,
+  format: ExportColumnSpec['format'] | undefined,
+  raw: unknown,
+): string {
+  if (raw === undefined || raw === null) return '';
+
+  // Append "IST" in CSV so Excel keeps time values as plain text instead of auto-parsing
+  // HH:MM into a numeric Time serial (e.g. 1:40:00 PM) that overflows 8.43-char CSV columns as ########
+  if (sourceKey === 'start_time' || sourceKey === 'end_time') {
+    const normalized = normalizeExportTimeText(raw);
+    return normalized ? sanitizeCsvCell(`${normalized} IST`) : '';
+  }
+
+  if (format === 'text' || PLAIN_TEXT_EXPORT_KEYS.has(sourceKey)) {
+    return sanitizeCsvCell(String(raw));
+  }
+
+  return sanitizeCsvCell(raw);
+}
+
 export function buildFlattenedExportRows(
   sessions: SessionRecord[],
   config: AppConfiguration,
@@ -470,8 +581,8 @@ export function buildFlattenedExportRows(
         language: s.language,
         start_date: formatISODateToDDMMYYYY(s.startDate),
         end_date: formatISODateToDDMMYYYY(s.endDate),
-        start_time: s.startTime,
-        end_time: s.endTime,
+        start_time: normalizeExportTimeText(s.startTime),
+        end_time: normalizeExportTimeText(s.endTime),
         duration_minutes: s.durationMinutes,
         duration_formatted: s.durationFormatted,
         reporting_month: s.reportingMonth,
@@ -544,6 +655,10 @@ function guessSourceKey(header: string): {
   if (h.includes('language')) return { sourceKey: 'language', format: 'text' };
   if (h.includes('start_date') || h.includes('start date')) return { sourceKey: 'start_date', format: 'date_ddmmyyyy' };
   if (h.includes('end_date') || h.includes('end date')) return { sourceKey: 'end_date', format: 'date_ddmmyyyy' };
+  if (h.includes('start_time') || h.includes('start time')) return { sourceKey: 'start_time', format: 'text' };
+  if (h.includes('end_time') || h.includes('end time')) return { sourceKey: 'end_time', format: 'text' };
+  if (h.includes('duration') && h.includes('min')) return { sourceKey: 'duration_minutes', format: 'number' };
+  if (h.includes('duration') || h.includes('session length')) return { sourceKey: 'duration_formatted', format: 'text' };
   if (h.includes('submission')) return { sourceKey: 'submission_date', format: 'date_ddmmyyyy' };
   if (h === 'month' || h.includes('reporting_month')) return { sourceKey: 'reporting_month', format: 'text' };
   if (h === 'grade' || h.includes('class')) return { sourceKey: 'grade', format: 'text' };
@@ -1380,7 +1495,7 @@ export async function generateExportWorkbookBuffer(
         }
         const raw = (row as unknown as Record<string, unknown>)[spec.sourceKey];
         if (raw === undefined || raw === null) return '';
-        if (spec.format === 'text' || spec.sourceKey === 'udise_code' || spec.sourceKey === 'pin_code') {
+        if (isPlainTextExportField(spec.sourceKey, spec.format)) {
           return String(raw);
         }
         return raw;
@@ -1388,7 +1503,7 @@ export async function generateExportWorkbookBuffer(
       const added = worksheet.addRow(values);
       specs.forEach((spec, idx) => {
         const cell = added.getCell(idx + 1);
-        if (spec.sourceKey === 'udise_code' || spec.sourceKey === 'pin_code' || spec.format === 'text') {
+        if (isPlainTextExportField(spec.sourceKey, spec.format)) {
           cell.numFmt = '@';
         } else if (spec.format === 'decimal2' && typeof cell.value === 'number') {
           cell.numFmt = '0.00';
@@ -1398,9 +1513,15 @@ export async function generateExportWorkbookBuffer(
 
     const colDescriptors: ColumnFormatDescriptor[] = specs.map((spec) => {
       const decl = getExportColumnDeclaration(spec);
-      const isText = spec.sourceKey === 'udise_code' || spec.sourceKey === 'pin_code' || spec.format === 'text';
+      const isText = isPlainTextExportField(spec.sourceKey, spec.format, decl.meta?.numFmt);
       const isDec = spec.format === 'decimal2';
       const isNum = spec.format === 'number';
+      const isTimeOrDate =
+        spec.sourceKey === 'start_time' ||
+        spec.sourceKey === 'end_time' ||
+        spec.sourceKey === 'start_date' ||
+        spec.sourceKey === 'end_date' ||
+        spec.sourceKey === 'submission_date';
       return {
         keyForValidation: spec.sourceKey || spec.header,
         header: spec.header,
@@ -1408,9 +1529,12 @@ export async function generateExportWorkbookBuffer(
         dataType: decl.dataType,
         validationRule: decl.validationRule,
         definition: decl.definition,
-        width: decl.meta?.width ?? Math.max(16, Math.min(44, spec.header.length + 6)),
+        width: Math.max(
+          isTimeOrDate ? 20 : 12,
+          decl.meta?.width ?? Math.max(16, Math.min(44, spec.header.length + 6)),
+        ),
         numFmt: isText ? '@' : isDec ? '0.00' : isNum ? '#,##0' : decl.meta?.numFmt,
-        align: decl.meta?.align ?? (isNum || isDec ? 'right' : 'left'),
+        align: decl.meta?.align ?? (isNum || isDec ? 'right' : isTimeOrDate ? 'center' : 'left'),
         isStatusCol:
           spec.sourceKey === 'submission_status' || spec.sourceKey === 'teacher_classification',
       };
@@ -1441,11 +1565,15 @@ export async function generateExportWorkbookBuffer(
 
   for (const row of flatRows) {
     const added = worksheet.addRow(
-      standardCols.map((c) => row[c.sourceKey as keyof FlattenedExportRow] ?? ''),
+      standardCols.map((c) => {
+        const raw = row[c.sourceKey as keyof FlattenedExportRow];
+        if (raw === undefined || raw === null) return '';
+        return isPlainTextExportField(c.sourceKey, undefined, c.numFmt) ? String(raw) : raw;
+      }),
     );
     standardCols.forEach((c, idx) => {
       const cell = added.getCell(idx + 1);
-      if (c.sourceKey === 'udise_code' || c.sourceKey === 'pin_code' || c.numFmt === '@') {
+      if (isPlainTextExportField(c.sourceKey, undefined, c.numFmt)) {
         cell.numFmt = '@';
       } else if (
         (c.sourceKey === 'csat' ||
@@ -1527,8 +1655,8 @@ export async function generateInitializedDatabaseWorkbookBuffer(params: {
       s.language,
       s.startDate,
       s.endDate,
-      s.startTime,
-      s.endTime,
+      normalizeExportTimeText(s.startTime),
+      normalizeExportTimeText(s.endTime),
       s.durationMinutes,
       s.durationFormatted,
       s.reportingMonth,
@@ -1827,13 +1955,7 @@ export function generateExportCsvString(
           return '';
         }
         const raw = (row as unknown as Record<string, unknown>)[spec.sourceKey];
-        if (raw === undefined || raw === null) {
-          return '';
-        }
-        if (spec.format === 'text' || spec.sourceKey === 'udise_code' || spec.sourceKey === 'pin_code') {
-          return sanitizeCsvCell(String(raw));
-        }
-        return sanitizeCsvCell(raw);
+        return formatExportCellValueForCsv(spec.sourceKey, spec.format, raw);
       });
       lines.push(cells.join(','));
     }
@@ -1851,8 +1973,12 @@ export function generateExportCsvString(
 
   for (const row of flatRows) {
     const cells = standardCols.map((c) => {
-      const raw = row[c.sourceKey as keyof FlattenedExportRow] ?? '';
-      return sanitizeCsvCell(raw);
+      const raw = row[c.sourceKey as keyof FlattenedExportRow];
+      return formatExportCellValueForCsv(
+        c.sourceKey,
+        c.numFmt === '@' ? 'text' : undefined,
+        raw,
+      );
     });
     lines.push(cells.join(','));
   }

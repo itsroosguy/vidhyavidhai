@@ -5,8 +5,10 @@ import { createTestConfig, createValidFormValues } from '../../testFixtures';
 import { LocalSandboxApiClient } from '../apiClient';
 import { SANDBOX_USERS } from '../authService';
 import {
+  generateExportCsvString,
   generateExportWorkbookBuffer,
   generateInitializedDatabaseWorkbookBuffer,
+  normalizeExportTimeText,
   parseOfficial63TemplateXlsx,
 } from '../exportService';
 
@@ -266,5 +268,100 @@ describe('Excel (.xlsx) Export & 63-Column Template Ingestion', () => {
     expect(dbWb.getWorksheet('Sessions')!.rowCount).toBe(1);
     expect(dbWb.getWorksheet('Sessions')!.autoFilter).toBeTruthy();
     expect(dbWb.getWorksheet('Declarations')!.rowCount).toBeGreaterThan(100);
+  });
+
+  it('keeps Start Time and End Time as spacious plain-text HH:MM cells in .xlsx and Excel-safe IST text in .csv (no ########)', async () => {
+    expect(normalizeExportTimeText('13:40:00')).toBe('13:40');
+    expect(normalizeExportTimeText('1:40 PM')).toBe('13:40');
+    expect(normalizeExportTimeText('1899-12-30T08:10:00.000Z')).toBe('13:40');
+
+    const cfg = createTestConfig();
+    const api = new LocalSandboxApiClient(() => SANDBOX_USERS.facilitator.userId, cfg);
+    const saved = await api.createSession(
+      createValidFormValues({
+        startTime: '13:40',
+        endTime: '15:45',
+      }),
+    );
+    expect(saved.ok).toBe(true);
+    const baseSession = saved.data!.session;
+    const legacyIsoSession = {
+      ...baseSession,
+      startTime: '1899-12-30T08:10:00.000Z',
+      endTime: '03:45 PM',
+    };
+
+    // 1. Standard .xlsx export preserves OOXML shared string t="s", numFmt="@", and wide columns
+    const stdXlsx = await generateExportWorkbookBuffer([legacyIsoSession], cfg, 'standard');
+    const stdZip = await JSZip.loadAsync(stdXlsx.buffer);
+    const sheet1Xml = await stdZip.file('xl/worksheets/sheet1.xml')!.async('string');
+    expect(sheet1Xml).toContain('<c r="R2" s="13" t="s">');
+    expect(sheet1Xml).toContain('<c r="S2" s="13" t="s">');
+
+    const stdWb = new ExcelJS.Workbook();
+    await stdWb.xlsx.load(stdXlsx.buffer);
+    const dataWs = stdWb.getWorksheet('Career Tours Data')!;
+    expect(dataWs.getColumn(18).width).toBeGreaterThanOrEqual(21);
+    expect(dataWs.getColumn(19).width).toBeGreaterThanOrEqual(21);
+    expect(dataWs.getRow(2).getCell(18).value).toBe('13:40');
+    expect(dataWs.getRow(2).getCell(18).numFmt).toBe('@');
+    expect(dataWs.getRow(2).getCell(19).value).toBe('15:45');
+    expect(dataWs.getRow(2).getCell(19).numFmt).toBe('@');
+
+    // 2. 10-tab Database .xlsx export widens Sessions time columns & preserves text HH:MM
+    const dbXlsx = await generateInitializedDatabaseWorkbookBuffer({
+      sessions: [legacyIsoSession],
+      config: cfg,
+    });
+    const dbWb = new ExcelJS.Workbook();
+    await dbWb.xlsx.load(dbXlsx.buffer);
+    const sessWs = dbWb.getWorksheet('Sessions')!;
+    expect(sessWs.getColumn(13).width).toBeGreaterThanOrEqual(18);
+    expect(sessWs.getColumn(14).width).toBeGreaterThanOrEqual(18);
+    expect(sessWs.getRow(2).getCell(13).value).toBe('13:40');
+    expect(sessWs.getRow(2).getCell(13).numFmt).toBe('@');
+    expect(sessWs.getRow(2).getCell(14).value).toBe('15:45');
+    expect(sessWs.getRow(2).getCell(14).numFmt).toBe('@');
+
+    // 3. Official 63-column auto-mapping picks up Start Time & End Time headers
+    const tplWb = new ExcelJS.Workbook();
+    const tplWs = tplWb.addWorksheet('Template');
+    const tplHeaders = Array.from({ length: 63 }, (_, i) => {
+      if (i === 0) return 'Session_ID';
+      if (i === 1) return 'Start Time (HH:MM)';
+      if (i === 2) return 'End Time (HH:MM)';
+      return `Col_${i + 1}`;
+    });
+    tplWs.addRow(tplHeaders);
+    const parsed63 = await parseOfficial63TemplateXlsx(
+      (await tplWb.xlsx.writeBuffer()) as ArrayBuffer,
+      'times_63.xlsx',
+      'sa@example.org',
+    );
+    expect(parsed63.ok).toBe(true);
+    if (!parsed63.ok) return;
+    expect(parsed63.schema.columns[1]!.sourceKey).toBe('start_time');
+    expect(parsed63.schema.columns[2]!.sourceKey).toBe('end_time');
+
+    const cfg63 = createTestConfig({ exportTemplate63: parsed63.schema });
+    const exp63Xlsx = await generateExportWorkbookBuffer([legacyIsoSession], cfg63, 'official_63');
+    const wb63 = new ExcelJS.Workbook();
+    await wb63.xlsx.load(exp63Xlsx.buffer);
+    const ws63 = wb63.getWorksheet('Career Tours Data')!;
+    expect(ws63.getColumn(2).width).toBeGreaterThanOrEqual(20);
+    expect(ws63.getRow(2).getCell(2).value).toBe('13:40');
+    expect(ws63.getRow(2).getCell(2).numFmt).toBe('@');
+    expect(ws63.getRow(2).getCell(3).value).toBe('15:45');
+    expect(ws63.getRow(2).getCell(3).numFmt).toBe('@');
+
+    // 4. CSV export appends "IST" so Excel never converts HH:MM into ######## Time serials
+    const stdCsv = generateExportCsvString([legacyIsoSession], cfg, 'standard');
+    expect(stdCsv.csv).toContain(',13:40 IST,15:45 IST,');
+
+    const csv63 = generateExportCsvString([legacyIsoSession], cfg63, 'official_63');
+    expect(csv63.csv).toContain(',13:40 IST,15:45 IST,');
+
+    const blankTimeCsv = generateExportCsvString([{ ...baseSession, startTime: '', endTime: '' }], cfg, 'standard');
+    expect(blankTimeCsv.csv).not.toContain(' IST');
   });
 });
