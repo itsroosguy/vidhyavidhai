@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { INITIAL_SUPER_ADMIN_EMAILS } from '../../config/accessControl';
+import {
+  INITIAL_SUPER_ADMINS,
+  INITIAL_SUPER_ADMIN_EMAILS,
+  INITIAL_SUPER_ADMIN_PASSWORD_HASHES,
+  isAllowlistedSuperAdmin,
+} from '../../config/accessControl';
 import { createTestConfig, createValidFormValues } from '../../testFixtures';
 import {
   SANDBOX_DENIED_USER,
@@ -1511,6 +1516,58 @@ describe('Database CRUD, Partial-Failure Handling, Strict RBAC & Audit Trail', (
       clearAppsScriptBridgeConfig();
       clearCachedSheetsConnection('local_sandbox');
       fetchMock.mockRestore();
+    }
+  });
+
+  it('protects all five allowlisted Super Administrators across RBAC, hashes, and Apps Script bundle', async () => {
+    const expectedSuperAdmins = [
+      { userId: 'SA_BRINTHA', email: 'brinthajayaprakash888@gmail.com' },
+      { userId: 'SA_KARUNYA', email: 'karunya@vidhyavidhai.org' },
+      { userId: 'SA_RAM', email: 'ram@vidhyavidhai.org' },
+      { userId: 'SA_REGI', email: 'regi@vidhyavidhai.org' },
+      { userId: 'SA_NISHA', email: 'nisha@vidhyavidhai.org' },
+    ];
+
+    expect(INITIAL_SUPER_ADMIN_EMAILS).toEqual(expectedSuperAdmins.map((sa) => sa.email));
+    expect(INITIAL_SUPER_ADMINS.map((sa) => ({ userId: sa.userId, email: sa.email }))).toEqual(
+      expectedSuperAdmins,
+    );
+
+    for (const sa of expectedSuperAdmins) {
+      expect(isAllowlistedSuperAdmin(sa.email.toUpperCase())).toBe(true);
+      const hashRecord = INITIAL_SUPER_ADMIN_PASSWORD_HASHES[sa.email];
+      expect(hashRecord).toBeDefined();
+      expect(hashRecord!.algorithm).toBe('pbkdf2-sha256');
+      expect(hashRecord!.iterations).toBe(100000);
+      expect(hashRecord!.saltHex).toMatch(/^[0-9a-f]{32}$/);
+      expect(hashRecord!.hashHex).toMatch(/^[0-9a-f]{64}$/);
+    }
+
+    const api = new LocalSandboxApiClient(() => SANDBOX_USERS.super_admin_3.userId, createTestConfig());
+    const managedRes = await api.listManagedUsers();
+    expect(managedRes.ok).toBe(true);
+    for (const sa of expectedSuperAdmins) {
+      const matched = managedRes.data!.find((u) => u.email === sa.email);
+      expect(matched?.role).toBe('super_admin');
+      expect(matched?.status).toBe('APPROVED');
+      expect(matched?.active).toBe(true);
+
+      const demoteTry = await api.manageUser({
+        userId: sa.userId,
+        name: matched!.name,
+        email: sa.email,
+        role: 'facilitator',
+        active: false,
+        status: 'DENIED',
+      });
+      expect(demoteTry.ok).toBe(false);
+      expect(demoteTry.code).toBe('PROTECTED_ACCOUNT');
+    }
+
+    const template = await loadAppsScriptTemplate();
+    for (const sa of expectedSuperAdmins) {
+      expect(template).toContain(sa.email);
+      expect(template).toContain(sa.userId);
     }
   });
 });

@@ -1104,7 +1104,7 @@ export const AUXILIARY_TAB_SCHEMAS: Record<string, WorkbookColumnMeta[]> = {
       width: 18,
       align: 'left',
       required: true,
-      validationRule: 'Protected Super Admin ID (SA_BRINTHA / SA_KARUNYA)',
+      validationRule: 'Protected Super Admin ID (SA_BRINTHA / SA_KARUNYA / SA_RAM / SA_REGI / SA_NISHA)',
       definition: 'Protected Super Administrator account ID.',
     },
     {

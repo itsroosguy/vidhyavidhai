@@ -4,6 +4,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPER_ADMIN_ALLOWLIST = new Set([
   "brinthajayaprakash888@gmail.com",
   "karunya@vidhyavidhai.org",
+  "ram@vidhyavidhai.org",
+  "regi@vidhyavidhai.org",
+  "nisha@vidhyavidhai.org",
 ]);
 
 const corsHeaders = {

@@ -4,6 +4,9 @@ import { createClient, type SupabaseClient, type User } from "jsr:@supabase/supa
 const SUPER_ADMIN_ALLOWLIST = new Set([
   "brinthajayaprakash888@gmail.com",
   "karunya@vidhyavidhai.org",
+  "ram@vidhyavidhai.org",
+  "regi@vidhyavidhai.org",
+  "nisha@vidhyavidhai.org",
 ]);
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

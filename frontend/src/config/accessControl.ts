@@ -9,6 +9,9 @@ export interface SuperAdminPasswordHashRecord {
 export const INITIAL_SUPER_ADMIN_EMAILS = [
   'brinthajayaprakash888@gmail.com',
   'karunya@vidhyavidhai.org',
+  'ram@vidhyavidhai.org',
+  'regi@vidhyavidhai.org',
+  'nisha@vidhyavidhai.org',
 ] as const;
 
 export const INITIAL_SUPER_ADMINS = [
@@ -21,6 +24,21 @@ export const INITIAL_SUPER_ADMINS = [
     userId: 'SA_KARUNYA',
     name: 'Karunya',
     email: 'karunya@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_RAM',
+    name: 'Ram',
+    email: 'ram@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_REGI',
+    name: 'Regi',
+    email: 'regi@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_NISHA',
+    name: 'Nisha',
+    email: 'nisha@vidhyavidhai.org',
   },
 ] as const;
 
@@ -43,6 +61,24 @@ export const INITIAL_SUPER_ADMIN_PASSWORD_HASHES: Readonly<
     iterations: 100000,
     saltHex: '9a7bcc12825714fc908bba7e68f7a36f',
     hashHex: '31216f61aed945b3e78233f885471829911a44f0c4c1ed0647d74912bb299aba',
+  },
+  'ram@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '3bc294090aeae903540d362c4f06b2b7',
+    hashHex: '29424e716bb568b993f516d4ba3a30f8ffc1f1afc6348603625b13f80a2cfc4c',
+  },
+  'regi@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: 'e07874f639be8acd07f6a79d2fdb5ce6',
+    hashHex: '31476d9ef57aa4eccd98babaf3f31ebb0a11176cd8ab8ddd2a2321f136cebb79',
+  },
+  'nisha@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: 'f7d9208862d1e9559f8bc2a79e4b7219',
+    hashHex: '70c63af790268503fde146d60ca4dfd75f0cd60087c6c50ce4fa59a847425af0',
   },
 };
 

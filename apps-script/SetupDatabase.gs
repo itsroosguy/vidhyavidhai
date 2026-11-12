@@ -861,7 +861,7 @@ function ctInitializeSpreadsheetObject_(ss, optActorEmail) {
     }
   }
 
-  // Idempotently ensure the two protected initial SUPER_ADMIN accounts exist in Admin Users (zero passwords stored)
+  // Idempotently ensure protected allowlisted SUPER_ADMIN accounts exist in Admin Users (zero passwords stored)
   var initialSuperAdmins = ctGetInitialSuperAdmins_();
   var adminSheet = ss.getSheetByName(SHEET_NAMES.ADMIN_USERS);
   var existingAdmins = [];

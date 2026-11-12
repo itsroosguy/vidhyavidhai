@@ -616,7 +616,7 @@ function ctHandleManageUser_(actor, payload) {
     );
     throw ctApiError_(
       'FORBIDDEN',
-      'Administrator privileges are restricted exclusively to the two approved Super Administrator accounts.'
+      'Administrator privileges are restricted exclusively to allowlisted Super Administrator accounts.'
     );
   }
 

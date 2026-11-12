@@ -2319,7 +2319,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                   </button>
 
                   <p className="text-xs text-[#33475B] leading-relaxed">
-                    Need immediate access? Ask a Super Administrator (Brintha or Karunya) to set a
+                    Need immediate access? Ask a Super Administrator to set a
                     temporary password for your email in{' '}
                     <strong className="font-medium text-[#0A1B2C]">Admin Console → User Management</strong>.
                   </p>

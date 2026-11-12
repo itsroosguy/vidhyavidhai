@@ -4,6 +4,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPER_ADMIN_ALLOWLIST = new Set([
   "brinthajayaprakash888@gmail.com",
   "karunya@vidhyavidhai.org",
+  "ram@vidhyavidhai.org",
+  "regi@vidhyavidhai.org",
+  "nisha@vidhyavidhai.org",
 ]);
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -190,7 +193,7 @@ Deno.serve(async (req: Request) => {
       status: isPreapprovedApproved ? "APPROVED" : "PENDING",
       message: isPreapprovedApproved
         ? "Account created using Super Administrator pre-approval (no email confirmation needed). Signing you in..."
-        : "Account created in the Super Administrator approval queue (no confirmation email needed). Ask Brintha or Karunya to approve your account in User Management.",
+        : "Account created in the Super Administrator approval queue (no confirmation email needed). Ask a Super Administrator to approve your account in User Management.",
     },
   });
   } catch (err) {

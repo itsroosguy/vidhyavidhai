@@ -975,7 +975,7 @@ export function App() {
           return {
             ok: false,
             error:
-              'Password reset emails are temporarily rate-limited. Ask a Super Administrator (Brintha or Karunya) to set a temporary password for you in User Management.',
+              'Password reset emails are temporarily rate-limited. Ask a Super Administrator to set a temporary password for you in User Management.',
           };
         }
         return { ok: false, error: error.message };

@@ -6,8 +6,9 @@
  * 2. Verify browser requests using Google Identity Services `idToken` against Google's tokeninfo endpoint
  *    (`aud === GOOGLE_CLIENT_ID`, `email_verified === true`, unexpired `exp`), OR using the server-stored
  *    `SANDBOX_SYNC_KEY` Script Property restricted strictly to allowlisted Super Administrator emails.
- * 3. Only the two server-side allowlisted SUPER_ADMIN accounts (`brinthajayaprakash888@gmail.com`
- *    and `karunya@vidhyavidhai.org`) may receive `super_admin` privileges or use the Apps Script Sync Bridge.
+ * 3. Only server-side allowlisted SUPER_ADMIN accounts (`brinthajayaprakash888@gmail.com`,
+ *    `karunya@vidhyavidhai.org`, `ram@vidhyavidhai.org`, `regi@vidhyavidhai.org`,
+ *    and `nisha@vidhyavidhai.org`) may receive `super_admin` privileges or use the Apps Script Sync Bridge.
  * 4. All other users authenticate strictly via Google Sign-In, resolve against `Facilitators`
  *    subject to `policy.facilitatorApprovalMode`, and can never hold administrator roles.
  * 5. Zero user passwords are stored or verified in source code, sheets, or configuration.
@@ -29,6 +30,21 @@ function ctGetInitialSuperAdmins_() {
       userId: 'SA_KARUNYA',
       name: 'Karunya',
       email: 'karunya@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_RAM',
+      name: 'Ram',
+      email: 'ram@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_REGI',
+      name: 'Regi',
+      email: 'regi@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_NISHA',
+      name: 'Nisha',
+      email: 'nisha@vidhyavidhai.org'
     }
   ];
 }
@@ -518,7 +534,7 @@ function ctAuthenticateRequest_(idToken, req) {
     verifiedName = verified.name || '';
     var email = verified.email;
 
-    // 1. Strict server-side allowlist for the two initial SUPER_ADMIN accounts
+    // 1. Strict server-side allowlist for protected SUPER_ADMIN accounts
     allowlistedSa = ctFindInitialSuperAdminByEmail_(email);
     if (!allowlistedSa) {
       // 2. Every other user authenticates via Google Sign-In and resolves strictly as a Facilitator

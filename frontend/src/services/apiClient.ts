@@ -4337,7 +4337,7 @@ export class LocalSandboxApiClient implements BackendApiClient {
       return {
         ok: false,
         code: 'FORBIDDEN',
-        error: 'Administrator privileges are restricted exclusively to the two approved Super Administrator accounts.',
+        error: 'Administrator privileges are restricted exclusively to allowlisted Super Administrator accounts.',
       };
     }
 
