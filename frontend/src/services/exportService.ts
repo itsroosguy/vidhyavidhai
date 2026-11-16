@@ -21,8 +21,13 @@ import {
 } from './workbookSchemaMetadata';
 
 async function loadExcelJS() {
-  const mod = await import('exceljs');
-  return mod.default;
+  try {
+    const mod = await import('exceljs');
+    return mod.default;
+  } catch (err) {
+    console.error('Failed to load ExcelJS module:', err);
+    throw new Error('Unable to load Excel export engine. Please reload the page to load updated assets.');
+  }
 }
 
 export interface FlattenedExportRow {

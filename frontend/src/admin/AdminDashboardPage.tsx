@@ -651,6 +651,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       } while (page <= totalPages);
 
       setExportModalSessions(collected);
+    } catch (err) {
+      onNotify(
+        'error',
+        'Export preparation error',
+        err instanceof Error ? err.message : 'Failed to prepare records for export.',
+      );
     } finally {
       setPreparingExport(false);
     }

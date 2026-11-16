@@ -814,7 +814,16 @@ export function App() {
         }
       };
 
-      activeSupabaseResolvePromiseRef.current = doResolve();
+      const timeoutPromise = new Promise<EmailSignInOutcome>((resolve) => {
+        const timer = setTimeout(() => {
+          setBootRestoringAuth(false);
+          activeSupabaseResolvePromiseRef.current = null;
+          resolve({ ok: false, error: 'Session verification timed out. Please try again.' });
+        }, 8000);
+        return () => clearTimeout(timer);
+      });
+
+      activeSupabaseResolvePromiseRef.current = Promise.race([doResolve(), timeoutPromise]);
       return activeSupabaseResolvePromiseRef.current;
     },
     [api, isSupabaseMode, loadConfig, navigate, notify],
