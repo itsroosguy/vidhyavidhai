@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import { AlertTriangle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, RefreshCw } from 'lucide-react';
 import { loadAppsScriptBridgeConfig } from '../services/authService';
 import type { GoogleSheetsConnectionState } from '../types/domain';
 
@@ -15,6 +15,8 @@ interface GoogleSheetsBannerProps {
   onManageClick: () => void;
   onActivateLiveClick?: () => void;
   onAuthorizeNow?: () => void;
+  onSyncNow?: () => void;
+  syncing?: boolean;
 }
 
 /**
@@ -52,6 +54,8 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
   onManageClick,
   onActivateLiveClick,
   onAuthorizeNow,
+  onSyncNow,
+  syncing = false,
 }) => {
   const headingId = useId();
   const hasSelectedSheet = Boolean(connection?.connected && connection?.spreadsheetId);
@@ -210,6 +214,18 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
                 </span>
               </div>
 
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#243647]">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#E6F4EA] text-[#137333] font-medium border border-[#137333]/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#188038] animate-pulse" />
+                  Auto-updates every 5 mins
+                </span>
+                {connection.lastSyncedAt && (
+                  <span className="text-[#5F7082]">
+                    · Last synced: {new Date(connection.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+
               {connection.lastSyncStatus === 'FAILED' && connection.lastSyncMessage && (
                 <p
                   role="alert"
@@ -222,13 +238,30 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onManageClick}
-            className="ct-btn-secondary w-full sm:w-auto text-xs sm:text-sm min-h-[44px] sm:min-h-[42px] px-4 py-1.5 border-[#137333]/35 hover:border-[#137333] text-[#0A1B2C] shrink-0"
-          >
-            Manage Connection
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onSyncNow && (
+              <button
+                type="button"
+                disabled={syncing || loading}
+                onClick={onSyncNow}
+                title="Sync and update Google Sheet now with latest database records"
+                className="inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3.5 py-1.5 rounded-lg bg-[#137333] hover:bg-[#0D652D] text-[#FFFFFF] text-xs sm:text-sm font-medium border border-[#0D652D] shadow-[0_2px_8px_rgba(19,115,51,0.22)] cursor-pointer disabled:opacity-55 transition-all"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 shrink-0 ${syncing ? 'animate-spin' : ''}`}
+                  aria-hidden="true"
+                />
+                <span>{syncing ? 'Updating Sheet…' : 'Update Sheet'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onManageClick}
+              className="ct-btn-secondary w-full sm:w-auto text-xs sm:text-sm min-h-[44px] sm:min-h-[42px] px-4 py-1.5 border-[#137333]/35 hover:border-[#137333] text-[#0A1B2C] shrink-0"
+            >
+              Manage Connection
+            </button>
+          </div>
         </div>
       </section>
     );

@@ -269,11 +269,61 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const displaySheetsConnection = sheetsConnection ?? oauthSheetsConnection ?? null;
   const [sheetsConnLoading, setSheetsConnLoading] = useState(false);
   const [authorizingDirect, setAuthorizingDirect] = useState(false);
+  const [syncingSheets, setSyncingSheets] = useState(false);
   const [sheetsModalOpen, setSheetsModalOpen] = useState(false);
   const [sheetsOauthFeedback, setSheetsOauthFeedback] = useState<{
     type: 'authorized' | 'error';
     message: string;
   } | null>(null);
+
+  const handleManualSheetSync = async () => {
+    if (syncingSheets) return;
+    setSyncingSheets(true);
+    try {
+      const res = await api.syncAllToGoogleSheet();
+      if (res.ok && res.data) {
+        onNotify(
+          'success',
+          'Google Sheet Updated',
+          res.data.message || `Successfully synced ${res.data.syncedCount} session(s) to Google Sheets.`,
+        );
+        const connRes = await api.getSheetsConnection();
+        if (connRes.ok && connRes.data) {
+          setSheetsConnection(connRes.data);
+          onConnectionChanged?.(connRes.data);
+        }
+      } else {
+        onNotify(
+          'warning',
+          'Google Sheet Update',
+          res.error || 'Database records saved safely in PostgreSQL. Use Apps Script Web App or in-sheet auto-sync.',
+        );
+      }
+    } catch (err) {
+      onNotify('error', 'Sync Failed', err instanceof Error ? err.message : 'Failed to update Google Sheet.');
+    } finally {
+      setSyncingSheets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!displaySheetsConnection?.connected || !isSuperAdmin) return;
+
+    // Periodic 5-minute auto-update while super admin is on the dashboard
+    const intervalId = window.setInterval(() => {
+      void api.syncAllToGoogleSheet().then(async (res) => {
+        if (res.ok) {
+          const connRes = await api.getSheetsConnection();
+          if (connRes.ok && connRes.data) {
+            setSheetsConnection(connRes.data);
+            onConnectionChanged?.(connRes.data);
+          }
+        }
+      }).catch(() => undefined);
+    }, 5 * 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [displaySheetsConnection?.connected, isSuperAdmin, api, onConnectionChanged]);
 
   const [schoolSort, setSchoolSort] = useState<{
     col: SchoolSortColumn;
@@ -3057,6 +3107,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           onConnectClick={handleBannerConnectClick}
           onManageClick={() => setSheetsModalOpen(true)}
           onActivateLiveClick={onOpenSyncStatus}
+          onSyncNow={handleManualSheetSync}
+          syncing={syncingSheets}
           onAuthorizeNow={
             onAuthorizeNow
               ? () => {
