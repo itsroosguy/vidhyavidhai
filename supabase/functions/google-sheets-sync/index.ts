@@ -267,73 +267,59 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const authHeader = req.headers.get("Authorization") ?? "";
-    const syncKeyHeader = req.headers.get("x-sync-key") ?? "";
-    const apiKeyHeader = req.headers.get("apikey") ?? "";
 
     if (!supabaseUrl || !supabaseServiceKey) {
       return jsonResponse({ ok: false, error: "Server environment misconfigured" }, 500);
     }
 
+    if (!authHeader.toLowerCase().startsWith("bearer ")) {
+      return jsonResponse({ ok: false, error: "Missing Authorization Bearer token" }, 401);
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token || token.startsWith("sb_") || token.split(".").length !== 3) {
+      return jsonResponse({ ok: false, error: "Invalid user session token" }, 401);
+    }
+
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: connRow } = await serviceClient
-      .from("sheets_connections")
-      .select("*")
-      .eq("connection_key", "primary")
-      .maybeSingle();
-
-    const storedSyncKey = String(connRow?.apps_script_sync_key ?? "").trim();
-
-    let isSuperAdmin = false;
-    let normalizedEmail = "cron@vidhyavidhai.org";
-    let authUser: { id: string } | null = null;
-
-    if (
-      (syncKeyHeader && storedSyncKey && syncKeyHeader === storedSyncKey) ||
-      (apiKeyHeader && apiKeyHeader === supabaseServiceKey)
-    ) {
-      isSuperAdmin = true;
-      normalizedEmail = "cron@vidhyavidhai.org";
-    } else if (authHeader.toLowerCase().startsWith("bearer ")) {
-      const token = authHeader.slice(7).trim();
-      if (!token || token.startsWith("sb_") || token.split(".").length !== 3) {
-        return jsonResponse({ ok: false, error: "Invalid user session token" }, 401);
-      }
-
-      const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
-      if (userErr || !userData.user) {
-        return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
-      }
-
-      authUser = userData.user;
-      const { data: profile, error: profileErr } = await serviceClient
-        .from("profiles")
-        .select("id, email, full_name, role, account_status, active")
-        .eq("id", authUser.id)
-        .single();
-
-      if (profileErr || !profile) {
-        return jsonResponse({ ok: false, error: "User profile not found" }, 403);
-      }
-
-      if (profile.account_status !== "APPROVED" || !profile.active) {
-        return jsonResponse({ ok: false, error: "Account not approved for operations" }, 403);
-      }
-
-      normalizedEmail = String(profile.email ?? "").trim().toLowerCase();
-      isSuperAdmin = profile.role === "super_admin" && SUPER_ADMIN_ALLOWLIST.has(normalizedEmail);
-    } else {
-      return jsonResponse({ ok: false, error: "Missing Authorization Bearer token or x-sync-key header" }, 401);
+    const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
+    if (userErr || !userData.user) {
+      return jsonResponse({ ok: false, error: "Unauthorized session" }, 401);
     }
 
-    let body: Record<string, unknown> = {};
-    try {
-      body = (await req.json()) as Record<string, unknown>;
-    } catch {
-      return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400);
-    }
+  const authUser = userData.user;
+  const { data: profile, error: profileErr } = await serviceClient
+    .from("profiles")
+    .select("id, email, full_name, role, account_status, active")
+    .eq("id", authUser.id)
+    .single();
 
-    const action = String(body.action ?? "sync_session");
+  if (profileErr || !profile) {
+    return jsonResponse({ ok: false, error: "User profile not found" }, 403);
+  }
+
+  if (profile.account_status !== "APPROVED" || !profile.active) {
+    return jsonResponse({ ok: false, error: "Account not approved for operations" }, 403);
+  }
+
+  const normalizedEmail = String(profile.email ?? "").trim().toLowerCase();
+  const isSuperAdmin = profile.role === "super_admin" && SUPER_ADMIN_ALLOWLIST.has(normalizedEmail);
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ ok: false, error: "Invalid JSON payload" }, 400);
+  }
+
+  const action = String(body.action ?? "sync_session");
+
+  const { data: connRow } = await serviceClient
+    .from("sheets_connections")
+    .select("*")
+    .eq("connection_key", "primary")
+    .maybeSingle();
 
   const webhookUrl = String(body.appsScriptUrl ?? connRow?.apps_script_webhook_url ?? "").trim();
   const spreadsheetId = String(body.spreadsheetId ?? connRow?.spreadsheet_id ?? "").trim();
@@ -538,6 +524,20 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ ok: false, error: "Super Administrator access required" }, 403);
     }
 
+    if (!webhookUrl || !isSafeHttpsWebhookUrl(webhookUrl)) {
+      return jsonResponse({
+        ok: false,
+        error: "Configure an Apps Script Web App HTTPS URL in Connect Google Sheet before pushing rows from the Edge Function. Your data remains safely stored in Supabase PostgreSQL.",
+      }, 400);
+    }
+
+    if (!syncKey) {
+      return jsonResponse({
+        ok: false,
+        error: "Apps Script sync key is missing. Click Save & Push in the portal first.",
+      }, 400);
+    }
+
     const nowIso = new Date().toISOString();
     const { data: sessions, error: sessErr } = await serviceClient
       .from("form_submissions")
@@ -571,36 +571,6 @@ Deno.serve(async (req: Request) => {
       mapSchoolRowToSchoolRecord,
     );
     const mappedFacilitators = rawProfiles.map(mapProfileRowToFacilitator);
-
-    if (!webhookUrl || !isSafeHttpsWebhookUrl(webhookUrl)) {
-      await serviceClient
-        .from("sheets_connections")
-        .update({
-          last_synced_at: nowIso,
-          last_sync_status: "IDLE",
-          last_sync_message: `Database has ${mappedSessions.length} session(s) ready. Use Apps Script Web App URL or in-sheet 5-minute auto-sync.`,
-        })
-        .eq("connection_key", "primary");
-
-      return jsonResponse({
-        ok: true,
-        data: {
-          syncedCount: 0,
-          skippedDuplicates: 0,
-          totalSheetSessions: mappedSessions.length,
-          syncedAt: nowIso,
-          skipped: true,
-          message: `All ${mappedSessions.length} sessions are stored safely in Supabase PostgreSQL. Configure an Apps Script Web App (/exec) URL in Manage Connection, or click "Enable 5-Minute Auto-Sync" in the Google Sheet menu to mirror rows automatically.`,
-        },
-      });
-    }
-
-    if (!syncKey) {
-      return jsonResponse({
-        ok: false,
-        error: "Apps Script sync key is missing. Click Save & Push in the portal first.",
-      }, 400);
-    }
 
     const syncCode = `SYNC_${crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
 
