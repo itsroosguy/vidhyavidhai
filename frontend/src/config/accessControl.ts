@@ -12,6 +12,10 @@ export const INITIAL_SUPER_ADMIN_EMAILS = [
   'ram@vidhyavidhai.org',
   'regi@vidhyavidhai.org',
   'nisha@vidhyavidhai.org',
+  'saktheeswaran@vidhyavidhai.org',
+  'poomuthu@vidhyavidhai.org',
+  'saravanakumar@vidhyavidhai.org',
+  'ravi@vidhyavidhai.org',
 ] as const;
 
 export const INITIAL_SUPER_ADMINS = [
@@ -39,6 +43,26 @@ export const INITIAL_SUPER_ADMINS = [
     userId: 'SA_NISHA',
     name: 'Nisha',
     email: 'nisha@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_SAKTHEESWARAN',
+    name: 'Saktheeswaran',
+    email: 'saktheeswaran@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_POOMUTHU',
+    name: 'Poomuthu',
+    email: 'poomuthu@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_SARAVANAKUMAR',
+    name: 'Saravanakumar',
+    email: 'saravanakumar@vidhyavidhai.org',
+  },
+  {
+    userId: 'SA_RAVI',
+    name: 'Ravi',
+    email: 'ravi@vidhyavidhai.org',
   },
 ] as const;
 
@@ -79,6 +103,30 @@ export const INITIAL_SUPER_ADMIN_PASSWORD_HASHES: Readonly<
     iterations: 100000,
     saltHex: 'f7d9208862d1e9559f8bc2a79e4b7219',
     hashHex: '70c63af790268503fde146d60ca4dfd75f0cd60087c6c50ce4fa59a847425af0',
+  },
+  'saktheeswaran@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '2b92ab55dbb9a9d12ecdbb539fa00819',
+    hashHex: '94bd26bc505578014974db11dce7b72bd8d9a196a6146082fd41f7fa83a49da4',
+  },
+  'poomuthu@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '15bb9ccd9e2fc03a247b21f5e7fcd2a0',
+    hashHex: 'fbd6bc056dde56b21099e4981e69b6fef10a9b4de8ef7e511af23f7dc9a4209d',
+  },
+  'saravanakumar@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '21f40a1b41a2cfe9e60e35068f206260',
+    hashHex: '800514dd56974752ba2c6f6d4bbca57045c3064ae57a92df3aeeb47a90aedb4d',
+  },
+  'ravi@vidhyavidhai.org': {
+    algorithm: 'pbkdf2-sha256',
+    iterations: 100000,
+    saltHex: '02b932b37a585f5562741cf77422c1d1',
+    hashHex: '13287969d76c6f5ff808c09863887c5d8585fba9eae7f52d2d9d7e8c700d0dc6',
   },
 };
 

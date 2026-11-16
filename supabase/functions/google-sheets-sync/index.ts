@@ -7,6 +7,10 @@ const SUPER_ADMIN_ALLOWLIST = new Set([
   "ram@vidhyavidhai.org",
   "regi@vidhyavidhai.org",
   "nisha@vidhyavidhai.org",
+  "saktheeswaran@vidhyavidhai.org",
+  "poomuthu@vidhyavidhai.org",
+  "saravanakumar@vidhyavidhai.org",
+  "ravi@vidhyavidhai.org",
 ]);
 
 const corsHeaders = {

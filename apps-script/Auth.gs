@@ -45,6 +45,26 @@ function ctGetInitialSuperAdmins_() {
       userId: 'SA_NISHA',
       name: 'Nisha',
       email: 'nisha@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_SAKTHEESWARAN',
+      name: 'Saktheeswaran',
+      email: 'saktheeswaran@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_POOMUTHU',
+      name: 'Poomuthu',
+      email: 'poomuthu@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_SARAVANAKUMAR',
+      name: 'Saravanakumar',
+      email: 'saravanakumar@vidhyavidhai.org'
+    },
+    {
+      userId: 'SA_RAVI',
+      name: 'Ravi',
+      email: 'ravi@vidhyavidhai.org'
     }
   ];
 }

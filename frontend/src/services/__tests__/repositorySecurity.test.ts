@@ -1519,13 +1519,17 @@ describe('Database CRUD, Partial-Failure Handling, Strict RBAC & Audit Trail', (
     }
   });
 
-  it('protects all five allowlisted Super Administrators across RBAC, hashes, and Apps Script bundle', async () => {
+  it('protects all allowlisted Super Administrators across RBAC, hashes, and Apps Script bundle', async () => {
     const expectedSuperAdmins = [
       { userId: 'SA_BRINTHA', email: 'brinthajayaprakash888@gmail.com' },
       { userId: 'SA_KARUNYA', email: 'karunya@vidhyavidhai.org' },
       { userId: 'SA_RAM', email: 'ram@vidhyavidhai.org' },
       { userId: 'SA_REGI', email: 'regi@vidhyavidhai.org' },
       { userId: 'SA_NISHA', email: 'nisha@vidhyavidhai.org' },
+      { userId: 'SA_SAKTHEESWARAN', email: 'saktheeswaran@vidhyavidhai.org' },
+      { userId: 'SA_POOMUTHU', email: 'poomuthu@vidhyavidhai.org' },
+      { userId: 'SA_SARAVANAKUMAR', email: 'saravanakumar@vidhyavidhai.org' },
+      { userId: 'SA_RAVI', email: 'ravi@vidhyavidhai.org' },
     ];
 
     expect(INITIAL_SUPER_ADMIN_EMAILS).toEqual(expectedSuperAdmins.map((sa) => sa.email));
