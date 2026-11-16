@@ -1,0 +1,294 @@
+/**
+ * Audit.gs — Immutable audit trail utilities for Career Tours Classroom System.
+ */
+
+var SHEET_NAMES = {
+  SESSIONS: 'Sessions',
+  SESSION_DETAILS: 'Session Details',
+  FACILITATORS: 'Facilitators',
+  SCHOOLS: 'Schools',
+  CONFIGURATION: 'Configuration',
+  ADMIN_USERS: 'Admin Users',
+  AUDIT_LOG: 'Audit Log',
+  SYNC_LOG: 'Sync Log'
+};
+
+var CT_DEFAULT_TARGET_SPREADSHEET_ID = '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE';
+var CT_DEFAULT_TARGET_SPREADSHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+
+/**
+ * Extracts a valid Google Spreadsheet ID from either a full docs.google.com URL or a raw ID.
+ */
+function ctParseSpreadsheetId_(urlOrId) {
+  var raw = String(urlOrId || '').trim();
+  if (!raw) return '';
+  var urlMatch = /\/spreadsheets\/d\/([a-zA-Z0-9-_]{10,})/.exec(raw);
+  if (urlMatch && urlMatch[1]) {
+    return urlMatch[1];
+  }
+  if (/^[a-zA-Z0-9-_]{10,120}$/.test(raw)) {
+    return raw;
+  }
+  return '';
+}
+
+/**
+ * Returns the configured database Spreadsheet.
+ * Resolution order:
+ *   1. CONNECTED_SPREADSHEET_ID (set via administrator Connect Google Sheets flow)
+ *   2. SPREADSHEET_ID Script Property
+ *   3. Approved programme default spreadsheet ID (if accessible)
+ *   4. Active container-bound spreadsheet
+ */
+function ctGetSpreadsheet_() {
+  var props = PropertiesService.getScriptProperties();
+  var connectedId = String(props.getProperty('CONNECTED_SPREADSHEET_ID') || '').trim();
+  if (connectedId) {
+    return SpreadsheetApp.openById(connectedId);
+  }
+  var spreadsheetId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
+  if (spreadsheetId) {
+    return SpreadsheetApp.openById(spreadsheetId);
+  }
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) {
+    return active;
+  }
+  if (CT_DEFAULT_TARGET_SPREADSHEET_ID) {
+    try {
+      return SpreadsheetApp.openById(CT_DEFAULT_TARGET_SPREADSHEET_ID);
+    } catch (err) {
+      throw new Error(
+        'Unable to open default Google Spreadsheet (' +
+          CT_DEFAULT_TARGET_SPREADSHEET_ID +
+          ') and SPREADSHEET_ID is not configured: ' +
+          (err && err.message ? err.message : err)
+      );
+    }
+  }
+  throw new Error('SPREADSHEET_ID Script Property is not configured and no active spreadsheet is bound.');
+}
+
+function ctGetSheet_(name) {
+  var ss = ctGetSpreadsheet_();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    throw new Error('Required sheet "' + name + '" does not exist. Run initializeDatabase() first.');
+  }
+  return sheet;
+}
+
+function ctNowIso_() {
+  return new Date().toISOString();
+}
+
+function ctShortUuid_() {
+  return Utilities.getUuid().replace(/-/g, '').slice(0, 12).toUpperCase();
+}
+
+/**
+ * Returns the 1-based row index of the last populated row by inspecting a key column
+ * (default col 1), ignoring trailing blank rows that only have borders, row banding, or dropdowns.
+ */
+function ctFindLastPopulatedRow_(sheet, optKeyCol) {
+  if (!sheet) return 1;
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return 1;
+  var colIdx = Math.max(1, Number(optKeyCol) || 1);
+  var colVals = sheet.getRange(1, colIdx, lastRow, 1).getValues();
+  for (var i = colVals.length - 1; i >= 1; i--) {
+    var raw = colVals[i][0];
+    if (String(raw === null || raw === undefined ? '' : raw).trim() !== '') {
+      return i + 1;
+    }
+  }
+  return 1;
+}
+
+/**
+ * Acquires the Apps Script document lock with bounded jittered retries to prevent
+ * concurrent multi-device facilitator submissions from failing on transient lock contention.
+ */
+function ctAcquireScriptLockWithRetry_(optWaitMs, optMaxAttempts) {
+  var lock = LockService.getScriptLock();
+  var perAttemptWait = Math.max(5000, Number(optWaitMs) || 20000);
+  var attempts = Math.max(1, Math.min(Number(optMaxAttempts) || 3, 5));
+  var lastErr = null;
+  for (var a = 0; a < attempts; a++) {
+    try {
+      lock.waitLock(perAttemptWait);
+      return lock;
+    } catch (err) {
+      lastErr = err;
+      if (
+        a < attempts - 1 &&
+        typeof Utilities !== 'undefined' &&
+        typeof Utilities.sleep === 'function'
+      ) {
+        Utilities.sleep(250 + Math.floor(Math.random() * 250));
+      }
+    }
+  }
+  throw ctApiError_(
+    'SERVICE_BUSY',
+    'The programme database is temporarily busy saving another submission. Please try again in a moment. (' +
+      (lastErr && lastErr.message ? lastErr.message : 'Lock timeout') +
+      ')'
+  );
+}
+
+/**
+ * Appends a single audit log row (append-only, never modifies prior history).
+ */
+function ctAppendAuditLog_(actor, action, entityType, entityId, previousSummary, newSummary, result) {
+  try {
+    var sheet = ctGetSheet_(SHEET_NAMES.AUDIT_LOG);
+    var auditId = 'AUD_' + ctShortUuid_();
+    var ts = ctNowIso_();
+    var row = [
+      auditId,
+      ts,
+      actor && actor.userId ? String(actor.userId) : 'UNKNOWN',
+      actor && actor.email ? String(actor.email) : 'UNKNOWN',
+      String(action || ''),
+      String(entityType || ''),
+      String(entityId || ''),
+      String(previousSummary || '').slice(0, 2000),
+      String(newSummary || '').slice(0, 2000),
+      String(result || 'SUCCESS')
+    ];
+    var nextRow = Math.max(2, ctFindLastPopulatedRow_(sheet, 1) + 1);
+    var range = sheet.getRange(nextRow, 1, 1, row.length);
+    range.setNumberFormat('@');
+    range.setValues([row]);
+  } catch (err) {
+    console.error('Audit log failure: ' + (err && err.message ? err.message : err));
+  }
+}
+
+/**
+ * Paginated Audit Log reader (Administrator / Super Administrator only).
+ */
+function ctHandleGetAuditLogs_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+
+  var page = Number(payload && payload.page) || 1;
+  var pageSize = Number(payload && payload.pageSize) || 25;
+  pageSize = Math.max(1, Math.min(pageSize, 100));
+
+  var sheet = ctGetSheet_(SHEET_NAMES.AUDIT_LOG);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  // Return newest first
+  var allItems = [];
+  for (var i = values.length - 1; i >= 0; i--) {
+    var r = values[i];
+    if (!r[0]) continue;
+    allItems.push({
+      auditId: String(r[0]),
+      timestamp: String(r[1]),
+      userId: String(r[2]),
+      userEmail: String(r[3]),
+      action: String(r[4]),
+      entityType: String(r[5]),
+      entityId: String(r[6]),
+      previousSummary: String(r[7]),
+      newSummary: String(r[8]),
+      result: String(r[9])
+    });
+  }
+
+  var total = allItems.length;
+  var totalPages = Math.max(1, Math.ceil(total / pageSize));
+  var safePage = Math.max(1, Math.min(page, totalPages));
+  var startIdx = (safePage - 1) * pageSize;
+
+  return {
+    items: allItems.slice(startIdx, startIdx + pageSize),
+    total: total,
+    page: safePage,
+    pageSize: pageSize,
+    totalPages: totalPages
+  };
+}
+
+function ctAppendSyncLog_(actor, clientSubmissionKey, sessionRecordId, sessionId, operation, attempt, status, errorMessage) {
+  try {
+    var sheet = ctGetSheet_(SHEET_NAMES.SYNC_LOG);
+    var syncId = 'SYNC_' + ctShortUuid_();
+    var ts = ctNowIso_();
+    var row = [
+      syncId,
+      ts,
+      String(clientSubmissionKey || ''),
+      String(sessionRecordId || ''),
+      String(sessionId || ''),
+      actor && actor.email ? String(actor.email) : 'UNKNOWN',
+      String(operation || ''),
+      Number(attempt) || 1,
+      String(status || 'SYNCED'),
+      String(errorMessage || '').slice(0, 1000)
+    ];
+    var nextRow = Math.max(2, ctFindLastPopulatedRow_(sheet, 1) + 1);
+    var range = sheet.getRange(nextRow, 1, 1, row.length);
+    range.setValues([row]);
+  } catch (err) {
+    console.error('Sync log failure: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function ctHandleGetSyncLogs_(actor, payload) {
+  ctRequireRole_(actor, ['super_admin']);
+  var page = Number(payload && payload.page) || 1;
+  var pageSize = Number(payload && payload.pageSize) || 25;
+  pageSize = Math.max(1, Math.min(pageSize, 100));
+
+  var sheet = ctGetSheet_(SHEET_NAMES.SYNC_LOG);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { items: [], total: 0, page: 1, pageSize: pageSize, totalPages: 1 };
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  var items = [];
+  for (var i = values.length - 1; i >= 0; i--) {
+    var r = values[i];
+    if (!r[0]) continue;
+    items.push({
+      syncId: String(r[0]),
+      timestamp: String(r[1]),
+      clientSubmissionKey: String(r[2]),
+      sessionRecordId: String(r[3]),
+      sessionId: String(r[4]),
+      actorEmail: String(r[5]),
+      operation: String(r[6]),
+      attempt: Number(r[7]) || 1,
+      status: String(r[8]),
+      errorMessage: String(r[9] || '')
+    });
+  }
+
+  var total = items.length;
+  var totalPages = Math.max(1, Math.ceil(total / pageSize));
+  var safePage = Math.max(1, Math.min(page, totalPages));
+  var startIdx = (safePage - 1) * pageSize;
+
+  return {
+    items: items.slice(startIdx, startIdx + pageSize),
+    total: total,
+    page: safePage,
+    pageSize: pageSize,
+    totalPages: totalPages
+  };
+}
