@@ -248,6 +248,30 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [showSavedAdminPassword, setShowSavedAdminPassword] = useState(false);
   const [savedAdminSubmitting, setSavedAdminSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!workspaceSubmitting) return;
+    const timer = setTimeout(() => {
+      setWorkspaceSubmitting(false);
+    }, 9000);
+    return () => clearTimeout(timer);
+  }, [workspaceSubmitting]);
+
+  useEffect(() => {
+    if (!googleSubmitting) return;
+    const timer = setTimeout(() => {
+      setGoogleSubmitting(false);
+    }, 9000);
+    return () => clearTimeout(timer);
+  }, [googleSubmitting]);
+
+  useEffect(() => {
+    if (!savedAdminSubmitting) return;
+    const timer = setTimeout(() => {
+      setSavedAdminSubmitting(false);
+    }, 9000);
+    return () => clearTimeout(timer);
+  }, [savedAdminSubmitting]);
+
   const [liveErrorAnnouncement, setLiveErrorAnnouncement] = useState('');
 
   const [recentAccounts, setRecentAccounts] = useState<RecentGoogleAccount[]>(() =>
