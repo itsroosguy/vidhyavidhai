@@ -104,6 +104,7 @@ export function App() {
   const sandboxActorIdRef = useRef<string>('');
   const supabaseAuthUidRef = useRef<string | null>(null);
   const supabaseResolveSeqRef = useRef(0);
+  const activeSupabaseResolvePromiseRef = useRef<Promise<EmailSignInOutcome> | null>(null);
   const userRef = useRef<UserProfile | null>(null);
   const refreshPromiseRef = useRef<Promise<string | undefined> | null>(null);
   const outboxReplayInFlightRef = useRef(false);
@@ -437,6 +438,15 @@ export function App() {
     [currentPath, user?.role],
   );
 
+  // Watchdog failsafe: ensure workspace restoring screen never locks indefinitely
+  useEffect(() => {
+    if (!bootRestoringAuth) return;
+    const timer = setTimeout(() => {
+      setBootRestoringAuth(false);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [bootRestoringAuth]);
+
   // Automatic redirect after a Facilitator visits a restricted administrator route
   useEffect(() => {
     if (!user || passwordRecoveryMode || route.kind !== 'access_denied') return;
@@ -687,115 +697,125 @@ export function App() {
       forceNavigateDefault?: boolean;
     }): Promise<EmailSignInOutcome> => {
       if (!isSupabaseMode) {
+        setBootRestoringAuth(false);
         return { ok: false, error: 'Supabase Auth is not configured.' };
       }
 
-      const seq = ++supabaseResolveSeqRef.current;
-      const supabase = getSupabaseClient();
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (seq !== supabaseResolveSeqRef.current) {
-        return { ok: false };
+      if (activeSupabaseResolvePromiseRef.current) {
+        const existingOutcome = await activeSupabaseResolvePromiseRef.current;
+        if (opts?.forceNavigateDefault && userRef.current) {
+          navigate(getDefaultPathForRole(userRef.current.role), true);
+        }
+        setBootRestoringAuth(false);
+        return existingOutcome;
       }
 
-      if (sessionError) {
-        supabaseAuthUidRef.current = null;
-        setBootRestoringAuth(false);
-        return { ok: false, error: sessionError.message };
-      }
+      ++supabaseResolveSeqRef.current;
+      const doResolve = async (): Promise<EmailSignInOutcome> => {
+        try {
+          const supabase = getSupabaseClient();
+          const {
+            data: { session },
+            error: sessionError,
+          } = await supabase.auth.getSession();
 
-      const currentSubpath =
-        typeof window !== 'undefined'
-          ? stripBasePath(window.location.pathname || '/').toLowerCase()
-          : '/';
-
-      if (
-        opts?.isRecoveryEvent ||
-        (!opts?.forceNavigateDefault && currentSubpath === '/auth/reset-password')
-      ) {
-        supabaseAuthUidRef.current = session?.user?.id ?? null;
-        setPasswordRecoveryMode(true);
-        setAuthNotice(null);
-        setBootRestoringAuth(false);
-        return { ok: true };
-      }
-
-      if (!session) {
-        supabaseAuthUidRef.current = null;
-        setUser(null);
-        setBootRestoringAuth(false);
-        if (typeof window !== 'undefined') {
-          const searchParams = new URLSearchParams(window.location.search);
-          const errDesc =
-            searchParams.get('error_description') || searchParams.get('error');
-          if (errDesc) {
-            setOauthError(errDesc);
-            navigate('/login', true);
+          if (sessionError) {
+            supabaseAuthUidRef.current = null;
+            return { ok: false, error: sessionError.message };
           }
-        }
-        return { ok: false, error: 'No active session.' };
-      }
 
-      supabaseAuthUidRef.current = session.user.id;
-      const res = await api.getCurrentUser();
-      if (seq !== supabaseResolveSeqRef.current) {
-        return { ok: false };
-      }
+          const currentSubpath =
+            typeof window !== 'undefined'
+              ? stripBasePath(window.location.pathname || '/').toLowerCase()
+              : '/';
 
-      if (!res.ok || !res.data) {
-        if (res.code === 'PENDING_APPROVAL' || res.code === 'ACCESS_DENIED') {
-          const isPending = res.code === 'PENDING_APPROVAL';
-          const msg =
-            res.error ||
-            (isPending
-              ? 'Your account is pending approval by a Super Administrator.'
-              : 'Your account is not active for this workspace. Contact an Administrator.');
-          setUser(null);
-          setAuthNotice({
-            kind: isPending ? 'pending_approval' : 'access_denied',
-            email: session.user.email,
-            message: msg,
-          });
+          if (
+            opts?.isRecoveryEvent ||
+            (!opts?.forceNavigateDefault && currentSubpath === '/auth/reset-password')
+          ) {
+            supabaseAuthUidRef.current = session?.user?.id ?? null;
+            setPasswordRecoveryMode(true);
+            setAuthNotice(null);
+            return { ok: true };
+          }
+
+          if (!session) {
+            supabaseAuthUidRef.current = null;
+            setUser(null);
+            if (typeof window !== 'undefined') {
+              const searchParams = new URLSearchParams(window.location.search);
+              const errDesc =
+                searchParams.get('error_description') || searchParams.get('error');
+              if (errDesc) {
+                setOauthError(errDesc);
+                navigate('/login', true);
+              }
+            }
+            return { ok: false, error: 'No active session.' };
+          }
+
+          supabaseAuthUidRef.current = session.user.id;
+          const res = await api.getCurrentUser();
+
+          if (!res.ok || !res.data) {
+            if (res.code === 'PENDING_APPROVAL' || res.code === 'ACCESS_DENIED') {
+              const isPending = res.code === 'PENDING_APPROVAL';
+              const msg =
+                res.error ||
+                (isPending
+                  ? 'Your account is pending approval by a Super Administrator.'
+                  : 'Your account is not active for this workspace. Contact an Administrator.');
+              setUser(null);
+              setAuthNotice({
+                kind: isPending ? 'pending_approval' : 'access_denied',
+                email: session.user.email,
+                message: msg,
+              });
+              navigate(isPending ? '/pending-approval' : '/access-denied', true);
+              return { ok: false, code: res.code, error: msg };
+            }
+
+            const msg = res.error || 'Unable to verify your workspace profile right now.';
+            if (!userRef.current) {
+              setOauthError(msg);
+            } else {
+              notify('warning', 'Session verification warning', msg);
+            }
+            return { ok: false, code: res.code, error: msg };
+          }
+
+          setAuthNotice(null);
+          setOauthError(null);
+          setPasswordRecoveryMode(false);
+          setUser(res.data);
+
+          const isAuthLandingPath =
+            currentSubpath === '/' ||
+            currentSubpath === '/login' ||
+            currentSubpath === '/auth/google' ||
+            currentSubpath === '/auth/sso' ||
+            currentSubpath === '/auth/callback' ||
+            currentSubpath === '/pending-approval' ||
+            currentSubpath === '/access-denied' ||
+            currentSubpath === '/auth/reset-password';
+
+          if (opts?.forceNavigateDefault || isAuthLandingPath) {
+            navigate(getDefaultPathForRole(res.data.role), true);
+          }
+
+          await loadConfig();
+          return { ok: true };
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Session verification failed.';
+          return { ok: false, error: msg };
+        } finally {
           setBootRestoringAuth(false);
-          navigate(isPending ? '/pending-approval' : '/access-denied', true);
-          return { ok: false, code: res.code, error: msg };
+          activeSupabaseResolvePromiseRef.current = null;
         }
+      };
 
-        const msg = res.error || 'Unable to verify your workspace profile right now.';
-        if (!userRef.current) {
-          setOauthError(msg);
-        } else {
-          notify('warning', 'Session verification warning', msg);
-        }
-        setBootRestoringAuth(false);
-        return { ok: false, code: res.code, error: msg };
-      }
-
-      setAuthNotice(null);
-      setOauthError(null);
-      setPasswordRecoveryMode(false);
-      setUser(res.data);
-      setBootRestoringAuth(false);
-
-      const isAuthLandingPath =
-        currentSubpath === '/' ||
-        currentSubpath === '/login' ||
-        currentSubpath === '/auth/google' ||
-        currentSubpath === '/auth/sso' ||
-        currentSubpath === '/auth/callback' ||
-        currentSubpath === '/pending-approval' ||
-        currentSubpath === '/access-denied' ||
-        currentSubpath === '/auth/reset-password';
-
-      if (opts?.forceNavigateDefault || isAuthLandingPath) {
-        navigate(getDefaultPathForRole(res.data.role), true);
-      }
-
-      await loadConfig();
-      return { ok: true };
+      activeSupabaseResolvePromiseRef.current = doResolve();
+      return activeSupabaseResolvePromiseRef.current;
     },
     [api, isSupabaseMode, loadConfig, navigate, notify],
   );
