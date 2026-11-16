@@ -703,8 +703,9 @@ export function App() {
 
       if (activeSupabaseResolvePromiseRef.current) {
         const existingOutcome = await activeSupabaseResolvePromiseRef.current;
-        if (opts?.forceNavigateDefault && userRef.current) {
-          navigate(getDefaultPathForRole(userRef.current.role), true);
+        if (opts?.forceNavigateDefault) {
+          const targetRole = userRef.current?.role;
+          navigate(targetRole ? getDefaultPathForRole(targetRole) : '/admin/overview', true);
         }
         setBootRestoringAuth(false);
         return existingOutcome;
@@ -803,7 +804,8 @@ export function App() {
             navigate(getDefaultPathForRole(res.data.role), true);
           }
 
-          await loadConfig();
+          userRef.current = res.data;
+          void loadConfig();
           return { ok: true };
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'Session verification failed.';
@@ -815,12 +817,11 @@ export function App() {
       };
 
       const timeoutPromise = new Promise<EmailSignInOutcome>((resolve) => {
-        const timer = setTimeout(() => {
+        setTimeout(() => {
           setBootRestoringAuth(false);
           activeSupabaseResolvePromiseRef.current = null;
           resolve({ ok: false, error: 'Session verification timed out. Please try again.' });
         }, 8000);
-        return () => clearTimeout(timer);
       });
 
       activeSupabaseResolvePromiseRef.current = Promise.race([doResolve(), timeoutPromise]);
@@ -873,10 +874,22 @@ export function App() {
       }
       setOauthError(null);
       const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      const signInPromise = supabase.auth.signInWithPassword({
         email: emailInput.trim().toLowerCase(),
         password: passwordInput,
       });
+      const timeoutPromise = new Promise<{
+        data: { user: null; session: null };
+        error: { message: string } | null;
+      }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            data: { user: null, session: null },
+            error: { message: 'Sign-in timed out. Please check your network connection.' },
+          });
+        }, 8000);
+      });
+      const { error } = await Promise.race([signInPromise, timeoutPromise]);
       if (error) {
         const lower = error.message.toLowerCase();
         if (lower.includes('invalid login credentials')) {

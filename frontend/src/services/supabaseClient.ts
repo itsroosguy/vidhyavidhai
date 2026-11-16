@@ -73,6 +73,7 @@ export function getSupabaseClient(): SupabaseClient<Database> {
         detectSessionInUrl: true,
         flowType: 'pkce',
         storageKey: SUPABASE_AUTH_STORAGE_KEY,
+        lock: async (_name, _acquireTimeout, fn) => await fn(),
       },
       realtime: {
         params: {
