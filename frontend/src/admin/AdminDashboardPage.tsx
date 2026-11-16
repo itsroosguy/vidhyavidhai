@@ -407,8 +407,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const activeNavMeta =
     ADMIN_NAV_ITEMS.find((i) => i.slug === currentSection) ?? ADMIN_NAV_ITEMS[0]!;
 
+  const adminDataInFlightRef = useRef(false);
+
   const loadAdminData = useCallback(async (opts?: { background?: boolean }) => {
     if (!isSuperAdmin) return;
+    if (adminDataInFlightRef.current) return;
+    adminDataInFlightRef.current = true;
     if (!opts?.background) {
       setLoading(true);
     } else {
@@ -436,6 +440,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       }
       setLastRefreshedAt(new Date().toISOString());
     } finally {
+      adminDataInFlightRef.current = false;
       if (!opts?.background) {
         setLoading(false);
       }
@@ -489,9 +494,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     };
     const timer = window.setInterval(() => {
       if (typeof document === 'undefined' || document.visibilityState === 'visible') {
-        void loadAdminDataRef.current({ background: true });
+        if (!adminDataInFlightRef.current) {
+          void loadAdminDataRef.current({ background: true });
+        }
       }
-    }, 25_000);
+    }, 45_000);
 
     window.addEventListener('online', handleOnline);
     if (typeof document !== 'undefined') {

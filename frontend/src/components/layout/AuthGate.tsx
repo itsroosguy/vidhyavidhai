@@ -252,7 +252,10 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (!workspaceSubmitting) return;
     const timer = setTimeout(() => {
       setWorkspaceSubmitting(false);
-    }, 35000);
+      setWorkspaceServerPasswordError(
+        'Database verification is taking longer than expected. Please click Sign In again to retry.',
+      );
+    }, 25000);
     return () => clearTimeout(timer);
   }, [workspaceSubmitting]);
 

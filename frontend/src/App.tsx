@@ -443,7 +443,7 @@ export function App() {
     if (!bootRestoringAuth) return;
     const timer = setTimeout(() => {
       setBootRestoringAuth(false);
-    }, 3500);
+    }, 2500);
     return () => clearTimeout(timer);
   }, [bootRestoringAuth]);
 

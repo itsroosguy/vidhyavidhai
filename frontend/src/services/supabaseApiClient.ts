@@ -415,6 +415,12 @@ export class SupabaseApiClient implements BackendApiClient {
   mode = 'supabase' as const;
   private cachedUser: UserProfile | null = null;
   private cachedConfig: AppConfiguration | null = null;
+  private cachedSubmissions: {
+    key: string;
+    data: SessionRecord[];
+    timestamp: number;
+  } | null = null;
+  private submissionsInFlight: Map<string, Promise<SessionRecord[]>> = new Map();
 
   constructor(
     private readonly client: SupabaseClient<Database> = getSupabaseClient(),
@@ -424,6 +430,8 @@ export class SupabaseApiClient implements BackendApiClient {
   invalidateWorkspaceCache(): void {
     this.cachedUser = null;
     this.cachedConfig = null;
+    this.cachedSubmissions = null;
+    this.submissionsInFlight.clear();
   }
 
   reloadPersistedWorkspace(): void {
@@ -661,35 +669,66 @@ export class SupabaseApiClient implements BackendApiClient {
   }
 
   private async fetchAllSubmissions(ownerAuthId?: string): Promise<SessionRecord[]> {
-    const collected: SessionRecord[] = [];
-    const batchSize = 1000;
-    let from = 0;
-
-    while (true) {
-      let query = this.client
-        .from('form_submissions')
-        .select('*, form_submission_classes(*), profiles!form_submissions_user_id_fkey(user_code)')
-        .order('start_date', { ascending: false })
-        .order('submitted_at', { ascending: false })
-        .range(from, from + batchSize - 1);
-
-      if (ownerAuthId) {
-        query = query.eq('user_id', ownerAuthId);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      const rows = (data ?? []) as unknown as JoinedSubmissionRow[];
-      for (const row of rows) {
-        collected.push(mapSubmissionRowToSessionRecord(row));
-      }
-      if (rows.length < batchSize) break;
-      from += batchSize;
+    const cacheKey = ownerAuthId ?? '__all__';
+    const now = Date.now();
+    if (
+      this.cachedSubmissions &&
+      this.cachedSubmissions.key === cacheKey &&
+      now - this.cachedSubmissions.timestamp < 30_000
+    ) {
+      return this.cachedSubmissions.data;
     }
 
-    return sortSessionsNewestFirst(collected);
+    const inFlight = this.submissionsInFlight.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const fetchPromise = (async () => {
+      const collected: SessionRecord[] = [];
+      const batchSize = 1000;
+      let from = 0;
+
+      while (true) {
+        let query = this.client
+          .from('form_submissions')
+          .select('*, form_submission_classes(*), profiles!form_submissions_user_id_fkey(user_code)')
+          .order('start_date', { ascending: false })
+          .order('submitted_at', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        if (ownerAuthId) {
+          query = query.eq('user_id', ownerAuthId);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          if (this.cachedSubmissions && this.cachedSubmissions.key === cacheKey) {
+            return this.cachedSubmissions.data;
+          }
+          throw error;
+        }
+        const rows = (data ?? []) as unknown as JoinedSubmissionRow[];
+        for (const row of rows) {
+          collected.push(mapSubmissionRowToSessionRecord(row));
+        }
+        if (rows.length < batchSize) break;
+        from += batchSize;
+      }
+
+      const sorted = sortSessionsNewestFirst(collected);
+      this.cachedSubmissions = {
+        key: cacheKey,
+        data: sorted,
+        timestamp: Date.now(),
+      };
+      return sorted;
+    })().finally(() => {
+      this.submissionsInFlight.delete(cacheKey);
+    });
+
+    this.submissionsInFlight.set(cacheKey, fetchPromise);
+    return fetchPromise;
   }
 
   async pingHealth(): Promise<ApiResponse<BackendHealthInfo>> {
@@ -734,13 +773,61 @@ export class SupabaseApiClient implements BackendApiClient {
       };
     }
 
-    const { data, error } = await this.client.rpc('get_my_profile');
-    if (error || !data || typeof data !== 'object') {
-      this.cachedUser = null;
-      return this.mapSupabaseError(error, 'Failed to load authenticated profile.');
+    let p: Record<string, unknown> | null = null;
+    try {
+      const { data, error } = await this.client.rpc('get_my_profile');
+      if (!error && data && typeof data === 'object') {
+        p = data as Record<string, unknown>;
+      }
+    } catch {
+      // Fallback to direct table read below
     }
 
-    const p = data as Record<string, unknown>;
+    if (!p) {
+      try {
+        const { data: profileRow } = await this.client
+          .from('profiles')
+          .select('*')
+          .eq('id', sessionData.session.user.id)
+          .maybeSingle();
+        if (profileRow) {
+          p = {
+            userId: profileRow.user_code,
+            name: profileRow.full_name,
+            email: profileRow.email,
+            role: profileRow.role,
+            active: profileRow.active,
+            status: profileRow.account_status,
+            organisationId: profileRow.organisation_id,
+          };
+        }
+      } catch {
+        // Fallback to JWT session claims below
+      }
+    }
+
+    if (!p) {
+      const rawUserEmail = normalizeEmail(sessionData.session.user.email ?? '');
+      if (rawUserEmail && isAllowlistedSuperAdmin(rawUserEmail)) {
+        p = {
+          userId: `ADM_${sessionData.session.user.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+          name:
+            sessionData.session.user.user_metadata?.full_name ||
+            sessionData.session.user.user_metadata?.name ||
+            rawUserEmail,
+          email: rawUserEmail,
+          role: 'super_admin',
+          active: true,
+          status: 'APPROVED',
+        };
+      }
+    }
+
+    if (!p) {
+      this.cachedUser = null;
+      return { ok: false, code: 'PROFILE_LOAD_FAILED', error: 'Failed to load authenticated profile.' };
+    }
+
     const rawEmail = normalizeEmail(String(p.email ?? sessionData.session.user.email ?? ''));
     const rawRole: UserRole =
       p.role === 'super_admin' && isAllowlistedSuperAdmin(rawEmail)
@@ -1179,6 +1266,18 @@ export class SupabaseApiClient implements BackendApiClient {
       );
       return { ok: true, data: analytics };
     } catch (err) {
+      if (this.cachedSubmissions && this.cachedSubmissions.data.length > 0) {
+        const cfg = this.cachedConfig ?? DEFAULT_APP_CONFIGURATION;
+        const fallbackAnalytics = computeDashboardAnalytics(
+          this.cachedSubmissions.data,
+          {
+            ...filters,
+            includeArchived: false,
+          },
+          cfg,
+        );
+        return { ok: true, data: fallbackAnalytics };
+      }
       return this.mapSupabaseError(err, 'Failed to compute dashboard analytics.');
     }
   }
