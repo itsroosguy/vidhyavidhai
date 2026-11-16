@@ -252,7 +252,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (!workspaceSubmitting) return;
     const timer = setTimeout(() => {
       setWorkspaceSubmitting(false);
-    }, 9000);
+    }, 35000);
     return () => clearTimeout(timer);
   }, [workspaceSubmitting]);
 
@@ -260,7 +260,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (!googleSubmitting) return;
     const timer = setTimeout(() => {
       setGoogleSubmitting(false);
-    }, 9000);
+    }, 35000);
     return () => clearTimeout(timer);
   }, [googleSubmitting]);
 
@@ -268,7 +268,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (!savedAdminSubmitting) return;
     const timer = setTimeout(() => {
       setSavedAdminSubmitting(false);
-    }, 9000);
+    }, 35000);
     return () => clearTimeout(timer);
   }, [savedAdminSubmitting]);
 
@@ -2657,8 +2657,14 @@ export const AuthGate: React.FC<AuthGateProps> = ({
                       {workspaceSubmitting && (
                         <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                       )}
-                      <span>{isLiveBackend ? 'Sign In with Google' : 'Sign In'}</span>
-                      <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                      <span>
+                        {workspaceSubmitting
+                          ? 'Verifying with database...'
+                          : isLiveBackend
+                            ? 'Sign In with Google'
+                            : 'Sign In'}
+                      </span>
+                      {!workspaceSubmitting && <ArrowRight className="w-4 h-4" aria-hidden="true" />}
                     </button>
                   </form>
 

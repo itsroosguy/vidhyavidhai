@@ -821,7 +821,7 @@ export function App() {
           setBootRestoringAuth(false);
           activeSupabaseResolvePromiseRef.current = null;
           resolve({ ok: false, error: 'Session verification timed out. Please try again.' });
-        }, 8000);
+        }, 30000);
       });
 
       activeSupabaseResolvePromiseRef.current = Promise.race([doResolve(), timeoutPromise]);
@@ -887,7 +887,7 @@ export function App() {
             data: { user: null, session: null },
             error: { message: 'Sign-in timed out. Please check your network connection.' },
           });
-        }, 8000);
+        }, 30000);
       });
       const { error } = await Promise.race([signInPromise, timeoutPromise]);
       if (error) {
