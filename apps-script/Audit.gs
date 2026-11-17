@@ -13,9 +13,10 @@ var SHEET_NAMES = {
   SYNC_LOG: 'Sync Log'
 };
 
-var CT_DEFAULT_TARGET_SPREADSHEET_ID = '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE';
+var CT_DEFAULT_TARGET_SPREADSHEET_ID = '1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk';
 var CT_DEFAULT_TARGET_SPREADSHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+  'https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0';
+var CT_DEFAULT_TARGET_SPREADSHEET_NAME = 'Project Activity Report & Checklist';
 
 /**
  * Extracts a valid Google Spreadsheet ID from either a full docs.google.com URL or a raw ID.

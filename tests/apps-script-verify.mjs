@@ -151,13 +151,13 @@ function createAppsScriptSandbox() {
   const spreadsheet = createSpreadsheetObj('TEST_SHEET_ID', 'Initial Bound Sheet');
   const sheets = spreadsheet._sheets;
   const targetSheet = createSpreadsheetObj(
-    '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE',
-    'Vidhya Vidhai Official Target',
+    '1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk',
+    'Project Activity Report & Checklist',
     'Sheet1',
   );
   const spreadsheetsById = new Map([
     ['TEST_SHEET_ID', spreadsheet],
-    ['1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE', targetSheet],
+    ['1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk', targetSheet],
   ]);
 
   const scriptProps = new Map([
@@ -579,7 +579,7 @@ function runVerification() {
     ['searchSchools', { query: 'GHSS' }],
     ['saveAppConfiguration', { config: { partnerName: 'Tampered' } }],
     ['getSheetsConnection', {}],
-    ['connectGoogleSheet', { spreadsheetUrlOrId: '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE' }],
+    ['connectGoogleSheet', { spreadsheetUrlOrId: '1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk' }],
     ['createGoogleSheet', { title: 'Unauthorized Sheet' }],
     ['disconnectGoogleSheet', {}],
     ['syncAllToGoogleSheet', {}],
@@ -697,14 +697,14 @@ function runVerification() {
   // 12. Google Sheets Connection management RPCs (connect target URL, sync idempotently, create new, disconnect non-destructively)
   const connRes = ctx.callApi('connectGoogleSheet', 'TOKEN_SA_1', {
     spreadsheetUrlOrId:
-      'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0',
+      'https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0',
     initializeSchema: true,
   });
   assert.equal(connRes.ok, true);
   assert.equal(connRes.data.connected, true);
-  assert.equal(connRes.data.spreadsheetId, '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+  assert.equal(connRes.data.spreadsheetId, '1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk');
   assert.equal(connRes.data.initializedTabs.length, 8);
-  const targetSs = ctx.spreadsheetsById.get('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+  const targetSs = ctx.spreadsheetsById.get('1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk');
   for (const tabName of expectedSheets) {
     assert.ok(targetSs.getSheetByName(tabName), `Expected initialized tab ${tabName} on target sheet`);
   }

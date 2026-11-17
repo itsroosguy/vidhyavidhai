@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
 import { ExternalLink, FileSpreadsheet, Maximize2, Minus, X } from 'lucide-react';
+import {
+  DEFAULT_TARGET_SPREADSHEET_NAME,
+  DEFAULT_TARGET_SPREADSHEET_URL,
+} from '../../config/defaults';
 
 interface LiveReportFloatingBadgeProps {
   sheetUrl?: string;
+  sheetName?: string;
   publishedUrl?: string;
   defaultMinimized?: boolean;
 }
 
 export const DEFAULT_REPORT_SHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+  DEFAULT_TARGET_SPREADSHEET_URL ||
+  'https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0';
+
+export const DEFAULT_REPORT_SHEET_NAME =
+  DEFAULT_TARGET_SPREADSHEET_NAME || 'Project Activity Report & Checklist';
 
 export const DEFAULT_REPORT_PUBLISHED_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHD80E_6yBHsUCD1475f79sqZKvomquSbB1Dk0ehO440RPqI3HcdyXqvP4dBbAUXpFCqKNdrGrJi3F/pubhtml';
+  'https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/htmlview';
 
 const STORAGE_KEY = 'career_tours_live_report_badge_dismissed';
 
@@ -21,6 +30,7 @@ const STORAGE_KEY = 'career_tours_live_report_badge_dismissed';
  */
 export const LiveReportFloatingBadge: React.FC<LiveReportFloatingBadgeProps> = ({
   sheetUrl = DEFAULT_REPORT_SHEET_URL,
+  sheetName = DEFAULT_REPORT_SHEET_NAME,
   publishedUrl = DEFAULT_REPORT_PUBLISHED_URL,
   defaultMinimized = false,
 }) => {
@@ -58,7 +68,7 @@ export const LiveReportFloatingBadge: React.FC<LiveReportFloatingBadgeProps> = (
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 pl-3 pr-2.5 py-1.5 text-xs font-semibold text-[#006BB8] hover:text-[#00528C] transition-colors"
-            title="Open 63-column Google Sheet"
+            title={`Open ${sheetName}`}
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -94,7 +104,7 @@ export const LiveReportFloatingBadge: React.FC<LiveReportFloatingBadgeProps> = (
   return (
     <aside
       aria-label="Live Google Sheet Report Notification"
-      className="fixed bottom-4 right-4 z-40 w-[310px] sm:w-[330px] max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 backdrop-blur-md border border-[#006BB8]/20 shadow-xl shadow-blue-950/10 p-3.5 flex flex-col gap-2.5 transition-all duration-200 hover:shadow-2xl animate-in fade-in slide-in-from-bottom-3"
+      className="fixed bottom-4 right-4 z-40 w-[320px] sm:w-[350px] max-w-[calc(100vw-2rem)] rounded-2xl bg-white/95 backdrop-blur-md border border-[#006BB8]/20 shadow-xl shadow-blue-950/10 p-3.5 flex flex-col gap-2.5 transition-all duration-200 hover:shadow-2xl animate-in fade-in slide-in-from-bottom-3"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#ECFDF5] text-[#047857] border border-[#047857]/20">
@@ -132,8 +142,8 @@ export const LiveReportFloatingBadge: React.FC<LiveReportFloatingBadgeProps> = (
           <FileSpreadsheet className="w-4 h-4" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-[#0A1B2C] truncate">
-            Classroom Data Entry Report
+          <p className="text-xs font-semibold text-[#0A1B2C] truncate" title={sheetName}>
+            {sheetName}
           </p>
           <p className="text-[11px] text-[#5F7082] mt-0.5 leading-snug">
             63-column master sheet mirrors new facilitator entries automatically.

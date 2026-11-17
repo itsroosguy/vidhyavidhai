@@ -2,8 +2,9 @@
  * ============================================================================
  * VIDHYA VIDHAI FOUNDATION · CAREER TOURS
  * 63-Column Live Mirroring & 5-Minute Auto-Sync
- * Target Sheet: Classroom Data Entry - Report
- * Spreadsheet ID: 1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE
+ * Target Sheet: Project Activity Report & Checklist
+ * Spreadsheet ID: 1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk
+ * URL: https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0
  * ============================================================================
  */
 
@@ -85,7 +86,18 @@ var CT_EXACT_63_HEADERS = [
  * them into the 63-column structure in the Google Sheet.
  */
 function mirrorCareerTours63Col() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {}
+  if (!ss) {
+    try {
+      ss = SpreadsheetApp.openById('1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk');
+    } catch (e2) {}
+  }
+  if (!ss) {
+    throw new Error('Could not open target spreadsheet 1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk');
+  }
   var sheet = ss.getSheetByName(CT_CONFIG.TAB_NAME);
 
   if (!sheet) {

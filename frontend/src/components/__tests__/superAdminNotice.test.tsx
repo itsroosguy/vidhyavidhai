@@ -45,7 +45,7 @@ describe('LiveReportFloatingBadge', () => {
     });
     expect(badge).toBeInTheDocument();
     expect(within(badge).getByText(/5-Min Live Sync Active/i)).toBeInTheDocument();
-    expect(within(badge).getByText(/Classroom Data Entry Report/i)).toBeInTheDocument();
+    expect(within(badge).getByText(/Project Activity Report & Checklist/i)).toBeInTheDocument();
 
     const reportLink = within(badge).getByRole('link', { name: /Click for report link/i });
     expect(reportLink).toHaveAttribute('href', DEFAULT_REPORT_SHEET_URL);

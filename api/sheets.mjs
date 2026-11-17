@@ -5,9 +5,10 @@ export const ALLOWLISTED_SUPER_ADMINS = [
   { userId: 'SA_KARUNYA', name: 'Karunya', email: 'karunya@vidhyavidhai.org' },
 ];
 
-export const DEFAULT_TARGET_SPREADSHEET_ID = '1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE';
+export const DEFAULT_TARGET_SPREADSHEET_ID = '1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk';
 export const DEFAULT_TARGET_SPREADSHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE/edit?gid=0#gid=0';
+  'https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0';
+export const DEFAULT_TARGET_SPREADSHEET_NAME = 'Project Activity Report & Checklist';
 
 const SESSION_COOKIE_NAME = 'ct_sheets_session';
 const OAUTH_STATE_COOKIE_NAME = 'ct_sheets_oauth_state';

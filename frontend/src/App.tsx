@@ -1986,7 +1986,10 @@ export function App() {
       )}
 
       {isSuperAdmin && !passwordRecoveryMode && (
-        <LiveReportFloatingBadge />
+        <LiveReportFloatingBadge
+          sheetUrl="https://docs.google.com/spreadsheets/d/1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk/edit?gid=0#gid=0"
+          sheetName="Project Activity Report & Checklist"
+        />
       )}
 
       <ToastNotification toast={toast} onDismiss={() => setToast(null)} />
