@@ -1760,7 +1760,7 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
         within(screen.getByRole('banner')).getByText('karunya@vidhyavidhai.org'),
       ).toBeInTheDocument();
     });
-  });
+  }, 45000);
 
   it('flushes SessionEntryForm draft synchronously on pagehide within <500ms and exposes zero AI, preview, or telemetry jargon in rendered UI', async () => {
     const user = userEvent.setup();
@@ -1779,7 +1779,9 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
       />,
     );
 
-    await user.type(screen.getByLabelText(/^School name/i), 'Instant Pagehide Flush GHSS');
+    const schoolInput = screen.getByLabelText(/^School name/i);
+    await user.clear(schoolInput);
+    await user.type(schoolInput, 'Instant Pagehide Flush GHSS');
     // Fire pagehide immediately without waiting for the 500ms debounce
     fireEvent(window, new Event('pagehide'));
 

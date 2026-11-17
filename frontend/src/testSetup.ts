@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { Temporal } from 'temporal-polyfill';
 
+if (import.meta.env.MODE === 'test') {
+  Object.assign(import.meta.env, {
+    VITE_SUPABASE_URL: '',
+    VITE_SUPABASE_ANON_KEY: '',
+    VITE_SUPABASE_PUBLISHABLE_KEY: '',
+  });
+}
+
 if (typeof (globalThis as unknown as { Temporal?: typeof Temporal }).Temporal === 'undefined') {
   (globalThis as unknown as { Temporal: typeof Temporal }).Temporal = Temporal;
 }

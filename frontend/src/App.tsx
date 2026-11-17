@@ -5,7 +5,7 @@ import { AppHeader, type ActiveTab } from './components/layout/AppHeader';
 import { AuthGate, type AuthNoticeState, type EmailSignInOutcome } from './components/layout/AuthGate';
 import { GoogleSheetsSyncModal } from './components/modals/GoogleSheetsSyncModal';
 import { SubmissionFormModal } from './components/modals/SubmissionFormModal';
-import { SuperAdminAnalyticsNoticeModal } from './components/modals/SuperAdminAnalyticsNoticeModal';
+import { LiveReportFloatingBadge } from './components/notifications/LiveReportFloatingBadge';
 import { TopGoogleSheetsQuickBar } from './components/sheets/TopGoogleSheetsQuickBar';
 import { ToastNotification, type ToastMessage } from './components/ui/ToastNotification';
 import { isAllowlistedSuperAdmin } from './config/accessControl';
@@ -87,11 +87,6 @@ import {
   type AdminSectionSlug,
 } from './utils/routes';
 
-const SUPER_ADMIN_NOTICE_SESSION_KEY_PREFIX = 'vv_super_admin_analytics_notice_v1';
-
-function getSuperAdminNoticeSessionKey(userId: string): string {
-  return `${SUPER_ADMIN_NOTICE_SESSION_KEY_PREFIX}:${userId}`;
-}
 
 export function App() {
   const [initialTeamSetupOutcome] = useState(() =>
@@ -145,7 +140,6 @@ export function App() {
 
   const [outboxItems, setOutboxItems] = useState<SyncOutboxItem[]>([]);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
-  const [superAdminNoticeOpen, setSuperAdminNoticeOpen] = useState(false);
   const [submissionModalState, setSubmissionModalState] = useState<{
     open: boolean;
     editingSession: SessionRecord | null;
@@ -1377,23 +1371,6 @@ export function App() {
     setEditingSession(null);
     setSubmissionModalState({ open: false, editingSession: null });
     setSyncModalOpen(false);
-    setSuperAdminNoticeOpen(false);
-    if (typeof window !== 'undefined') {
-      try {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < window.sessionStorage.length; i += 1) {
-          const k = window.sessionStorage.key(i);
-          if (k && k.startsWith(`${SUPER_ADMIN_NOTICE_SESSION_KEY_PREFIX}:`)) {
-            keysToRemove.push(k);
-          }
-        }
-        for (const k of keysToRemove) {
-          window.sessionStorage.removeItem(k);
-        }
-      } catch {
-        // Ignore storage cleanup errors in restricted contexts.
-      }
-    }
     navigate('/login', true);
   }, [env.isLiveBackendConfigured, isSupabaseMode, navigate]);
 
@@ -1688,31 +1665,6 @@ export function App() {
     return () => window.removeEventListener('storage', handleStorage);
   }, [api, env.isLiveBackendConfigured, handleEmailSignIn, isSupabaseMode, navigate, refreshOutbox]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!user || user.role !== 'super_admin' || passwordRecoveryMode) {
-      setSuperAdminNoticeOpen(false);
-      return;
-    }
-    try {
-      const dismissed =
-        window.sessionStorage.getItem(getSuperAdminNoticeSessionKey(user.userId)) === '1';
-      setSuperAdminNoticeOpen(!dismissed);
-    } catch {
-      setSuperAdminNoticeOpen(true);
-    }
-  }, [passwordRecoveryMode, user]);
-
-  const dismissSuperAdminNotice = useCallback(() => {
-    if (typeof window !== 'undefined' && user?.userId) {
-      try {
-        window.sessionStorage.setItem(getSuperAdminNoticeSessionKey(user.userId), '1');
-      } catch {
-        // Ignore storage write errors in restricted browser contexts.
-      }
-    }
-    setSuperAdminNoticeOpen(false);
-  }, [user?.userId]);
 
   if (!user || passwordRecoveryMode || route.kind === 'reset_password') {
     const authRouteKind = bootRestoringAuth
@@ -2033,20 +1985,8 @@ export function App() {
         />
       )}
 
-      {isSuperAdmin && (
-        <SuperAdminAnalyticsNoticeModal
-          open={
-            superAdminNoticeOpen &&
-            !syncModalOpen &&
-            !submissionModalState.open &&
-            !passwordRecoveryMode
-          }
-          onClose={dismissSuperAdminNotice}
-          onOpenAnalytics={() => {
-            dismissSuperAdminNotice();
-            handleSelectAdminSection('analytics');
-          }}
-        />
+      {isSuperAdmin && !passwordRecoveryMode && (
+        <LiveReportFloatingBadge />
       )}
 
       <ToastNotification toast={toast} onDismiss={() => setToast(null)} />
