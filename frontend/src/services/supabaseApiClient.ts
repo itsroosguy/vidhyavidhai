@@ -5,6 +5,7 @@ import {
   APPROVED_DISTRICTS,
   DEFAULT_APP_CONFIGURATION,
   DEFAULT_TARGET_SPREADSHEET_ID,
+  DEFAULT_TARGET_SPREADSHEET_NAME,
   DEFAULT_TARGET_SPREADSHEET_URL,
   parseGoogleSpreadsheetId,
 } from '../config/defaults';
@@ -362,7 +363,11 @@ function normalizeSheetsConnection(raw: unknown): GoogleSheetsConnectionState {
     oauthConfigured: Boolean(src.oauthConfigured),
     connectedAccount: String(src.connectedAccount ?? ''),
     spreadsheetId: String(src.spreadsheetId ?? DEFAULT_TARGET_SPREADSHEET_ID),
-    spreadsheetName: String(src.spreadsheetName ?? 'Career Tours Live Sheet'),
+    spreadsheetName: String(
+      src.spreadsheetName && src.spreadsheetName !== 'Career Tours Live Sheet'
+        ? src.spreadsheetName
+        : DEFAULT_TARGET_SPREADSHEET_NAME,
+    ),
     spreadsheetUrl: String(src.spreadsheetUrl ?? DEFAULT_TARGET_SPREADSHEET_URL),
     appsScriptUrl:
       typeof src.appsScriptUrl === 'string' && src.appsScriptUrl.trim()
@@ -1693,7 +1698,10 @@ export class SupabaseApiClient implements BackendApiClient {
     const conn = connRes.ok && connRes.data ? connRes.data : null;
     const summary: GoogleSpreadsheetSummary = {
       spreadsheetId: conn?.spreadsheetId || DEFAULT_TARGET_SPREADSHEET_ID,
-      name: conn?.spreadsheetName || 'Career Tours Live Sheet',
+      name:
+        conn?.spreadsheetName && conn.spreadsheetName !== 'Career Tours Live Sheet'
+          ? conn.spreadsheetName
+          : DEFAULT_TARGET_SPREADSHEET_NAME,
       url: conn?.spreadsheetUrl || DEFAULT_TARGET_SPREADSHEET_URL,
       modifiedTime: conn?.lastSyncedAt || undefined,
     };
@@ -1787,7 +1795,10 @@ export class SupabaseApiClient implements BackendApiClient {
       connectionProvider: 'apps_script',
       connectedAccount: params.googleAccount || adminCheck.user.email,
       spreadsheetId: cleanId,
-      spreadsheetName: params.spreadsheetName?.trim() || 'Career Tours Live Sheet',
+      spreadsheetName:
+        params.spreadsheetName?.trim() && params.spreadsheetName.trim() !== 'Career Tours Live Sheet'
+          ? params.spreadsheetName.trim()
+          : DEFAULT_TARGET_SPREADSHEET_NAME,
       spreadsheetUrl: sheetUrl,
       lastSyncStatus: 'IDLE',
       lastSyncMessage: cleanWebhookUrl
@@ -1910,7 +1921,10 @@ export class SupabaseApiClient implements BackendApiClient {
 
     const connRes = await this.connectGoogleSheet({
       spreadsheetUrlOrId: params.spreadsheetUrlOrId || DEFAULT_TARGET_SPREADSHEET_ID,
-      spreadsheetName: params.sheetTitle?.trim() || 'Career Tours Live Sheet',
+      spreadsheetName:
+        params.sheetTitle?.trim() && params.sheetTitle.trim() !== 'Career Tours Live Sheet'
+          ? params.sheetTitle.trim()
+          : DEFAULT_TARGET_SPREADSHEET_NAME,
       appsScriptUrl: check.normalized,
       googleAccount: adminCheck.user.email,
     });

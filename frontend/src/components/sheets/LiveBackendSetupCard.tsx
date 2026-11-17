@@ -20,6 +20,7 @@ import {
 import type { GoogleSheetsConnectionState, TeamIntakeSetupResponse } from '../../types/domain';
 import {
   DEFAULT_TARGET_SPREADSHEET_ID,
+  DEFAULT_TARGET_SPREADSHEET_NAME,
   DEFAULT_TARGET_SPREADSHEET_URL,
   parseGoogleSpreadsheetId,
 } from '../../config/defaults';
@@ -90,7 +91,11 @@ export const LiveBackendSetupCard: React.FC<LiveBackendSetupCardProps> = ({
     () => oauthSheetsConnection?.spreadsheetUrl || DEFAULT_TARGET_SPREADSHEET_URL,
   );
   const [sbSheetName, setSbSheetName] = useState(
-    () => oauthSheetsConnection?.spreadsheetName || 'Career Tours Live Sheet',
+    () =>
+      oauthSheetsConnection?.spreadsheetName &&
+      oauthSheetsConnection.spreadsheetName !== 'Career Tours Live Sheet'
+        ? oauthSheetsConnection.spreadsheetName
+        : DEFAULT_TARGET_SPREADSHEET_NAME,
   );
   const [sbWebhookUrl, setSbWebhookUrl] = useState('');
   const [sbSheetUrlErr, setSbSheetUrlErr] = useState('');
@@ -1433,7 +1438,7 @@ export const LiveBackendSetupCard: React.FC<LiveBackendSetupCardProps> = ({
                 type="text"
                 value={sbSheetName}
                 onChange={(e) => setSbSheetName(e.target.value)}
-                placeholder="Career Tours Live Sheet"
+                placeholder={DEFAULT_TARGET_SPREADSHEET_NAME}
                 className="ct-input text-xs"
               />
             </div>

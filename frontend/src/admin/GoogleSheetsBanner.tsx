@@ -1,6 +1,10 @@
 import React, { useId } from 'react';
 import { AlertTriangle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { loadAppsScriptBridgeConfig } from '../services/authService';
+import {
+  DEFAULT_TARGET_SPREADSHEET_NAME,
+  DEFAULT_TARGET_SPREADSHEET_URL,
+} from '../config/defaults';
 import type { GoogleSheetsConnectionState } from '../types/domain';
 
 interface GoogleSheetsBannerProps {
@@ -68,7 +72,14 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
 
   if (hasSelectedSheet && connection && needsDirectReauth) {
     const accountLabel = connection.connectedAccount || userEmail;
-    const sheetTitle = connection.spreadsheetName || 'Linked Google Sheet';
+    const sheetTitle =
+      connection.spreadsheetName && connection.spreadsheetName !== 'Career Tours Live Sheet'
+        ? connection.spreadsheetName
+        : DEFAULT_TARGET_SPREADSHEET_NAME;
+    const sheetUrl =
+      connection.spreadsheetUrl && !connection.spreadsheetUrl.includes('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE')
+        ? connection.spreadsheetUrl
+        : DEFAULT_TARGET_SPREADSHEET_URL;
 
     return (
       <section
@@ -102,9 +113,9 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
                 </span>
                 <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
                   <span className="shrink-0">Spreadsheet:</span>
-                  {connection.spreadsheetUrl ? (
+                  {sheetUrl ? (
                     <a
-                      href={connection.spreadsheetUrl}
+                      href={sheetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-medium text-[#006BB8] hover:underline underline-offset-2 truncate max-w-[230px] sm:max-w-[360px]"
@@ -152,7 +163,14 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
 
   if (hasSelectedSheet && connection && isLiveVerified) {
     const accountLabel = connection.connectedAccount || userEmail;
-    const sheetTitle = connection.spreadsheetName || 'Connected Google Sheet';
+    const sheetTitle =
+      connection.spreadsheetName && connection.spreadsheetName !== 'Career Tours Live Sheet'
+        ? connection.spreadsheetName
+        : DEFAULT_TARGET_SPREADSHEET_NAME;
+    const sheetUrl =
+      connection.spreadsheetUrl && !connection.spreadsheetUrl.includes('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE')
+        ? connection.spreadsheetUrl
+        : DEFAULT_TARGET_SPREADSHEET_URL;
 
     return (
       <section
@@ -194,9 +212,9 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
                 </span>
                 <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
                   <span className="shrink-0">Spreadsheet:</span>
-                  {connection.spreadsheetUrl ? (
+                  {sheetUrl ? (
                     <a
-                      href={connection.spreadsheetUrl}
+                      href={sheetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-medium text-[#137333] hover:text-[#0D652D] underline underline-offset-2 truncate max-w-[230px] sm:max-w-[360px]"
@@ -236,7 +254,14 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
 
   if (hasSelectedSheet && connection) {
     const accountLabel = connection.connectedAccount || userEmail;
-    const sheetTitle = connection.spreadsheetName || 'Selected Target Spreadsheet';
+    const sheetTitle =
+      connection.spreadsheetName && connection.spreadsheetName !== 'Career Tours Live Sheet'
+        ? connection.spreadsheetName
+        : DEFAULT_TARGET_SPREADSHEET_NAME;
+    const sheetUrl =
+      connection.spreadsheetUrl && !connection.spreadsheetUrl.includes('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE')
+        ? connection.spreadsheetUrl
+        : DEFAULT_TARGET_SPREADSHEET_URL;
 
     return (
       <section
@@ -270,9 +295,9 @@ export const GoogleSheetsBanner: React.FC<GoogleSheetsBannerProps> = ({
                 </span>
                 <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
                   <span className="shrink-0">Spreadsheet:</span>
-                  {connection.spreadsheetUrl ? (
+                  {sheetUrl ? (
                     <a
-                      href={connection.spreadsheetUrl}
+                      href={sheetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-medium text-[#006BB8] hover:underline underline-offset-2 truncate max-w-[230px] sm:max-w-[360px]"
