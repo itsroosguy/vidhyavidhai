@@ -440,7 +440,7 @@ describe('UI Component Workflows — Strict RBAC, Route Guard, 7-Section Form & 
     const urlInput = within(sheetsDialog).getByLabelText(
       /Google Spreadsheet URL or ID/i,
     ) as HTMLInputElement;
-    expect(urlInput.value).toContain('1KKfxmSbWVk32Axsae275kTm9AJx_FxppDHGUmqDeUpE');
+    expect(urlInput.value).toContain('1BUyR3FxAiinqEdjGKAXTvCy_ijX7QxuiUYyGUYZWVnk');
 
     await user.click(
       within(sheetsDialog).getByRole('button', { name: 'Connect Google Sheets' }),

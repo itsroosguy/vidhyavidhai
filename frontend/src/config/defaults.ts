@@ -133,6 +133,7 @@ export const DEFAULT_APP_CONFIGURATION: AppConfiguration = {
     dataSource: 'Manual',
     feedbackFrom: 'students and teacher',
     educatorId: 'NA',
+    distributionChannelHost: 'Partner Platform',
   },
   policy: {
     allowFacilitatorDeleteOwn: true,
@@ -181,6 +182,7 @@ export function createInitialSessionForm(
     facilitatorEmail,
     tourId: defaultTour,
     language: defaultLanguage,
+    distributionChannelHost: config.reportingDefaults?.distributionChannelHost || 'Partner Platform',
     startDate: today,
     endDate: today,
     startTime: '',

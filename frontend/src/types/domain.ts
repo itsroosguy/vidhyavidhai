@@ -139,6 +139,7 @@ export interface SessionFormValues {
   facilitatorEmail: string;
   tourId: string;
   language: string;
+  distributionChannelHost?: string;
   startDate: string; // YYYY-MM-DD (Asia/Kolkata)
   endDate: string; // YYYY-MM-DD (Asia/Kolkata)
   startTime: string; // HH:MM (24h) or ''
@@ -195,6 +196,7 @@ export interface SessionRecord {
   tourName: string;
   videoId: string;
   language: string;
+  distributionChannelHost?: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
   startTime: string; // HH:MM
@@ -286,6 +288,7 @@ export interface AppConfiguration {
     dataSource: string;
     feedbackFrom: string;
     educatorId: string;
+    distributionChannelHost?: string;
   };
   policy: {
     allowFacilitatorDeleteOwn: boolean;

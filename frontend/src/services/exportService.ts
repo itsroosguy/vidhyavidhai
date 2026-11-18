@@ -42,6 +42,7 @@ export interface FlattenedExportRow {
   underserved_reach: string;
   feedback_from: string;
   educator_id: string;
+  distribution_channel_host?: string;
   facilitator_name: string;
   facilitator_email: string;
   tour_id: string;
@@ -578,6 +579,10 @@ export function buildFlattenedExportRows(
         underserved_reach: config.reportingDefaults.underservedReach,
         feedback_from: config.reportingDefaults.feedbackFrom,
         educator_id: config.reportingDefaults.educatorId,
+        distribution_channel_host:
+          s.distributionChannelHost ||
+          config.reportingDefaults.distributionChannelHost ||
+          'Partner Platform',
         facilitator_name: s.facilitatorName,
         facilitator_email: s.facilitatorEmail,
         tour_id: s.tourId,
@@ -641,6 +646,9 @@ function guessSourceKey(header: string): {
   if (h === 'cc' || h.includes('country')) return { sourceKey: 'cc', format: 'text' };
   if (h.includes('school_year') || h.includes('school year')) return { sourceKey: 'school_year', format: 'text' };
   if (h.includes('partner')) return { sourceKey: 'partner_name', format: 'text' };
+  if (h.includes('distribution_channel') || h.includes('distribution channel')) {
+    return { sourceKey: 'distribution_channel_host', format: 'text' };
+  }
   if (h.includes('data_source') || h.includes('data source')) return { sourceKey: 'data_source', format: 'text' };
   if (h.includes('completion')) return { sourceKey: 'completion_rate', format: 'number' };
   if (h.includes('underserved')) return { sourceKey: 'underserved_reach', format: 'text' };

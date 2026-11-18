@@ -232,6 +232,7 @@ function normalizeJsonSessionRecord(raw: unknown): SessionRecord {
     tourName: String(rec.tourName ?? ''),
     videoId: String(rec.videoId ?? ''),
     language: String(rec.language ?? ''),
+    distributionChannelHost: String(rec.distributionChannelHost ?? 'Partner Platform'),
     startDate: String(rec.startDate ?? '').slice(0, 10),
     endDate: String(rec.endDate ?? '').slice(0, 10),
     startTime: String(rec.startTime ?? ''),

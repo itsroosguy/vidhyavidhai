@@ -103,6 +103,7 @@ function sessionRecordToFormValues(record: SessionRecord): SessionFormValues {
     facilitatorEmail: record.facilitatorEmail,
     tourId: record.tourId,
     language: record.language,
+    distributionChannelHost: record.distributionChannelHost || 'Partner Platform',
     startDate: record.startDate,
     endDate: record.endDate,
     startTime: record.startTime,

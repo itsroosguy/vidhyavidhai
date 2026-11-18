@@ -219,6 +219,53 @@ export const Section2AboutSession: React.FC<Section2Props> = ({
             </div>
           </div>
         </div>
+
+        <div className="ct-field-grid-2">
+          {/* Distribution Channel / Host */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="distributionChannelHost" className="text-sm font-medium text-[#0A1B2C]">
+                Distribution Channel / Host
+              </label>
+            </div>
+            <select
+              id="distributionChannelHost"
+              name="distributionChannelHost"
+              value={values.distributionChannelHost || 'Partner Platform'}
+              onChange={(e) => onUpdate('distributionChannelHost', e.target.value)}
+              className="ct-input ct-select"
+            >
+              <option value="Partner Platform">Partner Platform</option>
+              <option value="Offline Video">Offline Video</option>
+            </select>
+            <div className="ct-field-meta">
+              <p className="text-xs text-[#33475B]">
+                Distribution host platform (Col 13 in the 63-column report feed).
+              </p>
+            </div>
+          </div>
+
+          {/* Content & Video ID */}
+          <div className="ct-field-col">
+            <div className="ct-field-label">
+              <label htmlFor="videoIndicator" className="text-sm font-medium text-[#0A1B2C]">
+                Content & Video ID
+              </label>
+            </div>
+            <input
+              id="videoIndicator"
+              type="text"
+              readOnly
+              value={videoInfo.isConfigured ? videoInfo.videoId : 'Select video & language'}
+              className="ct-input font-mono text-xs"
+            />
+            <div className="ct-field-meta">
+              <p className="text-xs text-[#33475B]">
+                Resolved from configured tour catalogue.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bento Well 2 — Subgrid-Locked Date Row + Time Row with Full-Width Calculated Duration */}

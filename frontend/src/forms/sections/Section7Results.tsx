@@ -328,6 +328,12 @@ export const Section7Results: React.FC<Section7Props> = ({
               <dd className="font-mono font-medium text-[#0A1B2C]">{config.reportingDefaults.dataSource}</dd>
             </div>
             <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#33475B]">Distribution channel host</dt>
+              <dd className="font-mono font-medium text-[#0A1B2C]">
+                {values.distributionChannelHost || config.reportingDefaults.distributionChannelHost || 'Partner Platform'}
+              </dd>
+            </div>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#DFD7C2] px-3 py-2 flex flex-col gap-0.5">
               <dt className="text-[11px] text-[#33475B]">Submission date</dt>
               <dd className="font-mono font-medium text-[#0A1B2C]">{todayFormatted}</dd>
             </div>
