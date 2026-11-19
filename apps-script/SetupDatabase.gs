@@ -268,7 +268,7 @@ function ctGetDropdownChoices_(headerName, defaults) {
   if (headerName === 'district') return (defaults && defaults.allowedDistricts) || ['Cuddalore', 'Nagapattinam', 'Sivaganga'];
   if (headerName === 'language') return (defaults && defaults.languageOptions) || ['Tamil', 'English'];
   if (headerName === 'grade') return (defaults && defaults.gradeOptions) || ['8', '9', '10', '11', '12'];
-  if (headerName === 'section') return (defaults && defaults.sectionOptions) || ['A', 'B', 'C', 'D', 'E', 'F', 'No section'];
+  if (headerName === 'section') return (defaults && defaults.sectionOptions) || ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'No section'];
   if (headerName === 'school_type') return (defaults && defaults.schoolTypes) || [];
   if (headerName === 'session_type') return ['single', 'combined'];
   if (headerName === 'submission_status') return ['COMMITTED', 'CORRECTED', 'PENDING'];

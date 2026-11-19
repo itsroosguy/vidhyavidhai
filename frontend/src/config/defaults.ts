@@ -75,7 +75,7 @@ export const DEFAULT_APP_CONFIGURATION: AppConfiguration = {
   stateName: 'Tamil Nadu',
   allowedDistricts: [...APPROVED_DISTRICTS],
   gradeOptions: ['8', '9', '10', '11', '12'],
-  sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'No section'],
+  sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'No section'],
   schoolTypes: [
     'Government school',
     'Government aided school',

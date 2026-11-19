@@ -11,7 +11,7 @@ function ctDefaultConfigObject_() {
     stateName: 'Tamil Nadu',
     allowedDistricts: ['Cuddalore', 'Nagapattinam', 'Sivaganga'],
     gradeOptions: ['8', '9', '10', '11', '12'],
-    sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'No section'],
+    sectionOptions: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'No section'],
     schoolTypes: [
       'Government school',
       'Government aided school',
